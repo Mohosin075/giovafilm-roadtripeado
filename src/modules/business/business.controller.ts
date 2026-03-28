@@ -5,6 +5,10 @@ import sendResponse from '../../shared/sendResponse'
 import { BusinessService } from './business.service'
 import { JwtPayload } from 'jsonwebtoken'
 
+/**
+ * Controller to handle business creation requests.
+ * Extracts user ID from the JWT payload and injects into business data.
+ */
 const createBusiness = catchAsync(async (req: Request, res: Response) => {
   // Grab the user from the auth token
   const user = req.user as JwtPayload
@@ -22,6 +26,9 @@ const createBusiness = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+/**
+ * Controller to retrieve a paginated listing of all businesses.
+ */
 const getAllBusinesses = catchAsync(async (req: Request, res: Response) => {
   const result = await BusinessService.getAllBusinesses(req.query)
   sendResponse(res, {
@@ -33,6 +40,9 @@ const getAllBusinesses = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+/**
+ * Controller to retrieve single business detailed information by ID.
+ */
 const getBusinessById = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
   const result = await BusinessService.getBusinessById(id)
@@ -44,6 +54,9 @@ const getBusinessById = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+/**
+ * Controller to update a business submission.
+ */
 const updateBusiness = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
   const result = await BusinessService.updateBusiness(id, req.body)
@@ -55,6 +68,9 @@ const updateBusiness = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+/**
+ * Controller strictly for administrative actions to alter the business status state machine.
+ */
 const updateBusinessStatus = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
   const { status } = req.body
@@ -67,6 +83,9 @@ const updateBusinessStatus = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+/**
+ * Controller to handle permanent deletion of a business.
+ */
 const deleteBusiness = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
   const result = await BusinessService.deleteBusiness(id)

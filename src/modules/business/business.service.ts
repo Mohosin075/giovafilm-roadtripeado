@@ -3,6 +3,13 @@ import ApiError from '../../errors/ApiError'
 import { IBusiness, BusinessStatus } from './business.interface'
 import { Business } from './business.model'
 import QueryBuilder from '../../builder/QueryBuilder'
+import { businessSearchableFields } from './business.constants'
+
+/**
+ * Creates a new business listing and sets it as Pending.
+ * @param payload The business data to be created
+ * @returns The newly created business document
+ */
 
 const createBusiness = async (payload: IBusiness): Promise<IBusiness> => {
   payload.status = 'Pending' // Always start as pending until admin approves
@@ -10,9 +17,14 @@ const createBusiness = async (payload: IBusiness): Promise<IBusiness> => {
   return result
 }
 
+/**
+ * Retrieves all businesses with support for queries (search, filter, sort, pagination).
+ * @param query The query parameters from the request
+ * @returns Paginated list of businesses and metadata
+ */
 const getAllBusinesses = async (query: Record<string, unknown>) => {
   const businessQuery = new QueryBuilder(Business.find().populate('user category'), query)
-    .search(['name', 'description'])
+    .search(businessSearchableFields)
     .filter()
     .sort()
     .paginate()
@@ -27,6 +39,11 @@ const getAllBusinesses = async (query: Record<string, unknown>) => {
   }
 }
 
+/**
+ * Retrieves a single business by its ID.
+ * @param id The business document ID
+ * @returns The business document or throws a NotFound error
+ */
 const getBusinessById = async (id: string): Promise<IBusiness | null> => {
   const result = await Business.findById(id).populate('user category')
   if (!result) {
@@ -35,6 +52,12 @@ const getBusinessById = async (id: string): Promise<IBusiness | null> => {
   return result
 }
 
+/**
+ * Updates an existing business listing.
+ * @param id The business document ID
+ * @param payload The fields to update
+ * @returns The updated business document or throws an error if not found
+ */
 const updateBusiness = async (
   id: string,
   payload: Partial<IBusiness>,
@@ -50,6 +73,12 @@ const updateBusiness = async (
   return result
 }
 
+/**
+ * Updates the approval status of a business listing (e.g., Pending, Approved, Rejected).
+ * @param id The business document ID
+ * @param status The new status value
+ * @returns The updated business document
+ */
 const updateBusinessStatus = async (
   id: string,
   status: BusinessStatus,
@@ -70,6 +99,11 @@ const updateBusinessStatus = async (
   return result
 }
 
+/**
+ * Deletes a business listing permanently.
+ * @param id The business document ID
+ * @returns The deleted business document
+ */
 const deleteBusiness = async (id: string): Promise<IBusiness | null> => {
   const isExist = await Business.findById(id)
   if (!isExist) {

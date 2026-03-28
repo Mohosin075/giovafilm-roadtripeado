@@ -3,6 +3,7 @@ import { StatusCodes } from 'http-status-codes'
 import catchAsync from '../../shared/catchAsync'
 import sendResponse from '../../shared/sendResponse'
 import { OfferService } from './offer.service'
+import ApiError from '../../errors/ApiError'
 
 const createOffer = catchAsync(async (req: Request, res: Response) => {
   const result = await OfferService.createOffer(req.body)
@@ -58,10 +59,28 @@ const deleteOffer = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const calculateDiscount = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params
+  const { price } = req.body
+
+  if (price === undefined || isNaN(Number(price)) || Number(price) < 0) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Valid price must be provided')
+  }
+
+  const result = await OfferService.calculateDiscount(id, Number(price))
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Discount calculated successfully',
+    data: result,
+  })
+})
+
 export const OfferController = {
   createOffer,
   getAllOffers,
   getOfferById,
   updateOffer,
   deleteOffer,
+  calculateDiscount,
 }

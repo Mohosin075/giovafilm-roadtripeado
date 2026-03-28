@@ -32,4 +32,10 @@ router
     OfferController.deleteOffer,
   )
 
+router.post(
+  '/:id/calculate',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER),
+  OfferController.calculateDiscount,
+)
+
 export const OfferRoutes = router

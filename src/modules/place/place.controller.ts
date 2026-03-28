@@ -15,12 +15,13 @@ const createPlace = catchAsync(async (req: Request, res: Response) => {
 })
 
 const getAllPlaces = catchAsync(async (req: Request, res: Response) => {
-  const result = await PlaceService.getAllPlaces()
+  const result = await PlaceService.getAllPlaces(req.query)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Places retrieved successfully',
-    data: result,
+    meta: result.meta,
+    data: result.data,
   })
 })
 

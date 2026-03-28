@@ -2,6 +2,8 @@ import { StatusCodes } from 'http-status-codes'
 import ApiError from '../../errors/ApiError'
 import { ICategory } from './category.interface'
 import { Category } from './category.model'
+import QueryBuilder from '../../builder/QueryBuilder'
+import { categorySearchableFields } from './category.constants'
 
 const createCategory = async (payload: ICategory): Promise<ICategory> => {
   const isExist = await Category.findOne({ name: payload.name })
@@ -12,9 +14,21 @@ const createCategory = async (payload: ICategory): Promise<ICategory> => {
   return result
 }
 
-const getAllCategories = async (): Promise<ICategory[]> => {
-  const result = await Category.find()
-  return result
+const getAllCategories = async (query: Record<string, unknown>) => {
+  const categoryQuery = new QueryBuilder(Category.find(), query)
+    .search(categorySearchableFields)
+    .filter()
+    .sort()
+    .paginate()
+    .fields()
+
+  const result = await categoryQuery.modelQuery
+  const meta = await categoryQuery.getPaginationInfo()
+
+  return {
+    meta,
+    data: result,
+  }
 }
 
 const getCategoryById = async (id: string): Promise<ICategory | null> => {

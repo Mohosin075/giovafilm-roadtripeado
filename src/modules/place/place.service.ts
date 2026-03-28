@@ -2,15 +2,29 @@ import { StatusCodes } from 'http-status-codes'
 import ApiError from '../../errors/ApiError'
 import { IPlace } from './place.interface'
 import { Place } from './place.model'
+import QueryBuilder from '../../builder/QueryBuilder'
+import { placeSearchableFields } from './place.constants'
 
 const createPlace = async (payload: IPlace): Promise<IPlace> => {
   const result = await Place.create(payload)
   return result
 }
 
-const getAllPlaces = async (): Promise<IPlace[]> => {
-  const result = await Place.find().populate('category')
-  return result
+const getAllPlaces = async (query: Record<string, unknown>) => {
+  const placeQuery = new QueryBuilder(Place.find().populate('category'), query)
+    .search(placeSearchableFields)
+    .filter()
+    .sort()
+    .paginate()
+    .fields()
+
+  const result = await placeQuery.modelQuery
+  const meta = await placeQuery.getPaginationInfo()
+
+  return {
+    meta,
+    data: result,
+  }
 }
 
 const getPlaceById = async (id: string): Promise<IPlace | null> => {

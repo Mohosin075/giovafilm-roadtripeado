@@ -14,6 +14,10 @@ const message_routes_1 = require("../modules/message/message.routes");
 const chat_routes_1 = require("../modules/chat/chat.routes");
 const review_route_1 = require("../modules/review/review.route");
 const subscription_route_1 = require("../modules/subscription/subscription.route");
+const category_route_1 = require("../modules/category/category.route");
+const place_route_1 = require("../modules/place/place.route");
+const offer_route_1 = require("../modules/offer/offer.route");
+const business_route_1 = require("../modules/business/business.route");
 const http_status_codes_1 = require("http-status-codes");
 const router = express_1.default.Router();
 const apiRoutes = [
@@ -27,6 +31,10 @@ const apiRoutes = [
     { path: '/chat', route: chat_routes_1.ChatRoutes },
     { path: '/review', route: review_route_1.ReviewRoutes },
     { path: '/subscription', route: subscription_route_1.SubscriptionRoutes },
+    { path: '/category', route: category_route_1.CategoryRoutes },
+    { path: '/place', route: place_route_1.PlaceRoutes },
+    { path: '/offer', route: offer_route_1.OfferRoutes },
+    { path: '/business', route: business_route_1.BusinessRoutes },
 ];
 apiRoutes.forEach(route => {
     router.use(route.path, route.route);

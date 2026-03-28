@@ -1,0 +1,47 @@
+import { Schema, model } from 'mongoose'
+import { IPlace, PlaceModel } from './place.interface'
+
+const PlaceSchema = new Schema<IPlace, PlaceModel>(
+  {
+    name: { type: String, required: true, trim: true },
+    category: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
+    description: { type: String, required: true },
+    media: { type: [String], default: [] },
+    address: { type: String, required: true },
+    location: {
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point',
+        required: true,
+      },
+      coordinates: {
+        type: [Number],
+        required: true,
+      },
+    },
+    access: { type: String },
+    accessibility: {
+      features: { type: [String], default: [] },
+      notes: { type: String },
+    },
+    recommendations: {
+      tips: { type: String },
+    },
+    services: { type: [String], default: [] },
+    status: {
+      type: String,
+      enum: ['Draft', 'Published'],
+      default: 'Draft',
+    },
+  },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
+)
+
+PlaceSchema.index({ location: '2dsphere' }) // important for geo queries!
+
+export const Place = model<IPlace, PlaceModel>('Place', PlaceSchema)

@@ -12,6 +12,7 @@ import { ReviewRoutes } from '../modules/review/review.route'
 import { SubscriptionRoutes } from '../modules/subscription/subscription.route'
 import { CategoryRoutes } from '../modules/category/category.route'
 import { PlaceRoutes } from '../modules/place/place.route'
+import { OfferRoutes } from '../modules/offer/offer.route'
 import { StatusCodes } from 'http-status-codes'
 
 const router = express.Router()
@@ -30,6 +31,7 @@ const apiRoutes: { path: string; route: Router }[] = [
   { path: '/subscription', route: SubscriptionRoutes },
   { path: '/category', route: CategoryRoutes },
   { path: '/place', route: PlaceRoutes },
+  { path: '/offer', route: OfferRoutes },
 ]
 
 apiRoutes.forEach(route => {

@@ -101,6 +101,13 @@ UserSchema.virtual('fullProfile').get(function () {
   return `${this.profile}`
 })
 
+// Virtual for awards
+UserSchema.virtual('awards', {
+  ref: 'Award',
+  localField: '_id',
+  foreignField: 'userId',
+})
+
 // ------------------ INDEXES ------------------
 UserSchema.index({ location: '2dsphere' }) // Geo queries support
 

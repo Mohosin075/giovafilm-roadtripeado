@@ -86,6 +86,12 @@ const UserSchema = new Schema<IUser, UserModel>(
         ref: 'Offer',
       },
     ],
+    purchasedMaps: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Map',
+      },
+    ],
     // --- Subscription Fields ---
     stripeCustomerId: { type: String, default: null },
     subscriptionStatus: { type: String, default: 'none' },

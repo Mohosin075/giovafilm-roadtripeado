@@ -3,6 +3,7 @@ import { Model, Types } from 'mongoose'
 export interface IPlace {
   _id: Types.ObjectId
   name: string
+  map: Types.ObjectId // Ref Map
   category: Types.ObjectId // Ref Category
   description: string
   media: string[]

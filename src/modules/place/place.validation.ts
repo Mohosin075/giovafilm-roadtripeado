@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const createPlaceZodSchema = z.object({
   body: z.object({
     name: z.string({ required_error: 'Place name is required' }),
+    map: z.string({ required_error: 'Map ID is required' }),
     category: z.string({ required_error: 'Category ID is required' }),
     description: z.string({ required_error: 'Description is required' }),
     media: z.array(z.string()).optional(),
@@ -34,6 +35,7 @@ export const createPlaceZodSchema = z.object({
 export const updatePlaceZodSchema = z.object({
   body: z.object({
     name: z.string().optional(),
+    map: z.string().optional(),
     category: z.string().optional(),
     description: z.string().optional(),
     media: z.array(z.string()).optional(),

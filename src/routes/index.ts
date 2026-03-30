@@ -15,6 +15,7 @@ import { PlaceRoutes } from '../modules/place/place.route'
 import { OfferRoutes } from '../modules/offer/offer.route'
 import { BusinessRoutes } from '../modules/business/business.route'
 import { AwardRoutes } from '../modules/award/award.route'
+import { MapRoutes } from '../modules/map/map.route'
 import { StatusCodes } from 'http-status-codes'
 
 const router = express.Router()
@@ -36,6 +37,7 @@ const apiRoutes: { path: string; route: Router }[] = [
   { path: '/offer', route: OfferRoutes },
   { path: '/business', route: BusinessRoutes },
   { path: '/awards', route: AwardRoutes },
+  { path: '/map', route: MapRoutes },
 ]
 
 apiRoutes.forEach(route => {

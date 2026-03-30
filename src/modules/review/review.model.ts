@@ -3,19 +3,15 @@ import { IReview, ReviewModel } from './review.interface'
 
 const reviewSchema = new Schema<IReview, ReviewModel>(
   {
-    eventId: { type: Schema.Types.ObjectId, ref: 'Event', required: true },
+    placeId: { type: Schema.Types.ObjectId, ref: 'Place', required: true },
     reviewer: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      populate: { path: 'reviewer', select: 'name lastName fullName profile' },
+      required: true,
     },
-    reviewee: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      populate: { path: 'reviewee', select: 'name lastName fullName profile' },
-    },
-    rating: { type: Number, required: true },
+    rating: { type: Number, required: true, min: 1, max: 5 },
     review: { type: String, required: true },
+    media: { type: [String], default: [] },
   },
   {
     timestamps: true,

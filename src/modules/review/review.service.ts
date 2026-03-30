@@ -5,34 +5,37 @@ import { Review } from './review.model'
 import { JwtPayload } from 'jsonwebtoken'
 import mongoose from 'mongoose'
 import { User } from '../user/user.model'
+import { Place } from '../place/place.model'
 import { IPaginationOptions } from '../../interfaces/pagination'
 import { paginationHelper } from '../../helpers/paginationHelper'
-// import { redisClient } from '../../helpers/redis';
 
 const createReview = async (user: JwtPayload, payload: IReview) => {
-  payload.reviewer = user.authId
+  payload.reviewer = user.authId as unknown as mongoose.Types.ObjectId
 
   const isUserExist = await User.findById(user.authId)
-
   if (!isUserExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
   }
 
-  const reviewData = { ...payload, reviewer: user.authId }
+  const isPlaceExist = await Place.findById(payload.placeId)
+  if (!isPlaceExist) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
+  }
 
   const session = await mongoose.startSession()
   try {
     session.startTransaction()
-    const result = await Review.create([reviewData], { session })
+    const result = await Review.create([payload], { session })
     if (!result) {
       throw new ApiError(
         StatusCodes.BAD_REQUEST,
         'Failed to create Review, please try again later.',
       )
     }
-    //now update the review count of the user
-    await User.findByIdAndUpdate(
-      payload.reviewee,
+
+    // update the review count and rating of the place
+    await Place.findByIdAndUpdate(
+      payload.placeId,
       [
         {
           $set: {
@@ -74,33 +77,21 @@ const createReview = async (user: JwtPayload, payload: IReview) => {
 }
 
 const getAllReviews = async (
-  user: JwtPayload,
-  type: 'reviewer' | 'reviewee',
   paginationOptions: IPaginationOptions,
+  filter: any = {},
 ) => {
   const { page, limit, skip, sortBy, sortOrder } =
     paginationHelper.calculatePagination(paginationOptions)
 
-  const cacheKey = `reviews:${type}:${user.authId}:page:${page}:limit:${limit}:sort:${sortBy}:${sortOrder}`
-
-  // const cachedResult = await redisClient.get(cacheKey);
-
-  // if(cachedResult){
-  //   return JSON.parse(cachedResult);
-  // }
-
   const [result, total] = await Promise.all([
-    Review.find({})
-      .populate('reviewer')
-      .populate('reviewee')
+    Review.find(filter)
+      .populate('reviewer', 'name profile')
+      .populate('placeId', 'name')
       .skip(skip)
       .limit(limit)
       .sort({ [sortBy]: sortOrder }),
-    Review.countDocuments({}),
+    Review.countDocuments(filter),
   ])
-
-  //cache the result
-  // await redisClient.setex(cacheKey, JSON.stringify({ meta: { page, limit, total, totalPages: Math.ceil(total / limit) }, data: result }), 60 * 3); // 2 minutes
 
   return {
     meta: {
@@ -113,45 +104,11 @@ const getAllReviews = async (
   }
 }
 
-const getReviewsByEvent = async (
-  user: JwtPayload,
-  eventId: string,
-  type: 'reviewer' | 'reviewee',
+const getReviewsByPlace = async (
+  placeId: string,
   paginationOptions: IPaginationOptions,
 ) => {
-  const { page, limit, skip, sortBy, sortOrder } =
-    paginationHelper.calculatePagination(paginationOptions)
-
-  const cacheKey = `reviews:${type}:${user.authId}:page:${page}:limit:${limit}:sort:${sortBy}:${sortOrder}`
-
-  // const cachedResult = await redisClient.get(cacheKey);
-
-  // if(cachedResult){
-  //   return JSON.parse(cachedResult);
-  // }
-
-  const [result, total] = await Promise.all([
-    Review.find({ eventId: eventId })
-      .populate('reviewer')
-      .populate('reviewee')
-      .skip(skip)
-      .limit(limit)
-      .sort({ [sortBy]: sortOrder }),
-    Review.countDocuments({ eventId: eventId }),
-  ])
-
-  //cache the result
-  // await redisClient.setex(cacheKey, JSON.stringify({ meta: { page, limit, total, totalPages: Math.ceil(total / limit) }, data: result }), 60 * 3); // 2 minutes
-
-  return {
-    meta: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    },
-    data: result,
-  }
+  return await getAllReviews(paginationOptions, { placeId })
 }
 
 const updateReview = async (
@@ -166,10 +123,7 @@ const updateReview = async (
     const existingReview = await Review.findById(id).session(session)
 
     if (!existingReview) {
-      throw new ApiError(
-        StatusCodes.NOT_FOUND,
-        'Review not found, please try again later.',
-      )
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Review not found.')
     }
     if (existingReview?.reviewer.toString() !== user.authId) {
       throw new ApiError(
@@ -177,111 +131,112 @@ const updateReview = async (
         'You are not authorized to update this review.',
       )
     }
+
     const oldRating = existingReview.rating
     const newRating = payload.rating ?? oldRating
 
-    // Update user rating
-    await User.findByIdAndUpdate(
-      existingReview.reviewee,
-      [
-        {
-          $set: {
-            rating: {
-              $cond: [
-                { $eq: ['$totalReview', 0] },
-                0,
-                {
-                  $divide: [
-                    {
-                      $add: [
-                        {
-                          $subtract: [
-                            { $multiply: ['$rating', '$totalReview'] },
-                            oldRating,
-                          ],
-                        },
-                        newRating,
-                      ],
-                    },
-                    '$totalReview',
-                  ],
-                },
-              ],
+    // Update place rating if rating changed
+    if (payload.rating !== undefined && oldRating !== newRating) {
+      await Place.findByIdAndUpdate(
+        existingReview.placeId,
+        [
+          {
+            $set: {
+              rating: {
+                $cond: [
+                  { $eq: ['$totalReview', 0] },
+                  0,
+                  {
+                    $divide: [
+                      {
+                        $add: [
+                          {
+                            $subtract: [
+                              { $multiply: ['$rating', '$totalReview'] },
+                              oldRating,
+                            ],
+                          },
+                          newRating,
+                        ],
+                      },
+                      '$totalReview',
+                    ],
+                  },
+                ],
+              },
             },
           },
-        },
-      ],
-      { session, new: true },
-    )
+        ],
+        { session, new: true },
+      )
+    }
 
-    // Update review document
-    if (payload.rating !== undefined) existingReview.rating = newRating
-    if (payload.review !== undefined) existingReview.review = payload.review
+    const result = await Review.findByIdAndUpdate(id, payload, {
+      new: true,
+      session,
+    })
 
-    await existingReview.save({ session })
     await session.commitTransaction()
-
-    //clear the cache
-    // await redisClient.del(`reviews:reviewer:${existingReview.reviewer}:*`);
-    // await redisClient.del(`reviews:reviewee:${existingReview.reviewee}:*`);
-
-    return 'Review updated successfully'
+    return result
   } catch (error) {
-    console.log({ error })
     await session.abortTransaction()
-    throw new ApiError(
-      StatusCodes.INTERNAL_SERVER_ERROR,
-      'Update review failed.',
-    )
+    throw error
   } finally {
     await session.endSession()
   }
 }
 
-const deleteReview = async (id: string, user: JwtPayload) => {
+const deleteReview = async (user: JwtPayload, id: string) => {
   const session = await mongoose.startSession()
   try {
     session.startTransaction()
 
     const existingReview = await Review.findById(id).session(session)
     if (!existingReview) {
-      throw new ApiError(
-        StatusCodes.NOT_FOUND,
-        'Review not found, please try again later.',
-      )
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Review not found.')
     }
 
-    if (existingReview.reviewer.toString() !== user.authId) {
+    if (
+      user.role !== 'admin' &&
+      user.role !== 'super_admin' &&
+      existingReview.reviewer.toString() !== user.authId
+    ) {
       throw new ApiError(
         StatusCodes.UNAUTHORIZED,
         'You are not authorized to delete this review.',
       )
     }
 
-    // Update reviewee's rating and totalReview
-    await User.findByIdAndUpdate(
-      existingReview.reviewee,
+    const rating = existingReview.rating
+
+    // Update place rating and review count
+    await Place.findByIdAndUpdate(
+      existingReview.placeId,
       [
         {
           $set: {
-            totalReview: {
-              $max: [{ $add: ['$totalReview', -1] }, 0], // avoid negative count
-            },
             rating: {
               $cond: [
-                { $lte: ['$totalReview', 1] }, // if after deletion totalReview will be 0 or less
+                { $lte: ['$totalReview', 1] },
                 0,
                 {
                   $divide: [
                     {
                       $subtract: [
                         { $multiply: ['$rating', '$totalReview'] },
-                        existingReview.rating,
+                        rating,
                       ],
                     },
-                    { $add: ['$totalReview', -1] },
+                    { $subtract: ['$totalReview', 1] },
                   ],
                 },
+              ],
+            },
+            totalReview: {
+              $cond: [
+                { $lte: ['$totalReview', 1] },
+                0,
+                { $subtract: ['$totalReview', 1] },
               ],
             },
           },
@@ -290,44 +245,31 @@ const deleteReview = async (id: string, user: JwtPayload) => {
       { session, new: true },
     )
 
-    await existingReview.deleteOne({ session })
+    const result = await Review.findByIdAndDelete(id, { session })
 
     await session.commitTransaction()
-    //clear the cache
-    // await redisClient.del(`reviews:reviewer:${user.authId}:*`);
-    // await redisClient.del(`reviews:reviewee:${existingReview.reviewee}:*`);
-    return 'Review deleted successfully'
+    return result
   } catch (error) {
-    console.error('Error deleting review:', error)
     await session.abortTransaction()
-    throw new ApiError(
-      StatusCodes.INTERNAL_SERVER_ERROR,
-      'Delete review failed.',
-    )
+    throw error
   } finally {
     await session.endSession()
   }
 }
 
-const getSingleReview = async (id: string, user: JwtPayload) => {
-  console.log('Fetching single review with ID:', id)
-  try {
-    const review = await Review.findById(id)
-    if (!review) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Review not found')
-    }
-
-    return review
-  } catch (error) {
-    throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Get review failed')
+const getSingleReview = async (id: string) => {
+  const result = await Review.findById(id).populate('reviewer', 'name profile')
+  if (!result) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Review not found.')
   }
+  return result
 }
 
-export const ReviewServices = {
+export const ReviewService = {
   createReview,
   getAllReviews,
+  getReviewsByPlace,
   updateReview,
   deleteReview,
   getSingleReview,
-  getReviewsByEvent,
 }

@@ -21,6 +21,8 @@ export interface IPlace {
   }
   services?: string[]
   status: 'Draft' | 'Published'
+  rating?: number
+  totalReview?: number
   createdAt: Date
   updatedAt: Date
 }

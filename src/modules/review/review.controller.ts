@@ -1,14 +1,14 @@
 import { Request, Response } from 'express'
-import { ReviewServices } from './review.service'
+import { ReviewService } from './review.service'
 import catchAsync from '../../shared/catchAsync'
 import sendResponse from '../../shared/sendResponse'
 import { StatusCodes } from 'http-status-codes'
 import { paginationFields } from '../../interfaces/pagination'
 import pick from '../../shared/pick'
+import { JwtPayload } from 'jsonwebtoken'
 
 const createReview = catchAsync(async (req: Request, res: Response) => {
-  const reviewData = req.body
-  const result = await ReviewServices.createReview(req.user!, reviewData)
+  const result = await ReviewService.createReview(req.user!, req.body)
 
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
@@ -20,8 +20,7 @@ const createReview = catchAsync(async (req: Request, res: Response) => {
 
 const updateReview = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
-  const reviewData = req.body
-  const result = await ReviewServices.updateReview(req.user!, id, reviewData)
+  const result = await ReviewService.updateReview(req.user!, id, req.body)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -32,13 +31,8 @@ const updateReview = catchAsync(async (req: Request, res: Response) => {
 })
 
 const getAllReviews = catchAsync(async (req: Request, res: Response) => {
-  const type = req.params.type as 'reviewer' | 'reviewee'
   const paginationOptions = pick(req.query, paginationFields)
-  const result = await ReviewServices.getAllReviews(
-    req.user!,
-    type,
-    paginationOptions,
-  )
+  const result = await ReviewService.getAllReviews(paginationOptions)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -47,15 +41,11 @@ const getAllReviews = catchAsync(async (req: Request, res: Response) => {
     data: result,
   })
 })
-const getReviewsByEvent = catchAsync(async (req: Request, res: Response) => {
-  const type = req.params.type as 'reviewer' | 'reviewee'
+
+const getReviewsByPlace = catchAsync(async (req: Request, res: Response) => {
+  const { placeId } = req.params
   const paginationOptions = pick(req.query, paginationFields)
-  const result = await ReviewServices.getReviewsByEvent(
-    req.user!,
-    req.params.eventId,
-    type,
-    paginationOptions,
-  )
+  const result = await ReviewService.getReviewsByPlace(placeId, paginationOptions)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -67,7 +57,7 @@ const getReviewsByEvent = catchAsync(async (req: Request, res: Response) => {
 
 const deleteReview = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
-  const result = await ReviewServices.deleteReview(id, req.user!)
+  const result = await ReviewService.deleteReview(req.user!, id)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -79,7 +69,7 @@ const deleteReview = catchAsync(async (req: Request, res: Response) => {
 
 const getSingleReview = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
-  const result = await ReviewServices.getSingleReview(id, req.user!)
+  const result = await ReviewService.getSingleReview(id)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -95,5 +85,5 @@ export const ReviewController = {
   getAllReviews,
   deleteReview,
   getSingleReview,
-  getReviewsByEvent,
+  getReviewsByPlace,
 }

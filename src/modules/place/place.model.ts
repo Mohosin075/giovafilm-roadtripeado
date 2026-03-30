@@ -34,6 +34,8 @@ const PlaceSchema = new Schema<IPlace, PlaceModel>(
       enum: ['Draft', 'Published'],
       default: 'Draft',
     },
+    rating: { type: Number, default: 0 },
+    totalReview: { type: Number, default: 0 },
   },
   {
     timestamps: true,

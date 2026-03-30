@@ -7,32 +7,39 @@ import { createReviewSchema, updateReviewSchema } from './review.validation'
 
 const router = express.Router()
 
-// Route for creating reviews & getting all reviews by type (assuming type is query param,
-// but here it's a param so keeping separate routes)
 router
   .route('/')
-  .get(auth(...Object.values(USER_ROLES)), ReviewController.getAllReviews)
+  .get(
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    ReviewController.getAllReviews,
+  )
   .post(
-    auth(...Object.values(USER_ROLES)),
+    auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
     validateRequest(createReviewSchema),
     ReviewController.createReview,
   )
 
 router
-  .route('/:eventId/event')
-  .get(auth(...Object.values(USER_ROLES)), ReviewController.getReviewsByEvent)
-
-// router.route('/:type')
-//   .get(auth(...roles), ReviewController.getAllReviews);
+  .route('/:placeId/place')
+  .get(
+    auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    ReviewController.getReviewsByPlace,
+  )
 
 router
   .route('/:id')
-  .get(auth(...Object.values(USER_ROLES)), ReviewController.getSingleReview)
+  .get(
+    auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    ReviewController.getSingleReview,
+  )
   .patch(
-    auth(...Object.values(USER_ROLES)),
+    auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
     validateRequest(updateReviewSchema),
     ReviewController.updateReview,
   )
-  .delete(auth(...Object.values(USER_ROLES)), ReviewController.deleteReview)
+  .delete(
+    auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    ReviewController.deleteReview,
+  )
 
 export const ReviewRoutes = router

@@ -281,6 +281,45 @@ const addUserInterest = async (
   return updatedUser
 }
 
+const toggleFavoritePlace = async (
+  userId: string,
+  placeId: string,
+): Promise<string> => {
+  const isUserExist = await User.findById(userId)
+  if (!isUserExist) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
+  }
+
+  const isFavorite = isUserExist.favoritePlaces?.includes(
+    new Types.ObjectId(placeId),
+  )
+
+  if (isFavorite) {
+    await User.findByIdAndUpdate(userId, {
+      $pull: { favoritePlaces: placeId },
+    })
+    return 'Place removed from favorites.'
+  } else {
+    await User.findByIdAndUpdate(userId, {
+      $addToSet: { favoritePlaces: placeId },
+    })
+    return 'Place added to favorites.'
+  }
+}
+
+const getFavoritePlaces = async (userId: string) => {
+  const user = await User.findById(userId).populate({
+    path: 'favoritePlaces',
+    populate: { path: 'category' },
+  })
+
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
+  }
+
+  return user.favoritePlaces || []
+}
+
 export const UserServices = {
   updateProfile,
   createAdmin,
@@ -291,4 +330,6 @@ export const UserServices = {
   getProfile,
   deleteProfile,
   addUserInterest,
+  toggleFavoritePlace,
+  getFavoritePlaces,
 }

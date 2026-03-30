@@ -80,3 +80,11 @@ export const addUserInterestSchema = z.object({
     interest: z.array(z.nativeEnum(InterestCategory)).optional(),
   }),
 })
+
+export const favoritePlaceSchema = z.object({
+  params: z.object({
+    placeId: z.string({
+      required_error: 'Place ID is required',
+    }),
+  }),
+})

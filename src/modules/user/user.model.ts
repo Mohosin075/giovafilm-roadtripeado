@@ -74,16 +74,10 @@ const UserSchema = new Schema<IUser, UserModel>(
       requestCount: { type: Number, default: 0 },
       authType: { type: String, enum: ['createAccount', 'resetPassword'] },
     },
-    favorites: [
+    favoritePlaces: [
       {
         type: Schema.Types.ObjectId,
-        ref: 'Recipe',
-      },
-    ],
-    savedRecipes: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: 'Recipe',
+        ref: 'Place',
       },
     ],
     // --- Subscription Fields ---

@@ -10,6 +10,7 @@ import fileUploadHandler from '../../middleware/fileUploadHandler'
 import {
   addUserInterestSchema,
   createStaffSchema,
+  favoritePlaceSchema,
   updateUserSchema,
 } from './user.validation'
 import { fileAndBodyProcessorUsingDiskStorage } from '../../middleware/processReqBody'
@@ -27,6 +28,19 @@ router.post(
   auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN),
   validateRequest(addUserInterestSchema),
   UserController.addUserInterest,
+)
+
+router.post(
+  '/favorite/:placeId',
+  auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  validateRequest(favoritePlaceSchema),
+  UserController.toggleFavoritePlace,
+)
+
+router.get(
+  '/favorites',
+  auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  UserController.getFavoritePlaces,
 )
 
 router.patch(

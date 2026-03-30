@@ -237,7 +237,7 @@ class UsageTrackingService {
   private async getCurrentServiceCount(userId: string): Promise<number> {
     try {
       // This can be used to track any user-created content that is limited by plan
-      // For now returning 0, can be connected to any content model (e.g., Posts, Recipes)
+      // For now returning 0, can be connected to any content model (e.g., Places)
       return 0
     } catch (error) {
       console.error('Error getting content count:', error)

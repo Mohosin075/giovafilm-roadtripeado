@@ -70,8 +70,7 @@ export interface IUser {
   }
 
   authentication: IAuthentication
-  favorites?: Types.ObjectId[]
-  savedRecipes?: Types.ObjectId[]
+  favoritePlaces?: Types.ObjectId[]
 
   // --- Subscription Fields ---
   stripeCustomerId?: string

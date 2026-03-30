@@ -13,6 +13,7 @@ export interface ISubscriptionPlan {
   features: string[]
   maxTeamMembers: number
   maxServices: number
+  maxPhotos: number
   isActive: boolean
   stripePriceId: string
   stripeProductId: string

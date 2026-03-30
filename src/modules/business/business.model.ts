@@ -62,6 +62,10 @@ const BusinessSchema = new Schema<IBusiness, BusinessModel>(
       ownerPhone: { type: String, required: true },
       contactEmail: { type: String, required: true },
     },
+    plan: {
+      type: Schema.Types.ObjectId,
+      ref: 'SubscriptionPlan',
+    },
     status: {
       type: String,
       enum: ['Pending', 'Approved', 'Rejected'],

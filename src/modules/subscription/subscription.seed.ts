@@ -4,60 +4,57 @@ import { stripeService } from './stripe.service'
 // Default subscription plans
 const defaultPlans = [
   {
-    name: 'Free Plan',
-    description: 'Basic access for individuals',
+    name: 'Starter',
+    description: 'Perfect for small local spots getting started.',
     price: 0,
     currency: 'usd',
     interval: 'month' as const,
     intervalCount: 1,
     trialPeriodDays: 0,
-    features: [
-      'Basic Features access',
-      'Community support',
-      'Standard analytics',
-    ],
+    features: ['Basic business listing', '1 Professional photo', 'Standard map pin'],
     maxTeamMembers: 1,
-    maxServices: 5,
-    userTypes: ['user'],
+    maxServices: 1,
+    maxPhotos: 1,
+    userTypes: ['organizer'],
     priority: 1,
   },
   {
-    name: 'Monthly Plan',
-    description: 'Full access with monthly billing',
-    price: 19.99,
+    name: 'Pro',
+    description: 'Maximize visibility and drive more customers.',
+    price: 29,
     currency: 'usd',
     interval: 'month' as const,
     intervalCount: 1,
-    trialPeriodDays: 14,
+    trialPeriodDays: 0,
     features: [
-      'All Basic Features',
-      'Priority support',
-      'Advanced analytics',
-      'Custom integrations',
+      'Featured listing status',
+      'Up to 10 photos',
+      'Custom offer integration',
+      'Priority in search results',
     ],
     maxTeamMembers: 5,
-    maxServices: 50,
-    userTypes: ['user'],
+    maxServices: 10,
+    maxPhotos: 10,
+    userTypes: ['organizer'],
     priority: 2,
   },
   {
-    name: 'Yearly Plan',
-    description: 'Best value for long-term usage',
-    price: 199.99,
+    name: 'Enterprise',
+    description: 'Scalable solutions for multiple locations.',
+    price: 0, // Custom
     currency: 'usd',
-    interval: 'year' as const,
+    interval: 'month' as const,
     intervalCount: 1,
-    trialPeriodDays: 14,
+    trialPeriodDays: 0,
     features: [
-      'Everything in Monthly',
-      'Save 20% annually',
+      'Unlimited locations',
       'Dedicated account manager',
-      'Early access to new features',
-      'API access',
+      'Advanced analytics dashboard',
     ],
-    maxTeamMembers: 20,
+    maxTeamMembers: 999,
     maxServices: 999,
-    userTypes: ['user'],
+    maxPhotos: 999,
+    userTypes: ['organizer'],
     priority: 3,
   },
 ]
@@ -66,18 +63,20 @@ export async function seedSubscriptionPlans(): Promise<void> {
   try {
     console.log('Starting subscription plans seeding...')
 
-    // Check if plans already exist
-    const existingPlansCount = await SubscriptionPlan.countDocuments()
-    if (existingPlansCount > 0) {
-      console.log(
-        `${existingPlansCount} subscription plans already exist. Skipping seed.`,
-      )
-      return
-    }
-
     // Create plans in Stripe and database
     for (const planData of defaultPlans) {
       try {
+        // Check if plan already exists by name
+        const existingPlan = await SubscriptionPlan.findOne({
+          name: planData.name,
+        })
+        if (existingPlan) {
+          console.log(
+            `Subscription plan ${planData.name} already exists. Skipping.`,
+          )
+          continue
+        }
+
         // Create Stripe product
         const stripeProduct = await stripeService.createProduct({
           name: planData.name,
@@ -86,6 +85,7 @@ export async function seedSubscriptionPlans(): Promise<void> {
             userTypes: planData.userTypes.join(','),
             maxTeamMembers: planData.maxTeamMembers.toString(),
             maxServices: planData.maxServices.toString(),
+            maxPhotos: planData.maxPhotos.toString(),
           },
         })
 

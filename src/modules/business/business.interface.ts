@@ -39,6 +39,7 @@ export interface IBusiness {
     ownerPhone: string
     contactEmail: string
   }
+  plan?: Types.ObjectId // Reference to SubscriptionPlan
   status: BusinessStatus
   createdAt: Date
   updatedAt: Date

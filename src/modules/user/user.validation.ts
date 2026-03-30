@@ -88,3 +88,11 @@ export const favoritePlaceSchema = z.object({
     }),
   }),
 })
+
+export const favoriteOfferSchema = z.object({
+  params: z.object({
+    offerId: z.string({
+      required_error: 'Offer ID is required',
+    }),
+  }),
+})

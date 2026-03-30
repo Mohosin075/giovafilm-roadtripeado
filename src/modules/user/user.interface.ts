@@ -71,6 +71,7 @@ export interface IUser {
 
   authentication: IAuthentication
   favoritePlaces?: Types.ObjectId[]
+  favoriteOffers?: Types.ObjectId[]
   awards?: any[]
 
   // --- Subscription Fields ---

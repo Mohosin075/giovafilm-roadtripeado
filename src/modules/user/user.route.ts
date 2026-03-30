@@ -10,6 +10,7 @@ import fileUploadHandler from '../../middleware/fileUploadHandler'
 import {
   addUserInterestSchema,
   createStaffSchema,
+  favoriteOfferSchema,
   favoritePlaceSchema,
   updateUserSchema,
 } from './user.validation'
@@ -31,16 +32,29 @@ router.post(
 )
 
 router.post(
-  '/favorite/:placeId',
+  '/favorite-place/:placeId',
   auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   validateRequest(favoritePlaceSchema),
   UserController.toggleFavoritePlace,
 )
 
 router.get(
-  '/favorites',
+  '/favorite-places',
   auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   UserController.getFavoritePlaces,
+)
+
+router.post(
+  '/favorite-offer/:offerId',
+  auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  validateRequest(favoriteOfferSchema),
+  UserController.toggleFavoriteOffer,
+)
+
+router.get(
+  '/favorite-offers',
+  auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  UserController.getFavoriteOffers,
 )
 
 router.patch(

@@ -80,6 +80,12 @@ const UserSchema = new Schema<IUser, UserModel>(
         ref: 'Place',
       },
     ],
+    favoriteOffers: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Offer',
+      },
+    ],
     // --- Subscription Fields ---
     stripeCustomerId: { type: String, default: null },
     subscriptionStatus: { type: String, default: 'none' },

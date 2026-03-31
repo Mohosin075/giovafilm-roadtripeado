@@ -4,6 +4,7 @@ import validateRequest from '../../middleware/validateRequest'
 import { USER_ROLES } from '../../enum/user'
 import { MapController } from './map.controller'
 import { createMapZodSchema, updateMapZodSchema } from './map.validation'
+import { fileAndBodyProcessorUsingDiskStorage } from '../../middleware/processReqBody'
 
 const router = express.Router()
 
@@ -11,6 +12,7 @@ router
   .route('/')
   .post(
     auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    fileAndBodyProcessorUsingDiskStorage(),
     validateRequest(createMapZodSchema),
     MapController.createMap
   )
@@ -27,6 +29,7 @@ router
   .get(MapController.getMapById)
   .patch(
     auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    fileAndBodyProcessorUsingDiskStorage(),
     validateRequest(updateMapZodSchema),
     MapController.updateMap
   )

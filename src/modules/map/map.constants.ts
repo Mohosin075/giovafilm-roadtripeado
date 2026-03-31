@@ -1,1 +1,1 @@
-export const mapSearchableFields = ['name', 'description']
+export const mapSearchableFields = ['name', 'description', 'features']

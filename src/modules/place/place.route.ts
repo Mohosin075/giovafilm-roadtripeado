@@ -7,6 +7,7 @@ import {
 } from './place.validation'
 import auth from '../../middleware/auth'
 import { USER_ROLES } from '../../enum/user'
+import { fileAndBodyProcessorUsingDiskStorage } from '../../middleware/processReqBody'
 
 const router = express.Router()
 
@@ -14,6 +15,7 @@ router
   .route('/')
   .post(
     auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    fileAndBodyProcessorUsingDiskStorage(),
     validateRequest(createPlaceZodSchema),
     PlaceController.createPlace,
   )
@@ -24,6 +26,7 @@ router
   .get(PlaceController.getPlaceById)
   .patch(
     auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    fileAndBodyProcessorUsingDiskStorage(),
     validateRequest(updatePlaceZodSchema),
     PlaceController.updatePlace,
   )

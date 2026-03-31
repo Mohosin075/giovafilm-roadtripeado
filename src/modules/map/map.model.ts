@@ -6,7 +6,8 @@ const MapSchema = new Schema<IMap, MapModel>(
     name: { type: String, required: true, trim: true },
     description: { type: String, required: true },
     price: { type: Number, required: true, default: 0 },
-    image: { type: String, required: true },
+    images: [{ type: String, required: true }],
+    features: [{ type: String, default: [] }],
     places: [{ type: Schema.Types.ObjectId, ref: 'Place' }],
     status: {
       type: String,
@@ -14,6 +15,8 @@ const MapSchema = new Schema<IMap, MapModel>(
       default: 'Draft',
     },
     isPaid: { type: Boolean, default: false },
+    rating: { type: Number, default: 0 },
+    totalReview: { type: Number, default: 0 },
   },
   {
     timestamps: true,

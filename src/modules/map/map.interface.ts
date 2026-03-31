@@ -5,10 +5,13 @@ export interface IMap {
   name: string
   description: string
   price: number
-  image: string
+  images: string[] // Multiple images
+  features: string[] // Key features list
   places: Types.ObjectId[] // Array of Place IDs
   status: 'Draft' | 'Published'
   isPaid: boolean
+  rating: number // Optional rating field
+  totalReview: number // Number of reviews
   createdAt: Date
   updatedAt: Date
 }

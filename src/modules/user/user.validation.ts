@@ -81,10 +81,10 @@ export const addUserInterestSchema = z.object({
   }),
 })
 
-export const favoritePlaceSchema = z.object({
+export const favoriteMapSchema = z.object({
   params: z.object({
-    placeId: z.string({
-      required_error: 'Place ID is required',
+    mapId: z.string({
+      required_error: 'Map ID is required',
     }),
   }),
 })

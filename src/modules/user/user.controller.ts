@@ -116,25 +116,27 @@ const addUserInterest = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
-const toggleFavoritePlace = catchAsync(async (req: Request, res: Response) => {
+const toggleFavoriteMap = catchAsync(async (req: Request, res: Response) => {
   const { authId } = req.user as JwtPayload
-  const { placeId } = req.params
-  const result = await UserServices.toggleFavoritePlace(authId, placeId)
+  const { mapId } = req.params
+  const result = await UserServices.toggleFavoriteMap(authId, mapId)
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: result,
+    message: 'Toggle favorite map successfully',
     data: result,
   })
 })
 
-const getFavoritePlaces = catchAsync(async (req: Request, res: Response) => {
+const getFavoriteMaps = catchAsync(async (req: Request, res: Response) => {
   const { authId } = req.user as JwtPayload
-  const result = await UserServices.getFavoritePlaces(authId)
+  const result = await UserServices.getFavoriteMaps(authId)
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'Favorite places retrieved successfully',
+    message: 'Favorite maps retrieved successfully',
     data: result,
   })
 })
@@ -171,8 +173,8 @@ export const UserController = {
   getProfile,
   deleteProfile,
   addUserInterest,
-  toggleFavoritePlace,
-  getFavoritePlaces,
+  toggleFavoriteMap,
+  getFavoriteMaps,
   toggleFavoriteOffer,
   getFavoriteOffers,
 }

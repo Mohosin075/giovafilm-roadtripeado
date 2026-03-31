@@ -281,43 +281,43 @@ const addUserInterest = async (
   return updatedUser
 }
 
-const toggleFavoritePlace = async (
+const toggleFavoriteMap = async (
   userId: string,
-  placeId: string,
-): Promise<string> => {
+  mapId: string,
+) => {
   const isUserExist = await User.findById(userId)
+
   if (!isUserExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
   }
 
-  const isFavorite = isUserExist.favoritePlaces?.includes(
-    new Types.ObjectId(placeId),
+  const isFavorite = isUserExist.favoriteMaps?.includes(
+    new Types.ObjectId(mapId),
   )
 
-  if (isFavorite) {
-    await User.findByIdAndUpdate(userId, {
-      $pull: { favoritePlaces: placeId },
-    })
-    return 'Place removed from favorites.'
-  } else {
-    await User.findByIdAndUpdate(userId, {
-      $addToSet: { favoritePlaces: placeId },
-    })
-    return 'Place added to favorites.'
-  }
+  const updateDoc = isFavorite
+    ? {
+        $pull: { favoriteMaps: mapId },
+      }
+    : {
+        $addToSet: { favoriteMaps: mapId },
+      }
+
+  const result = await User.findByIdAndUpdate(userId, updateDoc, { new: true })
+  return result
 }
 
-const getFavoritePlaces = async (userId: string) => {
+const getFavoriteMaps = async (userId: string) => {
   const user = await User.findById(userId).populate({
-    path: 'favoritePlaces',
-    populate: { path: 'category' },
+    path: 'favoriteMaps',
+    populate: { path: 'places', populate: { path: 'category' } },
   })
 
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
   }
 
-  return user.favoritePlaces || []
+  return user.favoriteMaps || []
 }
 
 const toggleFavoriteOffer = async (
@@ -369,8 +369,8 @@ export const UserServices = {
   getProfile,
   deleteProfile,
   addUserInterest,
-  toggleFavoritePlace,
-  getFavoritePlaces,
+  toggleFavoriteMap,
+  getFavoriteMaps,
   toggleFavoriteOffer,
   getFavoriteOffers,
 }

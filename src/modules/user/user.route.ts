@@ -11,7 +11,7 @@ import {
   addUserInterestSchema,
   createStaffSchema,
   favoriteOfferSchema,
-  favoritePlaceSchema,
+  favoriteMapSchema,
   updateUserSchema,
 } from './user.validation'
 import { fileAndBodyProcessorUsingDiskStorage } from '../../middleware/processReqBody'
@@ -32,16 +32,16 @@ router.post(
 )
 
 router.post(
-  '/favorite-place/:placeId',
+  '/toggle-favorite-map/:mapId',
   auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
-  validateRequest(favoritePlaceSchema),
-  UserController.toggleFavoritePlace,
+  validateRequest(favoriteMapSchema),
+  UserController.toggleFavoriteMap,
 )
 
 router.get(
-  '/favorite-places',
+  '/favorite-maps',
   auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
-  UserController.getFavoritePlaces,
+  UserController.getFavoriteMaps,
 )
 
 router.post(

@@ -74,10 +74,10 @@ const UserSchema = new Schema<IUser, UserModel>(
       requestCount: { type: Number, default: 0 },
       authType: { type: String, enum: ['createAccount', 'resetPassword'] },
     },
-    favoritePlaces: [
+    favoriteMaps: [
       {
         type: Schema.Types.ObjectId,
-        ref: 'Place',
+        ref: 'Map',
       },
     ],
     favoriteOffers: [

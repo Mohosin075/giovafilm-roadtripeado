@@ -70,7 +70,7 @@ export interface IUser {
   }
 
   authentication: IAuthentication
-  favoritePlaces?: Types.ObjectId[]
+  favoriteMaps?: Types.ObjectId[]
   favoriteOffers?: Types.ObjectId[]
   purchasedMaps?: Types.ObjectId[] // Ref Map
   awards?: any[]

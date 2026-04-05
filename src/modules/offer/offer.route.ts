@@ -7,6 +7,7 @@ import {
 } from './offer.validation'
 import auth from '../../middleware/auth'
 import { USER_ROLES } from '../../enum/user'
+import { fileAndBodyProcessorUsingDiskStorage } from '../../middleware/processReqBody'
 
 const router = express.Router()
 
@@ -14,6 +15,7 @@ router
   .route('/')
   .post(
     auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    fileAndBodyProcessorUsingDiskStorage(),
     validateRequest(createOfferZodSchema),
     OfferController.createOffer,
   )
@@ -24,6 +26,7 @@ router
   .get(OfferController.getOfferById)
   .patch(
     auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    fileAndBodyProcessorUsingDiskStorage(),
     validateRequest(updateOfferZodSchema),
     OfferController.updateOffer,
   )

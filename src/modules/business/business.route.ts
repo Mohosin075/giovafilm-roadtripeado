@@ -8,6 +8,7 @@ import {
 } from './business.validation'
 import auth from '../../middleware/auth'
 import { USER_ROLES } from '../../enum/user'
+import { fileAndBodyProcessorUsingDiskStorage } from '../../middleware/processReqBody'
 
 const router = express.Router()
 
@@ -16,6 +17,7 @@ router
   .route('/')
   .post(
     auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    fileAndBodyProcessorUsingDiskStorage(),
     validateRequest(createBusinessZodSchema),
     BusinessController.createBusiness
   )
@@ -27,6 +29,7 @@ router
   // Only admin/super_admin or the owner should update, but for simplicity auth is USER
   .patch(
     auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    fileAndBodyProcessorUsingDiskStorage(),
     validateRequest(updateBusinessZodSchema),
     BusinessController.updateBusiness
   )

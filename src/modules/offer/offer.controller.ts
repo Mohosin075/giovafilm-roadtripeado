@@ -6,7 +6,16 @@ import { OfferService } from './offer.service'
 import ApiError from '../../errors/ApiError'
 
 const createOffer = catchAsync(async (req: Request, res: Response) => {
-  const result = await OfferService.createOffer(req.body)
+  const offerData = { ...req.body }
+
+  // Handle image upload from disk storage
+  if (req.body.images) {
+    offerData.photo = Array.isArray(req.body.images)
+      ? req.body.images[0]
+      : req.body.images
+  }
+
+  const result = await OfferService.createOffer(offerData)
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
     success: true,
@@ -39,7 +48,16 @@ const getOfferById = catchAsync(async (req: Request, res: Response) => {
 
 const updateOffer = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
-  const result = await OfferService.updateOffer(id, req.body)
+  const offerData = { ...req.body }
+
+  // Handle image upload from disk storage
+  if (req.body.images) {
+    offerData.photo = Array.isArray(req.body.images)
+      ? req.body.images[0]
+      : req.body.images
+  }
+
+  const result = await OfferService.updateOffer(id, offerData)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,

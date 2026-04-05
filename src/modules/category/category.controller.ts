@@ -5,7 +5,16 @@ import sendResponse from '../../shared/sendResponse'
 import { CategoryService } from './category.service'
 
 const createCategory = catchAsync(async (req: Request, res: Response) => {
-  const result = await CategoryService.createCategory(req.body)
+  const categoryData = { ...req.body }
+
+  // Handle image upload from disk storage for icon
+  if (req.body.images) {
+    categoryData.icon = Array.isArray(req.body.images)
+      ? req.body.images[0]
+      : req.body.images
+  }
+
+  const result = await CategoryService.createCategory(categoryData)
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
     success: true,
@@ -38,7 +47,16 @@ const getCategoryById = catchAsync(async (req: Request, res: Response) => {
 
 const updateCategory = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
-  const result = await CategoryService.updateCategory(id, req.body)
+  const categoryData = { ...req.body }
+
+  // Handle image upload from disk storage for icon
+  if (req.body.images) {
+    categoryData.icon = Array.isArray(req.body.images)
+      ? req.body.images[0]
+      : req.body.images
+  }
+
+  const result = await CategoryService.updateCategory(id, categoryData)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,

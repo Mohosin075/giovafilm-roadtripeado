@@ -17,6 +17,14 @@ const createBusiness = catchAsync(async (req: Request, res: Response) => {
     user: user?.authId,
   }
 
+  // Handle image upload from disk storage
+  if (req.body.images) {
+    if (!businessData.media) businessData.media = {}
+    businessData.media.photos = Array.isArray(req.body.images)
+      ? req.body.images
+      : [req.body.images]
+  }
+
   const result = await BusinessService.createBusiness(businessData)
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
@@ -59,7 +67,17 @@ const getBusinessById = catchAsync(async (req: Request, res: Response) => {
  */
 const updateBusiness = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
-  const result = await BusinessService.updateBusiness(id, req.body)
+  const businessData = { ...req.body }
+
+  // Handle image upload from disk storage
+  if (req.body.images) {
+    if (!businessData.media) businessData.media = {}
+    businessData.media.photos = Array.isArray(req.body.images)
+      ? req.body.images
+      : [req.body.images]
+  }
+
+  const result = await BusinessService.updateBusiness(id, businessData)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,

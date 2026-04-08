@@ -42,6 +42,13 @@ class QueryBuilder<T> {
     ]
     excludeFields.forEach(el => delete queryObj[el])
 
+    // Convert comma-separated strings to $in for specific fields
+    for (const key in queryObj) {
+      if (typeof queryObj[key] === 'string' && (queryObj[key] as string).includes(',')) {
+        queryObj[key] = { $in: (queryObj[key] as string).split(',') }
+      }
+    }
+
     this.modelQuery = this.modelQuery.find(
       cleanObject(queryObj) as FilterQuery<T>,
     )

@@ -5,6 +5,9 @@ import sendResponse from '../../shared/sendResponse'
 import { PlaceService } from './place.service'
 
 const createPlace = catchAsync(async (req: Request, res: Response) => {
+  if (req.body.images) {
+    req.body.media = req.body.images
+  }
   const result = await PlaceService.createPlace(req.body)
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
@@ -38,6 +41,9 @@ const getPlaceById = catchAsync(async (req: Request, res: Response) => {
 
 const updatePlace = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
+  if (req.body.images) {
+    req.body.media = req.body.images
+  }
   const result = await PlaceService.updatePlace(id, req.body)
   sendResponse(res, {
     statusCode: StatusCodes.OK,

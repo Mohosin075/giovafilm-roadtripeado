@@ -29,6 +29,7 @@ export const createPlaceZodSchema = z.object({
       .optional(),
     services: z.array(z.string()).optional(),
     status: z.enum(['Draft', 'Published']).default('Draft'),
+    images: z.array(z.string()).optional(),
   }),
 })
 
@@ -60,5 +61,6 @@ export const updatePlaceZodSchema = z.object({
       .optional(),
     services: z.array(z.string()).optional(),
     status: z.enum(['Draft', 'Published']).optional(),
+    images: z.array(z.string()).optional(),
   }),
 })

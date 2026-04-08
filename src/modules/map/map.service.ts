@@ -14,7 +14,42 @@ const createMap = async (payload: IMap): Promise<IMap> => {
 }
 
 const getAllMaps = async (query: Record<string, unknown>) => {
-  const mapQuery = new QueryBuilder(Map.find().populate('places'), query)
+  let mapIds: mongoose.Types.ObjectId[] = []
+
+  // If category filter is provided, find maps that contain places with those categories
+  if (query.category) {
+    const categoryIds = (query.category as string).split(',')
+    const places = await Place.find({
+      category: { $in: categoryIds },
+    }).select('map')
+
+    mapIds = places.map(place => place.map as unknown as mongoose.Types.ObjectId)
+    
+    // If no places found for these categories, we should return no maps
+    if (mapIds.length === 0) {
+      return {
+        meta: {
+          page: Number(query.page) || 1,
+          limit: Number(query.limit) || 10,
+          total: 0,
+          totalPage: 0,
+        },
+        data: [],
+      }
+    }
+
+    // Add map ID filtering to the query
+    query._id = { $in: mapIds }
+    delete query.category // Remove category from query as it's not a field in Map model
+  }
+
+  const mapQuery = new QueryBuilder(
+    Map.find().populate({
+      path: 'places',
+      populate: { path: 'category' },
+    }),
+    query
+  )
     .search(mapSearchableFields)
     .filter()
     .sort()

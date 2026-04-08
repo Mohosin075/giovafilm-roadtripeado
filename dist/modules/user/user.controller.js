@@ -105,6 +105,48 @@ const addUserInterest = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const toggleFavoriteMap = (0, catchAsync_1.default)(async (req, res) => {
+    const { authId } = req.user;
+    const { mapId } = req.params;
+    const result = await user_service_1.UserServices.toggleFavoriteMap(authId, mapId);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Toggle favorite map successfully',
+        data: result,
+    });
+});
+const getFavoriteMaps = (0, catchAsync_1.default)(async (req, res) => {
+    const { authId } = req.user;
+    const result = await user_service_1.UserServices.getFavoriteMaps(authId);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Favorite maps retrieved successfully',
+        data: result,
+    });
+});
+const toggleFavoriteOffer = (0, catchAsync_1.default)(async (req, res) => {
+    const { authId } = req.user;
+    const { offerId } = req.params;
+    const result = await user_service_1.UserServices.toggleFavoriteOffer(authId, offerId);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: result,
+        data: result,
+    });
+});
+const getFavoriteOffers = (0, catchAsync_1.default)(async (req, res) => {
+    const { authId } = req.user;
+    const result = await user_service_1.UserServices.getFavoriteOffers(authId);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Favorite offers retrieved successfully',
+        data: result,
+    });
+});
 exports.UserController = {
     updateProfile,
     getAllUsers,
@@ -114,4 +156,8 @@ exports.UserController = {
     getProfile,
     deleteProfile,
     addUserInterest,
+    toggleFavoriteMap,
+    getFavoriteMaps,
+    toggleFavoriteOffer,
+    getFavoriteOffers,
 };

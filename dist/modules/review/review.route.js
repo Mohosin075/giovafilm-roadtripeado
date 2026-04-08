@@ -11,20 +11,16 @@ const user_1 = require("../../enum/user");
 const validateRequest_1 = __importDefault(require("../../middleware/validateRequest"));
 const review_validation_1 = require("./review.validation");
 const router = express_1.default.Router();
-// Route for creating reviews & getting all reviews by type (assuming type is query param,
-// but here it's a param so keeping separate routes)
 router
     .route('/')
-    .get((0, auth_1.default)(...Object.values(user_1.USER_ROLES)), review_controller_1.ReviewController.getAllReviews)
-    .post((0, auth_1.default)(...Object.values(user_1.USER_ROLES)), (0, validateRequest_1.default)(review_validation_1.createReviewSchema), review_controller_1.ReviewController.createReview);
+    .get((0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), review_controller_1.ReviewController.getAllReviews)
+    .post((0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), (0, validateRequest_1.default)(review_validation_1.createReviewSchema), review_controller_1.ReviewController.createReview);
 router
-    .route('/:eventId/event')
-    .get((0, auth_1.default)(...Object.values(user_1.USER_ROLES)), review_controller_1.ReviewController.getReviewsByEvent);
-// router.route('/:type')
-//   .get(auth(...roles), ReviewController.getAllReviews);
+    .route('/:placeId/place')
+    .get((0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), review_controller_1.ReviewController.getReviewsByPlace);
 router
     .route('/:id')
-    .get((0, auth_1.default)(...Object.values(user_1.USER_ROLES)), review_controller_1.ReviewController.getSingleReview)
-    .patch((0, auth_1.default)(...Object.values(user_1.USER_ROLES)), (0, validateRequest_1.default)(review_validation_1.updateReviewSchema), review_controller_1.ReviewController.updateReview)
-    .delete((0, auth_1.default)(...Object.values(user_1.USER_ROLES)), review_controller_1.ReviewController.deleteReview);
+    .get((0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), review_controller_1.ReviewController.getSingleReview)
+    .patch((0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), (0, validateRequest_1.default)(review_validation_1.updateReviewSchema), review_controller_1.ReviewController.updateReview)
+    .delete((0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), review_controller_1.ReviewController.deleteReview);
 exports.ReviewRoutes = router;

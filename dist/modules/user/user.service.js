@@ -7,6 +7,7 @@ exports.UserServices = exports.getProfile = void 0;
 const http_status_codes_1 = require("http-status-codes");
 const ApiError_1 = __importDefault(require("../../errors/ApiError"));
 const user_model_1 = require("./user.model");
+const mongoose_1 = require("mongoose");
 const user_1 = require("../../enum/user");
 const paginationHelper_1 = require("../../helpers/paginationHelper");
 const config_1 = __importDefault(require("../../config"));
@@ -207,6 +208,63 @@ const addUserInterest = async (userId, interest) => {
     }
     return updatedUser;
 };
+const toggleFavoriteMap = async (userId, mapId) => {
+    var _a;
+    const isUserExist = await user_model_1.User.findById(userId);
+    if (!isUserExist) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
+    }
+    const isFavorite = (_a = isUserExist.favoriteMaps) === null || _a === void 0 ? void 0 : _a.includes(new mongoose_1.Types.ObjectId(mapId));
+    const updateDoc = isFavorite
+        ? {
+            $pull: { favoriteMaps: mapId },
+        }
+        : {
+            $addToSet: { favoriteMaps: mapId },
+        };
+    const result = await user_model_1.User.findByIdAndUpdate(userId, updateDoc, { new: true });
+    return result;
+};
+const getFavoriteMaps = async (userId) => {
+    const user = await user_model_1.User.findById(userId).populate({
+        path: 'favoriteMaps',
+        populate: { path: 'places', populate: { path: 'category' } },
+    });
+    if (!user) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
+    }
+    return user.favoriteMaps || [];
+};
+const toggleFavoriteOffer = async (userId, offerId) => {
+    var _a;
+    const isUserExist = await user_model_1.User.findById(userId);
+    if (!isUserExist) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
+    }
+    const isFavorite = (_a = isUserExist.favoriteOffers) === null || _a === void 0 ? void 0 : _a.includes(new mongoose_1.Types.ObjectId(offerId));
+    if (isFavorite) {
+        await user_model_1.User.findByIdAndUpdate(userId, {
+            $pull: { favoriteOffers: offerId },
+        });
+        return 'Offer removed from favorites.';
+    }
+    else {
+        await user_model_1.User.findByIdAndUpdate(userId, {
+            $addToSet: { favoriteOffers: offerId },
+        });
+        return 'Offer added to favorites.';
+    }
+};
+const getFavoriteOffers = async (userId) => {
+    const user = await user_model_1.User.findById(userId).populate({
+        path: 'favoriteOffers',
+        populate: { path: 'place' },
+    });
+    if (!user) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
+    }
+    return user.favoriteOffers || [];
+};
 exports.UserServices = {
     updateProfile,
     createAdmin,
@@ -217,4 +275,8 @@ exports.UserServices = {
     getProfile: exports.getProfile,
     deleteProfile,
     addUserInterest,
+    toggleFavoriteMap,
+    getFavoriteMaps,
+    toggleFavoriteOffer,
+    getFavoriteOffers,
 };

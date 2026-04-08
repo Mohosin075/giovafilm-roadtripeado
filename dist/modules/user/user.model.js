@@ -70,16 +70,22 @@ const UserSchema = new mongoose_1.Schema({
         requestCount: { type: Number, default: 0 },
         authType: { type: String, enum: ['createAccount', 'resetPassword'] },
     },
-    favorites: [
+    favoriteMaps: [
         {
             type: mongoose_1.Schema.Types.ObjectId,
-            ref: 'Recipe',
+            ref: 'Map',
         },
     ],
-    savedRecipes: [
+    favoriteOffers: [
         {
             type: mongoose_1.Schema.Types.ObjectId,
-            ref: 'Recipe',
+            ref: 'Offer',
+        },
+    ],
+    purchasedMaps: [
+        {
+            type: mongoose_1.Schema.Types.ObjectId,
+            ref: 'Map',
         },
     ],
     // --- Subscription Fields ---
@@ -100,6 +106,12 @@ UserSchema.virtual('fullProfile').get(function () {
     if (this.profile.startsWith('http'))
         return this.profile;
     return `${this.profile}`;
+});
+// Virtual for awards
+UserSchema.virtual('awards', {
+    ref: 'Award',
+    localField: '_id',
+    foreignField: 'userId',
 });
 // ------------------ INDEXES ------------------
 UserSchema.index({ location: '2dsphere' }); // Geo queries support

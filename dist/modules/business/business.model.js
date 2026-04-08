@@ -62,6 +62,10 @@ const BusinessSchema = new mongoose_1.Schema({
         ownerPhone: { type: String, required: true },
         contactEmail: { type: String, required: true },
     },
+    plan: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'SubscriptionPlan',
+    },
     status: {
         type: String,
         enum: ['Pending', 'Approved', 'Rejected'],

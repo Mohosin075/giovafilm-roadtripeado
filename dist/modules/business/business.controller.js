@@ -8,6 +8,10 @@ const http_status_codes_1 = require("http-status-codes");
 const catchAsync_1 = __importDefault(require("../../shared/catchAsync"));
 const sendResponse_1 = __importDefault(require("../../shared/sendResponse"));
 const business_service_1 = require("./business.service");
+/**
+ * Controller to handle business creation requests.
+ * Extracts user ID from the JWT payload and injects into business data.
+ */
 const createBusiness = (0, catchAsync_1.default)(async (req, res) => {
     // Grab the user from the auth token
     const user = req.user;
@@ -15,6 +19,14 @@ const createBusiness = (0, catchAsync_1.default)(async (req, res) => {
         ...req.body,
         user: user === null || user === void 0 ? void 0 : user.authId,
     };
+    // Handle image upload from disk storage
+    if (req.body.images) {
+        if (!businessData.media)
+            businessData.media = {};
+        businessData.media.photos = Array.isArray(req.body.images)
+            ? req.body.images
+            : [req.body.images];
+    }
     const result = await business_service_1.BusinessService.createBusiness(businessData);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.CREATED,
@@ -23,6 +35,9 @@ const createBusiness = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+/**
+ * Controller to retrieve a paginated listing of all businesses.
+ */
 const getAllBusinesses = (0, catchAsync_1.default)(async (req, res) => {
     const result = await business_service_1.BusinessService.getAllBusinesses(req.query);
     (0, sendResponse_1.default)(res, {
@@ -33,6 +48,9 @@ const getAllBusinesses = (0, catchAsync_1.default)(async (req, res) => {
         data: result.data,
     });
 });
+/**
+ * Controller to retrieve single business detailed information by ID.
+ */
 const getBusinessById = (0, catchAsync_1.default)(async (req, res) => {
     const { id } = req.params;
     const result = await business_service_1.BusinessService.getBusinessById(id);
@@ -43,9 +61,21 @@ const getBusinessById = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+/**
+ * Controller to update a business submission.
+ */
 const updateBusiness = (0, catchAsync_1.default)(async (req, res) => {
     const { id } = req.params;
-    const result = await business_service_1.BusinessService.updateBusiness(id, req.body);
+    const businessData = { ...req.body };
+    // Handle image upload from disk storage
+    if (req.body.images) {
+        if (!businessData.media)
+            businessData.media = {};
+        businessData.media.photos = Array.isArray(req.body.images)
+            ? req.body.images
+            : [req.body.images];
+    }
+    const result = await business_service_1.BusinessService.updateBusiness(id, businessData);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -53,6 +83,9 @@ const updateBusiness = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+/**
+ * Controller strictly for administrative actions to alter the business status state machine.
+ */
 const updateBusinessStatus = (0, catchAsync_1.default)(async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
@@ -64,6 +97,9 @@ const updateBusinessStatus = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+/**
+ * Controller to handle permanent deletion of a business.
+ */
 const deleteBusiness = (0, catchAsync_1.default)(async (req, res) => {
     const { id } = req.params;
     const result = await business_service_1.BusinessService.deleteBusiness(id);

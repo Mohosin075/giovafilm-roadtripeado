@@ -3,19 +3,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Review = void 0;
 const mongoose_1 = require("mongoose");
 const reviewSchema = new mongoose_1.Schema({
-    eventId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Event', required: true },
+    placeId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Place', required: true },
     reviewer: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'User',
-        populate: { path: 'reviewer', select: 'name lastName fullName profile' },
+        required: true,
     },
-    reviewee: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: 'User',
-        populate: { path: 'reviewee', select: 'name lastName fullName profile' },
-    },
-    rating: { type: Number, required: true },
+    rating: { type: Number, required: true, min: 1, max: 5 },
     review: { type: String, required: true },
+    media: { type: [String], default: [] },
 }, {
     timestamps: true,
 });

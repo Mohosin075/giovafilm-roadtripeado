@@ -10,7 +10,14 @@ const sendResponse_1 = __importDefault(require("../../shared/sendResponse"));
 const offer_service_1 = require("./offer.service");
 const ApiError_1 = __importDefault(require("../../errors/ApiError"));
 const createOffer = (0, catchAsync_1.default)(async (req, res) => {
-    const result = await offer_service_1.OfferService.createOffer(req.body);
+    const offerData = { ...req.body };
+    // Handle image upload from disk storage
+    if (req.body.images) {
+        offerData.photo = Array.isArray(req.body.images)
+            ? req.body.images[0]
+            : req.body.images;
+    }
+    const result = await offer_service_1.OfferService.createOffer(offerData);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.CREATED,
         success: true,
@@ -40,7 +47,14 @@ const getOfferById = (0, catchAsync_1.default)(async (req, res) => {
 });
 const updateOffer = (0, catchAsync_1.default)(async (req, res) => {
     const { id } = req.params;
-    const result = await offer_service_1.OfferService.updateOffer(id, req.body);
+    const offerData = { ...req.body };
+    // Handle image upload from disk storage
+    if (req.body.images) {
+        offerData.photo = Array.isArray(req.body.images)
+            ? req.body.images[0]
+            : req.body.images;
+    }
+    const result = await offer_service_1.OfferService.updateOffer(id, offerData);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,

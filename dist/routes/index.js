@@ -18,6 +18,9 @@ const category_route_1 = require("../modules/category/category.route");
 const place_route_1 = require("../modules/place/place.route");
 const offer_route_1 = require("../modules/offer/offer.route");
 const business_route_1 = require("../modules/business/business.route");
+const award_route_1 = require("../modules/award/award.route");
+const map_route_1 = require("../modules/map/map.route");
+const contact_route_1 = require("../modules/contact/contact.route");
 const http_status_codes_1 = require("http-status-codes");
 const router = express_1.default.Router();
 const apiRoutes = [
@@ -35,6 +38,9 @@ const apiRoutes = [
     { path: '/place', route: place_route_1.PlaceRoutes },
     { path: '/offer', route: offer_route_1.OfferRoutes },
     { path: '/business', route: business_route_1.BusinessRoutes },
+    { path: '/awards', route: award_route_1.AwardRoutes },
+    { path: '/map', route: map_route_1.MapRoutes },
+    { path: '/contact', route: contact_route_1.ContactRoutes },
 ];
 apiRoutes.forEach(route => {
     router.use(route.path, route.route);

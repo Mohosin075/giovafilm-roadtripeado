@@ -51,6 +51,10 @@ const subscriptionPlanSchema = new mongoose_1.Schema({
         type: Number,
         default: 1,
     },
+    maxPhotos: {
+        type: Number,
+        default: 1,
+    },
     isActive: {
         type: Boolean,
         default: true,

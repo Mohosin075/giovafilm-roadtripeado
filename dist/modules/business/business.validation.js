@@ -41,6 +41,7 @@ exports.createBusinessZodSchema = zod_1.z.object({
             ownerPhone: zod_1.z.string({ required_error: "Owner's Direct Phone is required" }),
             contactEmail: zod_1.z.string({ required_error: "Contact email is required" }).email('Invalid email address'),
         }),
+        plan: zod_1.z.string({ required_error: 'Subscription plan is required' }),
     }),
 });
 exports.updateBusinessZodSchema = zod_1.z.object({
@@ -74,6 +75,7 @@ exports.updateBusinessZodSchema = zod_1.z.object({
             ownerPhone: zod_1.z.string().optional(),
             contactEmail: zod_1.z.string().email().optional(),
         }).optional(),
+        plan: zod_1.z.string().optional(),
     }),
 });
 exports.updateBusinessStatusZodSchema = zod_1.z.object({

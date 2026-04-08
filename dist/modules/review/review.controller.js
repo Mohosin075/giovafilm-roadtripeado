@@ -11,8 +11,7 @@ const http_status_codes_1 = require("http-status-codes");
 const pagination_1 = require("../../interfaces/pagination");
 const pick_1 = __importDefault(require("../../shared/pick"));
 const createReview = (0, catchAsync_1.default)(async (req, res) => {
-    const reviewData = req.body;
-    const result = await review_service_1.ReviewServices.createReview(req.user, reviewData);
+    const result = await review_service_1.ReviewService.createReview(req.user, req.body);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.CREATED,
         success: true,
@@ -22,8 +21,7 @@ const createReview = (0, catchAsync_1.default)(async (req, res) => {
 });
 const updateReview = (0, catchAsync_1.default)(async (req, res) => {
     const { id } = req.params;
-    const reviewData = req.body;
-    const result = await review_service_1.ReviewServices.updateReview(req.user, id, reviewData);
+    const result = await review_service_1.ReviewService.updateReview(req.user, id, req.body);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -32,9 +30,8 @@ const updateReview = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 const getAllReviews = (0, catchAsync_1.default)(async (req, res) => {
-    const type = req.params.type;
     const paginationOptions = (0, pick_1.default)(req.query, pagination_1.paginationFields);
-    const result = await review_service_1.ReviewServices.getAllReviews(req.user, type, paginationOptions);
+    const result = await review_service_1.ReviewService.getAllReviews(paginationOptions);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -42,10 +39,10 @@ const getAllReviews = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
-const getReviewsByEvent = (0, catchAsync_1.default)(async (req, res) => {
-    const type = req.params.type;
+const getReviewsByPlace = (0, catchAsync_1.default)(async (req, res) => {
+    const { placeId } = req.params;
     const paginationOptions = (0, pick_1.default)(req.query, pagination_1.paginationFields);
-    const result = await review_service_1.ReviewServices.getReviewsByEvent(req.user, req.params.eventId, type, paginationOptions);
+    const result = await review_service_1.ReviewService.getReviewsByPlace(placeId, paginationOptions);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -55,7 +52,7 @@ const getReviewsByEvent = (0, catchAsync_1.default)(async (req, res) => {
 });
 const deleteReview = (0, catchAsync_1.default)(async (req, res) => {
     const { id } = req.params;
-    const result = await review_service_1.ReviewServices.deleteReview(id, req.user);
+    const result = await review_service_1.ReviewService.deleteReview(req.user, id);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -65,7 +62,7 @@ const deleteReview = (0, catchAsync_1.default)(async (req, res) => {
 });
 const getSingleReview = (0, catchAsync_1.default)(async (req, res) => {
     const { id } = req.params;
-    const result = await review_service_1.ReviewServices.getSingleReview(id, req.user);
+    const result = await review_service_1.ReviewService.getSingleReview(id);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -79,5 +76,5 @@ exports.ReviewController = {
     getAllReviews,
     deleteReview,
     getSingleReview,
-    getReviewsByEvent,
+    getReviewsByPlace,
 };

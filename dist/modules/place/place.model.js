@@ -4,6 +4,7 @@ exports.Place = void 0;
 const mongoose_1 = require("mongoose");
 const PlaceSchema = new mongoose_1.Schema({
     name: { type: String, required: true, trim: true },
+    map: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Map', required: true },
     category: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Category', required: true },
     description: { type: String, required: true },
     media: { type: [String], default: [] },
@@ -34,6 +35,8 @@ const PlaceSchema = new mongoose_1.Schema({
         enum: ['Draft', 'Published'],
         default: 'Draft',
     },
+    rating: { type: Number, default: 0 },
+    totalReview: { type: Number, default: 0 },
 }, {
     timestamps: true,
     toJSON: { virtuals: true },

@@ -5,6 +5,7 @@ const zod_1 = require("zod");
 exports.createPlaceZodSchema = zod_1.z.object({
     body: zod_1.z.object({
         name: zod_1.z.string({ required_error: 'Place name is required' }),
+        map: zod_1.z.string({ required_error: 'Map ID is required' }),
         category: zod_1.z.string({ required_error: 'Category ID is required' }),
         description: zod_1.z.string({ required_error: 'Description is required' }),
         media: zod_1.z.array(zod_1.z.string()).optional(),
@@ -35,6 +36,7 @@ exports.createPlaceZodSchema = zod_1.z.object({
 exports.updatePlaceZodSchema = zod_1.z.object({
     body: zod_1.z.object({
         name: zod_1.z.string().optional(),
+        map: zod_1.z.string().optional(),
         category: zod_1.z.string().optional(),
         description: zod_1.z.string().optional(),
         media: zod_1.z.array(zod_1.z.string()).optional(),

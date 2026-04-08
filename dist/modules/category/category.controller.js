@@ -9,7 +9,14 @@ const catchAsync_1 = __importDefault(require("../../shared/catchAsync"));
 const sendResponse_1 = __importDefault(require("../../shared/sendResponse"));
 const category_service_1 = require("./category.service");
 const createCategory = (0, catchAsync_1.default)(async (req, res) => {
-    const result = await category_service_1.CategoryService.createCategory(req.body);
+    const categoryData = { ...req.body };
+    // Handle image upload from disk storage for icon
+    if (req.body.images) {
+        categoryData.icon = Array.isArray(req.body.images)
+            ? req.body.images[0]
+            : req.body.images;
+    }
+    const result = await category_service_1.CategoryService.createCategory(categoryData);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.CREATED,
         success: true,
@@ -39,7 +46,14 @@ const getCategoryById = (0, catchAsync_1.default)(async (req, res) => {
 });
 const updateCategory = (0, catchAsync_1.default)(async (req, res) => {
     const { id } = req.params;
-    const result = await category_service_1.CategoryService.updateCategory(id, req.body);
+    const categoryData = { ...req.body };
+    // Handle image upload from disk storage for icon
+    if (req.body.images) {
+        categoryData.icon = Array.isArray(req.body.images)
+            ? req.body.images[0]
+            : req.body.images;
+    }
+    const result = await category_service_1.CategoryService.updateCategory(id, categoryData);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,

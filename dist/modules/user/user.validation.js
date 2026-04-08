@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addUserInterestSchema = exports.createStaffSchema = exports.STAFF_SPECIALTY = exports.updateUserSchema = void 0;
+exports.favoriteOfferSchema = exports.favoriteMapSchema = exports.addUserInterestSchema = exports.createStaffSchema = exports.STAFF_SPECIALTY = exports.updateUserSchema = void 0;
 const zod_1 = require("zod");
 const user_1 = require("../../enum/user");
 // ------------------ SUB-SCHEMAS ------------------
@@ -71,5 +71,19 @@ exports.createStaffSchema = zod_1.z.object({
 exports.addUserInterestSchema = zod_1.z.object({
     body: zod_1.z.object({
         interest: zod_1.z.array(zod_1.z.nativeEnum(user_1.InterestCategory)).optional(),
+    }),
+});
+exports.favoriteMapSchema = zod_1.z.object({
+    params: zod_1.z.object({
+        mapId: zod_1.z.string({
+            required_error: 'Map ID is required',
+        }),
+    }),
+});
+exports.favoriteOfferSchema = zod_1.z.object({
+    params: zod_1.z.object({
+        offerId: zod_1.z.string({
+            required_error: 'Offer ID is required',
+        }),
     }),
 });

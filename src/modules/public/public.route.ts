@@ -17,11 +17,6 @@ router.get('/:type', PublicController.getAllPublics)
 router.delete('/:id', PublicController.deletePublic)
 
 router.patch('/update/:id', PublicController.updatePublic)
-router.post(
-  '/contact',
-  validateRequest(PublicValidation.contactZodSchema),
-  PublicController.createContact,
-)
 
 router.post(
   '/faq',

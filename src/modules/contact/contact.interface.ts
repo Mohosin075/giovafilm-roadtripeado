@@ -4,6 +4,8 @@ export interface IContact {
   _id: Types.ObjectId
   name: string
   email: string
+  phone: string
+  country: string
   subject: string
   message: string
 }

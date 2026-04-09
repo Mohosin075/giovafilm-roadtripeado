@@ -75,6 +75,24 @@ export const createStaffSchema = z.object({
   }),
 })
 
+export const inviteUserSchema = z.object({
+  body: z.object({
+    email: z.string().email({ message: 'Invalid email address' }),
+    role: z.nativeEnum(USER_ROLES),
+  }),
+})
+
+export const updateUserRoleSchema = z.object({
+  params: z.object({
+    userId: z.string({
+      required_error: 'User ID is required',
+    }),
+  }),
+  body: z.object({
+    role: z.nativeEnum(USER_ROLES),
+  }),
+})
+
 export const addUserInterestSchema = z.object({
   body: z.object({
     interest: z.array(z.nativeEnum(InterestCategory)).optional(),

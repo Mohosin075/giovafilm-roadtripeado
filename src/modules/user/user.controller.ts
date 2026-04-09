@@ -94,6 +94,30 @@ const updateUserStatus = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const updateUserRole = catchAsync(async (req: Request, res: Response) => {
+  const { userId } = req.params
+  const { role } = req.body
+  if (!role) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Role is required')
+  }
+  const result = await UserServices.updateUserRole(userId, role)
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'User role updated successfully',
+    data: result,
+  })
+})
+
+const inviteUser = catchAsync(async (req: Request, res: Response) => {
+  const result = await UserServices.inviteUser(req.body)
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: result,
+  })
+})
+
 const getProfile = catchAsync(async (req: Request, res: Response) => {
   const result = await UserServices.getProfile(req.user!)
   sendResponse(res, {
@@ -170,6 +194,8 @@ export const UserController = {
   deleteUser,
   getUserById,
   updateUserStatus,
+  updateUserRole,
+  inviteUser,
   getProfile,
   deleteProfile,
   addUserInterest,

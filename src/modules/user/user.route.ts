@@ -13,6 +13,8 @@ import {
   favoriteOfferSchema,
   favoriteMapSchema,
   updateUserSchema,
+  inviteUserSchema,
+  updateUserRoleSchema,
 } from './user.validation'
 import { fileAndBodyProcessorUsingDiskStorage } from '../../middleware/processReqBody'
 
@@ -65,6 +67,20 @@ router.patch(
 
   validateRequest(updateUserSchema),
   UserController.updateProfile,
+)
+
+router.post(
+  '/invite',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  validateRequest(inviteUserSchema),
+  UserController.inviteUser,
+)
+
+router.patch(
+  '/update-role/:userId',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  validateRequest(updateUserRoleSchema),
+  UserController.updateUserRole,
 )
 
 router.delete(

@@ -8,6 +8,7 @@ export enum USER_ROLES {
   ADMIN = 'admin',
   USER = 'user',
   ORGANIZER = 'organizer',
+  MAP_EDITOR = 'map_editor',
 }
 
 export enum USER_STATUS {

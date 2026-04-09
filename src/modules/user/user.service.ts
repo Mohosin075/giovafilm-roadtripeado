@@ -12,6 +12,9 @@ import { IPaginationOptions } from '../../interfaces/pagination'
 import { S3Helper } from '../../helpers/image/s3helper'
 import config from '../../config'
 import { userFilterableFields } from './user.constants'
+import { generateOtp } from '../../utils/crypto'
+import { emailTemplate } from '../../shared/emailTemplate'
+import { emailHelper } from '../../helpers/emailHelper'
 
 const updateProfile = async (user: JwtPayload, payload: Partial<IUser>) => {
   console.log({ payload })
@@ -153,6 +156,10 @@ const getAllUsers = async (
 }
 
 const deleteUser = async (userId: string): Promise<string> => {
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid User ID.')
+  }
+
   const isUserExist = await User.findOne({
     _id: userId,
     status: { $nin: [USER_STATUS.DELETED] },
@@ -178,6 +185,10 @@ const deleteProfile = async (
   userId: string,
   password: string,
 ): Promise<string> => {
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid User ID.')
+  }
+
   const isUserExist = await User.findOne({
     _id: userId,
     status: { $nin: [USER_STATUS.DELETED] },
@@ -201,13 +212,17 @@ const deleteProfile = async (
   )
 
   if (!deletedUser) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to delete user.')
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to delete profile.')
   }
 
-  return 'User deleted successfully.'
+  return 'Profile deleted successfully.'
 }
 
 const getUserById = async (userId: string): Promise<any> => {
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid User ID.')
+  }
+
   const user = await User.findOne({
     _id: userId,
     status: { $nin: [USER_STATUS.DELETED] },
@@ -221,6 +236,10 @@ const getUserById = async (userId: string): Promise<any> => {
 }
 
 const updateUserStatus = async (userId: string, status: USER_STATUS) => {
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid User ID.')
+  }
+
   const isUserExist = await User.findOne({
     _id: userId,
     status: { $nin: [USER_STATUS.DELETED] },
@@ -242,6 +261,82 @@ const updateUserStatus = async (userId: string, status: USER_STATUS) => {
   return 'User status updated successfully.'
 }
 
+const updateUserRole = async (userId: string, role: USER_ROLES) => {
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid User ID.')
+  }
+
+  const isUserExist = await User.findOne({
+    _id: userId,
+    status: { $nin: [USER_STATUS.DELETED] },
+  })
+  if (!isUserExist) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
+  }
+
+  const updatedUser = await User.findOneAndUpdate(
+    { _id: userId, status: { $nin: [USER_STATUS.DELETED] } },
+    { $set: { role } },
+    { new: true },
+  )
+
+  if (!updatedUser) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to update user role.')
+  }
+
+  return 'User role updated successfully.'
+}
+
+const inviteUser = async (payload: { email: string; role: USER_ROLES }) => {
+  const email = payload.email.toLowerCase().trim()
+
+  const isUserExist = await User.findOne({
+    email,
+    status: { $nin: [USER_STATUS.DELETED] },
+  })
+
+  if (isUserExist) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'User with this email already exists.',
+    )
+  }
+
+  const otp = generateOtp()
+  const otpExpiresIn = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours for invitation
+
+  const authentication = {
+    oneTimeCode: otp,
+    expiresAt: otpExpiresIn,
+    latestRequestAt: new Date(),
+    requestCount: 1,
+    authType: 'createAccount',
+  }
+
+  const user = await User.create({
+    email,
+    role: payload.role,
+    status: USER_STATUS.ACTIVE,
+    verified: false,
+    authentication,
+  })
+
+  if (!user) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to invite user.')
+  }
+
+  // Send invitation email
+  const invitationEmail = emailTemplate.userInvitation({
+    email: user.email as string,
+    role: user.role as string,
+    otp,
+  })
+
+  emailHelper.sendEmail(invitationEmail)
+
+  return 'User invited successfully.'
+}
+
 export const getProfile = async (user: JwtPayload) => {
   // --- Fetch user ---
   const isUserExist = await User.findOne({
@@ -260,6 +355,10 @@ const addUserInterest = async (
   userId: string,
   interest: InterestCategory[],
 ): Promise<IUser | null> => {
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid User ID.')
+  }
+
   const isUserExist = await User.findOne({
     _id: userId,
     status: { $nin: [USER_STATUS.DELETED] },
@@ -285,6 +384,13 @@ const toggleFavoriteMap = async (
   userId: string,
   mapId: string,
 ) => {
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid User ID.')
+  }
+  if (!Types.ObjectId.isValid(mapId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Map ID.')
+  }
+
   const isUserExist = await User.findById(userId)
 
   if (!isUserExist) {
@@ -308,6 +414,10 @@ const toggleFavoriteMap = async (
 }
 
 const getFavoriteMaps = async (userId: string) => {
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid User ID.')
+  }
+
   const user = await User.findById(userId).populate({
     path: 'favoriteMaps',
     populate: { path: 'places', populate: { path: 'category' } },
@@ -324,6 +434,13 @@ const toggleFavoriteOffer = async (
   userId: string,
   offerId: string,
 ): Promise<string> => {
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid User ID.')
+  }
+  if (!Types.ObjectId.isValid(offerId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Offer ID.')
+  }
+
   const isUserExist = await User.findById(userId)
   if (!isUserExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
@@ -347,6 +464,10 @@ const toggleFavoriteOffer = async (
 }
 
 const getFavoriteOffers = async (userId: string) => {
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid User ID.')
+  }
+
   const user = await User.findById(userId).populate({
     path: 'favoriteOffers',
     populate: { path: 'place' },
@@ -366,6 +487,8 @@ export const UserServices = {
   deleteUser,
   getUserById,
   updateUserStatus,
+  updateUserRole,
+  inviteUser,
   getProfile,
   deleteProfile,
   addUserInterest,

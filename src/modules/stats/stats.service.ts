@@ -2,7 +2,13 @@ import { Map } from '../map/map.model'
 import { Place } from '../place/place.model'
 import { Offer } from '../offer/offer.model'
 import { User } from '../user/user.model'
-import { IDashboardData, IRecentActivity } from './stats.interface'
+import {
+  IDashboardData,
+  IRecentActivity,
+  IReportsData,
+  ISalesAndTaxesMonthly,
+  IUsageItem,
+} from './stats.interface'
 
 const getDashboardData = async (): Promise<IDashboardData> => {
   const [totalMaps, totalPlaces, activeOffers] = await Promise.all([
@@ -90,6 +96,65 @@ const getDashboardData = async (): Promise<IDashboardData> => {
   }
 }
 
+const getReportsData = async (): Promise<IReportsData> => {
+  // 1. Sales & Taxes Stats (Mocking based on image)
+  const totalSales = 31900
+  const taxesCollected = 3190
+  const netRevenue = 28710
+
+  const monthlyData: ISalesAndTaxesMonthly[] = [
+    { month: 'Jan', totalSales: 4200, taxes: 420, netRevenue: 3780 },
+    { month: 'Feb', totalSales: 5100, taxes: 510, netRevenue: 4590 },
+    { month: 'Mar', totalSales: 3800, taxes: 380, netRevenue: 3420 },
+    { month: 'Apr', totalSales: 6200, taxes: 620, netRevenue: 5580 },
+    { month: 'May', totalSales: 5500, taxes: 550, netRevenue: 4950 },
+    { month: 'Jun', totalSales: 7100, taxes: 710, netRevenue: 6390 },
+  ]
+
+  // 2. Usage Stats (Top 5 for each)
+  const mostViewedMapsRaw = await Map.find()
+    .sort({ viewCount: -1 })
+    .limit(5)
+    .select('name viewCount')
+  const mostViewedMaps: IUsageItem[] = mostViewedMapsRaw.map(m => ({
+    name: m.name,
+    count: (m as any).viewCount || 0,
+  }))
+
+  const mostOpenedPlacesRaw = await Place.find()
+    .sort({ openCount: -1 })
+    .limit(5)
+    .select('name openCount')
+  const mostOpenedPlaces: IUsageItem[] = mostOpenedPlacesRaw.map(p => ({
+    name: p.name,
+    count: (p as any).openCount || 0,
+  }))
+
+  const mostRedeemedOffersRaw = await Offer.find()
+    .sort({ redemptionsCount: -1 })
+    .limit(5)
+    .select('title redemptionsCount')
+  const mostRedeemedOffers: IUsageItem[] = mostRedeemedOffersRaw.map(o => ({
+    name: o.title,
+    count: o.redemptionsCount || 0,
+  }))
+
+  return {
+    salesAndTaxes: {
+      totalSales,
+      taxesCollected,
+      netRevenue,
+      monthlyData,
+    },
+    usage: {
+      mostViewedMaps,
+      mostOpenedPlaces,
+      mostRedeemedOffers,
+    },
+  }
+}
+
 export const StatsService = {
   getDashboardData,
+  getReportsData,
 }

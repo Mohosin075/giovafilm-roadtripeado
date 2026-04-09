@@ -24,6 +24,7 @@ export interface IPlace {
   status: 'Draft' | 'Published'
   rating?: number
   totalReview?: number
+  openCount: number
   createdAt: Date
   updatedAt: Date
 }

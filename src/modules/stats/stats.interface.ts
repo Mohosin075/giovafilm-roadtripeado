@@ -23,3 +23,33 @@ export interface IDashboardData {
   stats: IDashboardStats;
   recentActivity: IRecentActivity[];
 }
+
+export interface ISalesAndTaxesMonthly {
+  month: string;
+  totalSales: number;
+  taxes: number;
+  netRevenue: number;
+}
+
+export interface ISalesAndTaxesStats {
+  totalSales: number;
+  taxesCollected: number;
+  netRevenue: number;
+  monthlyData: ISalesAndTaxesMonthly[];
+}
+
+export interface IUsageItem {
+  name: string;
+  count: number;
+}
+
+export interface IUsageStats {
+  mostViewedMaps: IUsageItem[];
+  mostOpenedPlaces: IUsageItem[];
+  mostRedeemedOffers: IUsageItem[];
+}
+
+export interface IReportsData {
+  salesAndTaxes: ISalesAndTaxesStats;
+  usage: IUsageStats;
+}

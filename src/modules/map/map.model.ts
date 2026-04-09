@@ -17,6 +17,7 @@ const MapSchema = new Schema<IMap, MapModel>(
     isPaid: { type: Boolean, default: false },
     rating: { type: Number, default: 0 },
     totalReview: { type: Number, default: 0 },
+    viewCount: { type: Number, default: 0 },
   },
   {
     timestamps: true,

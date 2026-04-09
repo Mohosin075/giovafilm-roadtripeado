@@ -12,6 +12,7 @@ export interface IMap {
   isPaid: boolean
   rating: number // Optional rating field
   totalReview: number // Number of reviews
+  viewCount: number
   createdAt: Date
   updatedAt: Date
 }

@@ -37,6 +37,7 @@ const PlaceSchema = new Schema<IPlace, PlaceModel>(
     },
     rating: { type: Number, default: 0 },
     totalReview: { type: Number, default: 0 },
+    openCount: { type: Number, default: 0 },
   },
   {
     timestamps: true,

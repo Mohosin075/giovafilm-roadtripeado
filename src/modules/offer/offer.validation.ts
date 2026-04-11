@@ -4,7 +4,7 @@ import { OFFER_STATUS, DISCOUNT_TYPE } from '../../enum/offer'
 export const createOfferZodSchema = z.object({
   body: z.object({
     title: z.string({ required_error: 'Title is required' }),
-    photo: z.string().url().optional(),
+    photo: z.string().optional(),
     place: z.string({ required_error: 'Place ID is required' }),
     description: z.string({ required_error: 'Description is required' }),
     discountType: z.nativeEnum(DISCOUNT_TYPE, {
@@ -13,7 +13,7 @@ export const createOfferZodSchema = z.object({
     discountValue: z.union([z.string(), z.number()]).optional(),
     validFrom: z.string().datetime().optional(),
     validUntil: z.string().datetime().optional(),
-    redemptionRules: z.string().optional(),
+    redemptionRules: z.array(z.string()).optional(),
     buttonLabel: z.string().optional(),
     status: z.nativeEnum(OFFER_STATUS).default(OFFER_STATUS.ACTIVE),
     redemptionsCount: z.number().default(0),
@@ -43,14 +43,14 @@ export const createOfferZodSchema = z.object({
 export const updateOfferZodSchema = z.object({
   body: z.object({
     title: z.string().optional(),
-    photo: z.string().url().optional(),
+    photo: z.string().optional(),
     place: z.string().optional(),
     description: z.string().optional(),
     discountType: z.nativeEnum(DISCOUNT_TYPE).optional(),
     discountValue: z.union([z.string(), z.number()]).optional(),
     validFrom: z.string().datetime().optional(),
     validUntil: z.string().datetime().optional(),
-    redemptionRules: z.string().optional(),
+    redemptionRules: z.array(z.string()).optional(),
     buttonLabel: z.string().optional(),
     status: z.nativeEnum(OFFER_STATUS).optional(),
     redemptionsCount: z.number().nonnegative().optional(),

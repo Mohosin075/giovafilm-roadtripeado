@@ -11,7 +11,7 @@ export interface IOffer {
   discountValue?: string | number
   validFrom?: Date
   validUntil?: Date
-  redemptionRules?: string
+  redemptionRules?: string[]
   buttonLabel?: string
   status: OFFER_STATUS
   redemptionsCount: number // Default 0

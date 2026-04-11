@@ -16,7 +16,7 @@ const OfferSchema = new Schema<IOffer, OfferModel>(
     discountValue: { type: Schema.Types.Mixed }, // String or Number
     validFrom: { type: Date },
     validUntil: { type: Date },
-    redemptionRules: { type: String },
+    redemptionRules: { type: [String], default: [] },
     buttonLabel: { type: String, default: 'Redeem Offer' },
     status: {
       type: String,

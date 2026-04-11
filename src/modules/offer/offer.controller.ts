@@ -6,13 +6,11 @@ import { OfferService } from './offer.service'
 import ApiError from '../../errors/ApiError'
 
 const createOffer = catchAsync(async (req: Request, res: Response) => {
-  const offerData = { ...req.body }
+  const { images, ...offerData } = req.body
 
   // Handle image upload from disk storage
-  if (req.body.images) {
-    offerData.photo = Array.isArray(req.body.images)
-      ? req.body.images[0]
-      : req.body.images
+  if (images) {
+    offerData.photo = Array.isArray(images) ? images[0] : images
   }
 
   const result = await OfferService.createOffer(offerData)
@@ -48,13 +46,11 @@ const getOfferById = catchAsync(async (req: Request, res: Response) => {
 
 const updateOffer = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
-  const offerData = { ...req.body }
+  const { images, ...offerData } = req.body
 
   // Handle image upload from disk storage
-  if (req.body.images) {
-    offerData.photo = Array.isArray(req.body.images)
-      ? req.body.images[0]
-      : req.body.images
+  if (images) {
+    offerData.photo = Array.isArray(images) ? images[0] : images
   }
 
   const result = await OfferService.updateOffer(id, offerData)

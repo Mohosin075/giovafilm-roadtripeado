@@ -49,14 +49,6 @@ const subscriptionPlanSchema = new Schema<
         required: true,
       },
     ],
-    maxTeamMembers: {
-      type: Number,
-      default: 1,
-    },
-    maxServices: {
-      type: Number,
-      default: 1,
-    },
     maxPhotos: {
       type: Number,
       default: 1,
@@ -74,13 +66,6 @@ const subscriptionPlanSchema = new Schema<
       type: String,
       required: true,
     },
-    userTypes: [
-      {
-        type: String,
-        enum: ['user', 'organizer', 'admin', 'super_admin'],
-        required: true,
-      },
-    ],
     priority: {
       type: Number,
       default: 0,
@@ -92,7 +77,7 @@ const subscriptionPlanSchema = new Schema<
 )
 
 // Index for efficient queries
-subscriptionPlanSchema.index({ isActive: 1, userTypes: 1 })
+subscriptionPlanSchema.index({ isActive: 1 })
 subscriptionPlanSchema.index({ stripePriceId: 1 })
 
 export const SubscriptionPlan = model<ISubscriptionPlan, SubscriptionPlanModel>(

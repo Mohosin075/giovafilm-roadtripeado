@@ -30,21 +30,6 @@ export const createSubscriptionPlanSchema = z.object({
     features: z
       .array(z.string().min(1, 'Feature cannot be empty'))
       .min(1, 'At least one feature is required'),
-    maxTeamMembers: z
-      .number()
-      .min(1, 'Max team members must be at least 1')
-      .default(1),
-    maxServices: z
-      .number()
-      .min(1, 'Max services must be at least 1')
-      .default(1),
-    userTypes: z
-      .array(
-        z.enum(['user', 'organizer', 'admin', 'super_admin'], {
-          errorMap: () => ({ message: 'Invalid user type' }),
-        }),
-      )
-      .min(1, 'At least one user type is required'),
     priority: z.number().default(0),
   }),
 })
@@ -64,14 +49,6 @@ export const updateSubscriptionPlanSchema = z.object({
     features: z
       .array(z.string().min(1, 'Feature cannot be empty'))
       .min(1, 'At least one feature is required')
-      .optional(),
-    maxTeamMembers: z
-      .number()
-      .min(1, 'Max team members must be at least 1')
-      .optional(),
-    maxServices: z
-      .number()
-      .min(1, 'Max services must be at least 1')
       .optional(),
     isActive: z.boolean().optional(),
     priority: z.number().optional(),
@@ -108,9 +85,7 @@ export const createCheckoutSessionSchema = z.object({
 
 // Query Validation
 export const getPlansQuerySchema = z.object({
-  query: z.object({
-    userType: z.enum(['user', 'organizer', 'admin', 'super_admin']).optional(),
-  }),
+  query: z.object({}),
 })
 
 // Params Validation

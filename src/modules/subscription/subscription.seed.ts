@@ -12,10 +12,7 @@ const defaultPlans = [
     intervalCount: 1,
     trialPeriodDays: 0,
     features: ['Basic business listing', '1 Professional photo', 'Standard map pin'],
-    maxTeamMembers: 1,
-    maxServices: 1,
     maxPhotos: 1,
-    userTypes: ['organizer'],
     priority: 1,
   },
   {
@@ -32,10 +29,7 @@ const defaultPlans = [
       'Custom offer integration',
       'Priority in search results',
     ],
-    maxTeamMembers: 5,
-    maxServices: 10,
     maxPhotos: 10,
-    userTypes: ['organizer'],
     priority: 2,
   },
   {
@@ -51,10 +45,7 @@ const defaultPlans = [
       'Dedicated account manager',
       'Advanced analytics dashboard',
     ],
-    maxTeamMembers: 999,
-    maxServices: 999,
     maxPhotos: 999,
-    userTypes: ['organizer'],
     priority: 3,
   },
 ]
@@ -82,9 +73,6 @@ export async function seedSubscriptionPlans(): Promise<void> {
           name: planData.name,
           description: planData.description,
           metadata: {
-            userTypes: planData.userTypes.join(','),
-            maxTeamMembers: planData.maxTeamMembers.toString(),
-            maxServices: planData.maxServices.toString(),
             maxPhotos: planData.maxPhotos.toString(),
           },
         })

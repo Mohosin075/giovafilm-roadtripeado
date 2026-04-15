@@ -11,13 +11,10 @@ export interface ISubscriptionPlan {
   intervalCount: number
   trialPeriodDays: number
   features: string[]
-  maxTeamMembers: number
-  maxServices: number
   maxPhotos: number
   isActive: boolean
   stripePriceId: string
   stripeProductId: string
-  userTypes: ('user' | 'organizer' | 'admin' | 'super_admin')[]
   priority: number
   createdAt?: Date
   updatedAt?: Date

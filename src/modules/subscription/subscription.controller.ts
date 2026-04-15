@@ -9,9 +9,7 @@ import { JwtPayload } from 'jsonwebtoken'
 
 // Get available subscription plans
 const getAvailablePlans = catchAsync(async (req: Request, res: Response) => {
-  const { userType } = req.query
-
-  const plans = await subscriptionService.getAvailablePlans(userType as string)
+  const plans = await subscriptionService.getAvailablePlans()
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -217,10 +215,8 @@ const updateSubscriptionPlan = catchAsync(
 
 // Admin: Get all plans (including inactive)
 const getAllPlans = catchAsync(async (req: Request, res: Response) => {
-  const { userType } = req.query
-
   // For admin, get all plans including inactive ones
-  const plans = await subscriptionService.getAvailablePlans(userType as string)
+  const plans = await subscriptionService.getAvailablePlans()
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -341,33 +337,21 @@ const resumeSubscription = catchAsync(async (req: Request, res: Response) => {
 
 // Get usage data
 const getUsageData = catchAsync(async (req: Request, res: Response) => {
-  const user = req.user as JwtPayload
-  const userId = user.authId!.toString()
-
-  const { usageTrackingService } = await import('./usage-tracking.service')
-  const usageData = await usageTrackingService.getUsageWithLimits(userId)
-
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Usage data retrieved successfully',
-    data: usageData,
+    data: {},
   })
 })
 
 // Check usage warnings
 const getUsageWarnings = catchAsync(async (req: Request, res: Response) => {
-  const user = req.user as JwtPayload
-  const userId = user.authId!.toString()
-
-  const { usageTrackingService } = await import('./usage-tracking.service')
-  const warnings = await usageTrackingService.checkApproachingLimits(userId)
-
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Usage warnings retrieved successfully',
-    data: warnings,
+    data: { warnings: [], suggestions: [] },
   })
 })
 

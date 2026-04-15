@@ -71,6 +71,7 @@ export interface IUser {
 
   authentication: IAuthentication
   favoriteMaps?: Types.ObjectId[]
+  favoritePlaces?: Types.ObjectId[]
   favoriteOffers?: Types.ObjectId[]
   purchasedMaps?: Types.ObjectId[] // Ref Map
   awards?: any[]

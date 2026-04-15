@@ -107,6 +107,14 @@ export const favoriteMapSchema = z.object({
   }),
 })
 
+export const favoritePlaceSchema = z.object({
+  params: z.object({
+    placeId: z.string({
+      required_error: 'Place ID is required',
+    }),
+  }),
+})
+
 export const favoriteOfferSchema = z.object({
   params: z.object({
     offerId: z.string({

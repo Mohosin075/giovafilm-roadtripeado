@@ -80,6 +80,12 @@ const UserSchema = new Schema<IUser, UserModel>(
         ref: 'Map',
       },
     ],
+    favoritePlaces: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Place',
+      },
+    ],
     favoriteOffers: [
       {
         type: Schema.Types.ObjectId,

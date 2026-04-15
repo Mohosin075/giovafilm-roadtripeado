@@ -18,6 +18,7 @@ import { AwardRoutes } from '../modules/award/award.route'
 import { MapRoutes } from '../modules/map/map.route'
 import { ContactRoutes } from '../modules/contact/contact.route'
 import { StatsRoutes } from '../modules/stats/stats.route'
+import { FavouriteRoutes } from '../modules/favourite/favourite.route'
 import { StatusCodes } from 'http-status-codes'
 
 const router = express.Router()
@@ -42,6 +43,7 @@ const apiRoutes: { path: string; route: Router }[] = [
   { path: '/map', route: MapRoutes },
   { path: '/contact', route: ContactRoutes },
   { path: '/stats', route: StatsRoutes },
+  { path: '/favourite', route: FavouriteRoutes },
 ]
 
 apiRoutes.forEach(route => {

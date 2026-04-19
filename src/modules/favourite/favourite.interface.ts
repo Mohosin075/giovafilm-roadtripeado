@@ -4,7 +4,8 @@ export interface IFavourite {
   user: Types.ObjectId
   map?: Types.ObjectId
   place?: Types.ObjectId
-  type: 'Map' | 'Place'
+  offer?: Types.ObjectId
+  type: 'Map' | 'Place' | 'Offer'
 }
 
 export type FavouriteModel = Model<IFavourite>

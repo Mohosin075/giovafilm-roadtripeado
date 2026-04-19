@@ -16,9 +16,13 @@ const FavouriteSchema = new Schema<IFavourite, FavouriteModel>(
       type: Schema.Types.ObjectId,
       ref: 'Place',
     },
+    offer: {
+      type: Schema.Types.ObjectId,
+      ref: 'Offer',
+    },
     type: {
       type: String,
-      enum: ['Map', 'Place'],
+      enum: ['Map', 'Place', 'Offer'],
       required: true,
     },
   },
@@ -30,9 +34,11 @@ const FavouriteSchema = new Schema<IFavourite, FavouriteModel>(
 )
 
 // Ensure uniqueness for user and map
-FavouriteSchema.index({ user: 1, map: 1 }, { unique: true, sparse: true })
+FavouriteSchema.index({ map: 1 }, { unique: true, sparse: true })
 // Ensure uniqueness for user and place
-FavouriteSchema.index({ user: 1, place: 1 }, { unique: true, sparse: true })
+FavouriteSchema.index({ place: 1 }, { unique: true, sparse: true })
+// Ensure uniqueness for user and offer
+FavouriteSchema.index({ offer: 1 }, { unique: true, sparse: true })
 
 export const Favourite = model<IFavourite, FavouriteModel>(
   'Favourite',

@@ -76,6 +76,11 @@ export interface IUser {
   purchasedMaps?: Types.ObjectId[] // Ref Map
   awards?: any[]
 
+  // --- Points & Rewards ---
+  points: number
+  level: number
+  redeemedFreeMap?: Types.ObjectId // The map user chose as a prize
+
   // --- Subscription Fields ---
   stripeCustomerId?: string
   subscriptionStatus?: string

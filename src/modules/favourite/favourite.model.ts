@@ -33,12 +33,6 @@ const FavouriteSchema = new Schema<IFavourite, FavouriteModel>(
   }
 )
 
-// Ensure uniqueness for user and map
-FavouriteSchema.index({ map: 1 }, { unique: true, sparse: true })
-// Ensure uniqueness for user and place
-FavouriteSchema.index({ place: 1 }, { unique: true, sparse: true })
-// Ensure uniqueness for user and offer
-FavouriteSchema.index({ offer: 1 }, { unique: true, sparse: true })
 
 export const Favourite = model<IFavourite, FavouriteModel>(
   'Favourite',

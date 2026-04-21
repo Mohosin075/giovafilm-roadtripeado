@@ -98,6 +98,11 @@ const UserSchema = new Schema<IUser, UserModel>(
         ref: 'Map',
       },
     ],
+    // --- Points & Rewards ---
+    points: { type: Number, default: 0 },
+    level: { type: Number, default: 1 },
+    redeemedFreeMap: { type: Schema.Types.ObjectId, ref: 'Map', default: null },
+
     // --- Subscription Fields ---
     stripeCustomerId: { type: String, default: null },
     subscriptionStatus: { type: String, default: 'none' },

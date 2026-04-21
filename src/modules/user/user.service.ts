@@ -480,6 +480,22 @@ const getFavoriteOffers = async (userId: string) => {
   return user.favoriteOffers || []
 }
 
+const updatePointsAndLevel = async (userId: string, pointsToAdd: number) => {
+  const user = await User.findById(userId)
+  if (!user) return
+
+  const newPoints = (user.points || 0) + pointsToAdd
+  // Simple level logic: every 1000 points = 1 level
+  const newLevel = Math.floor(newPoints / 1000) + 1
+
+  await User.findByIdAndUpdate(userId, {
+    $set: {
+      points: newPoints,
+      level: newLevel,
+    },
+  })
+}
+
 export const UserServices = {
   updateProfile,
   createAdmin,
@@ -496,4 +512,5 @@ export const UserServices = {
   getFavoriteMaps,
   toggleFavoriteOffer,
   getFavoriteOffers,
+  updatePointsAndLevel,
 }

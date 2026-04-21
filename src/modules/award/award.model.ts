@@ -7,6 +7,8 @@ const awardSchema = new Schema<IAward, AwardModel>(
     type: {
       type: String,
       enum: [
+        'PDF Itinerary',
+        'Free Map',
         'Gourmet Guide',
         'Top Reviewer',
         'Trail Master',

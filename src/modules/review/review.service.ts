@@ -33,6 +33,23 @@ const createReview = async (user: JwtPayload, payload: IReview) => {
       )
     }
 
+    // Calculate points: 10 points for review, 5 points per media/photo
+    const pointsForReview = 10
+    const pointsForMedia = (payload.media?.length || 0) * 5
+    const totalPointsEarned = pointsForReview + pointsForMedia
+
+    // Update user points and level
+    const user = await User.findById(payload.reviewer)
+    if (user) {
+      const newPoints = (user.points || 0) + totalPointsEarned
+      const newLevel = Math.floor(newPoints / 1000) + 1
+      await User.findByIdAndUpdate(
+        payload.reviewer,
+        { $set: { points: newPoints, level: newLevel } },
+        { session },
+      )
+    }
+
     // update the review count and rating of the place
     await Place.findByIdAndUpdate(
       payload.placeId,

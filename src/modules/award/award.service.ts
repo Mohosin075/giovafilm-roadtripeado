@@ -1,8 +1,16 @@
 import { Types } from 'mongoose'
 import { Award } from './award.model'
 import { IAwardType } from './award.interface'
+import { User } from '../user/user.model'
+import ApiError from '../../errors/ApiError'
+import { StatusCodes } from 'http-status-codes'
 
 const getMyAwards = async (userId: string) => {
+  const user = await User.findById(userId)
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+  }
+
   const existingAwards = await Award.find({ userId })
 
   const defaultAwards: {
@@ -12,38 +20,50 @@ const getMyAwards = async (userId: string) => {
     isUnlocked: boolean
   }[] = [
     {
+      type: 'PDF Itinerary',
+      target: 500,
+      progress: user.points || 0,
+      isUnlocked: (user.points || 0) >= 500,
+    },
+    {
+      type: 'Free Map',
+      target: 1000,
+      progress: user.points || 0,
+      isUnlocked: (user.points || 0) >= 1000,
+    },
+    {
       type: 'Gourmet Guide',
       target: 2000,
-      progress: 1458,
+      progress: 0,
       isUnlocked: false,
     },
     {
       type: 'Top Reviewer',
       target: 1000,
-      progress: 800,
+      progress: 0,
       isUnlocked: false,
     },
     {
       type: 'Trail Master',
       target: 500,
-      progress: 250,
+      progress: 0,
       isUnlocked: false,
     },
     {
       type: 'History Buff',
       target: 1500,
-      progress: 1200,
+      progress: 0,
       isUnlocked: false,
     },
     {
       type: 'Legendary Explorer',
       target: 100,
-      progress: 100,
-      isUnlocked: true,
+      progress: 0,
+      isUnlocked: false,
     },
   ]
 
-  // If user doesn't have all default awards, initialize them
+  // Initialize or update awards
   for (const defaultAward of defaultAwards) {
     const found = existingAwards.find(a => a.type === defaultAward.type)
     if (!found) {
@@ -51,6 +71,19 @@ const getMyAwards = async (userId: string) => {
         userId,
         ...defaultAward,
       })
+    } else {
+      // Update progress for point-based awards
+      if (defaultAward.type === 'PDF Itinerary' || defaultAward.type === 'Free Map') {
+        await Award.updateOne(
+          { _id: found._id },
+          { 
+            $set: { 
+              progress: defaultAward.progress,
+              isUnlocked: defaultAward.isUnlocked
+            } 
+          }
+        )
+      }
     }
   }
 
@@ -73,7 +106,38 @@ const updateAwardProgress = async (
   }
 }
 
+const redeemFreeMap = async (userId: string, mapId: string) => {
+  const user = await User.findById(userId)
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+  }
+
+  // Check if already redeemed
+  if (user.redeemedFreeMap) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'You have already redeemed your free map')
+  }
+
+  // Check if Free Map award is unlocked
+  const freeMapAward = await Award.findOne({ userId, type: 'Free Map' })
+  if (!freeMapAward || !freeMapAward.isUnlocked) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Free Map award is not unlocked yet')
+  }
+
+  // Update user: set redeemedFreeMap and add to purchasedMaps
+  const result = await User.findByIdAndUpdate(
+    userId,
+    {
+      $set: { redeemedFreeMap: new Types.ObjectId(mapId) },
+      $addToSet: { purchasedMaps: new Types.ObjectId(mapId) },
+    },
+    { new: true },
+  )
+
+  return result
+}
+
 export const AwardServices = {
   getMyAwards,
   updateAwardProgress,
+  redeemFreeMap,
 }

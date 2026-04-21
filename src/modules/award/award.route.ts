@@ -11,4 +11,10 @@ router.get(
   AwardController.getMyAwards,
 )
 
+router.post(
+  '/redeem-free-map',
+  auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  AwardController.redeemFreeMap,
+)
+
 export const AwardRoutes = router

@@ -1,6 +1,8 @@
 import { Model, Types } from 'mongoose'
 
 export type IAwardType =
+  | 'PDF Itinerary'
+  | 'Free Map'
   | 'Gourmet Guide'
   | 'Top Reviewer'
   | 'Trail Master'

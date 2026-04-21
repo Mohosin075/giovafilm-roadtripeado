@@ -1,0 +1,13 @@
+Greetings, the prizes can be one of two things:
+1. A PDF itinerary
+2. Free activation of any map you want.
+How will users earn the prizes?.
+Users will accumulate points by writing reviews and uploading photos in the "Reviews" section. When
+a user accumulates a certain number of points, they unlock the prize.
+PDF Itinerary Prize: If it's the PDF itinerary, a brief description of the itinerary and a "download"
+button may appear.
+Free Map Prize: If the map has been won, a button to select a free map may appear. Once a user
+selects their preferred map, they will not be able to select another.
+Everything will be based on points and levels, but the prizes may change and more may be added.
+glovafilm
+You confirm to me if they understood or if they need me to clarify something additional.

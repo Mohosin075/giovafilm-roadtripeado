@@ -19,6 +19,12 @@ router
     ReviewController.createReview,
   )
 
+router.get(
+  '/my-reviews',
+  auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  ReviewController.getMyReviews,
+)
+
 router
   .route('/:placeId/place')
   .get(

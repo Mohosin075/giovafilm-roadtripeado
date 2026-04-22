@@ -10,7 +10,7 @@ export default {
   port: process.env.PORT,
   cors_origins: process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(',')
-    : ['http://localhost:3000', 'https://giovafilm-frontend.netlify.app', 'http://195.35.6.13:3002'],
+    : ['http://localhost:3000', 'http://localhost:3001', 'https://giovafilm-frontend.netlify.app', 'http://195.35.6.13:3002'],
   bcrypt_salt_rounds: process.env.BCRYPT_SALT_ROUNDS,
   firebase_service_account_base64: process.env.FIREBASE_SERVICE_ACCOUNT_BASE64,
   server_map_api_key: process.env.SERVER_MAP_API_KEY,

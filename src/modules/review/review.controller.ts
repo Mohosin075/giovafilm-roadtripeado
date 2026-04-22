@@ -79,6 +79,18 @@ const getSingleReview = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const getMyReviews = catchAsync(async (req: Request, res: Response) => {
+  const paginationOptions = pick(req.query, paginationFields)
+  const result = await ReviewService.getMyReviews(req.user!, paginationOptions)
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'My reviews retrieved successfully',
+    data: result,
+  })
+})
+
 export const ReviewController = {
   createReview,
   updateReview,
@@ -86,4 +98,5 @@ export const ReviewController = {
   deleteReview,
   getSingleReview,
   getReviewsByPlace,
+  getMyReviews,
 }

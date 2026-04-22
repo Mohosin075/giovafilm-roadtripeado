@@ -282,6 +282,13 @@ const getSingleReview = async (id: string) => {
   return result
 }
 
+const getMyReviews = async (
+  user: JwtPayload,
+  paginationOptions: IPaginationOptions,
+) => {
+  return await getAllReviews(paginationOptions, { reviewer: user.authId })
+}
+
 export const ReviewService = {
   createReview,
   getAllReviews,
@@ -289,4 +296,5 @@ export const ReviewService = {
   updateReview,
   deleteReview,
   getSingleReview,
+  getMyReviews,
 }

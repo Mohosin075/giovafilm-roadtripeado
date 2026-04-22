@@ -24,6 +24,8 @@ router.get(
   MapController.getPurchasedMaps
 )
 
+router.get('/available-countries', MapController.getAvailableCountries)
+
 router
   .route('/:id')
   .get(MapController.getMapById)

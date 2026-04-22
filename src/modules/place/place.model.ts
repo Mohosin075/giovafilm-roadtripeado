@@ -6,6 +6,7 @@ const PlaceSchema = new Schema<IPlace, PlaceModel>(
     name: { type: String, required: true, trim: true },
     map: { type: Schema.Types.ObjectId, ref: 'Map', required: true },
     category: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
+    country: { type: String, required: true },
     description: { type: String, required: true },
     media: { type: [String], default: [] },
     address: { type: String, required: true },

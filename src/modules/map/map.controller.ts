@@ -78,6 +78,16 @@ const getPurchasedMaps = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const getAvailableCountries = catchAsync(async (req: Request, res: Response) => {
+  const result = await MapService.getAvailableCountries()
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Available countries retrieved successfully',
+    data: result,
+  })
+})
+
 export const MapController = {
   createMap,
   getAllMaps,
@@ -86,4 +96,5 @@ export const MapController = {
   deleteMap,
   purchaseMap,
   getPurchasedMaps,
+  getAvailableCountries,
 }

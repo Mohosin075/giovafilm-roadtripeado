@@ -9,6 +9,7 @@ const MapSchema = new Schema<IMap, MapModel>(
     images: [{ type: String, required: true }],
     features: [{ type: String, default: [] }],
     places: [{ type: Schema.Types.ObjectId, ref: 'Place' }],
+    country: { type: String },
     status: {
       type: String,
       enum: ['Draft', 'Published'],

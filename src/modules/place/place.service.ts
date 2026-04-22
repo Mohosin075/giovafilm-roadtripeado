@@ -6,11 +6,25 @@ import QueryBuilder from '../../builder/QueryBuilder'
 import { placeSearchableFields } from './place.constants'
 import { Map } from '../map/map.model'
 import mongoose from 'mongoose'
+import { getCountryFromCoordinates } from '../../utils/reverseGeocoding'
 
 const createPlace = async (payload: IPlace): Promise<IPlace> => {
   const session = await mongoose.startSession()
   try {
     session.startTransaction()
+
+    // Auto-populate country if not provided
+    if (!payload.country && payload.location?.coordinates) {
+      const [lng, lat] = payload.location.coordinates
+      // MongoDB stores [lng, lat], but Google API needs (lat, lng)
+      const country = await getCountryFromCoordinates(lat, lng)
+      console.log('country', country)
+      if (country) {
+        payload.country = country
+      } else {
+        payload.country = 'Unknown' // Fallback
+      }
+    }
 
     // Check if map exists
     const map = await Map.findById(payload.map).session(session)
@@ -24,7 +38,11 @@ const createPlace = async (payload: IPlace): Promise<IPlace> => {
     // Add place to map
     await Map.findByIdAndUpdate(
       payload.map,
-      { $push: { places: createdPlace._id } },
+      { 
+        $push: { places: createdPlace._id },
+        // If map doesn't have a country, set it from the place
+        $set: { country: createdPlace.country } 
+      },
       { session }
     )
 
@@ -78,6 +96,15 @@ const updatePlace = async (
   const session = await mongoose.startSession()
   try {
     session.startTransaction()
+
+    // Auto-populate country if coordinates are updated but country is not
+    if (payload.location?.coordinates && !payload.country) {
+      const [lng, lat] = payload.location.coordinates
+      const country = await getCountryFromCoordinates(lat, lng)
+      if (country) {
+        payload.country = country
+      }
+    }
 
     // Handle map change
     if (payload.map && payload.map.toString() !== isExist.map.toString()) {

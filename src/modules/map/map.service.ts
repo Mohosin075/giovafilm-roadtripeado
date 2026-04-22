@@ -160,6 +160,11 @@ const getPurchasedMaps = async (userId: string) => {
   return user.purchasedMaps || []
 }
 
+const getAvailableCountries = async (): Promise<string[]> => {
+  const result = await Place.distinct('country', { status: 'Published' })
+  return result.filter((country): country is string => typeof country === 'string' && country !== 'Unknown')
+}
+
 export const MapService = {
   createMap,
   getAllMaps,
@@ -168,4 +173,5 @@ export const MapService = {
   deleteMap,
   purchaseMap,
   getPurchasedMaps,
+  getAvailableCountries,
 }

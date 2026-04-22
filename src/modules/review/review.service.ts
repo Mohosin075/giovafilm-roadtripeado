@@ -103,7 +103,7 @@ const getAllReviews = async (
   const [result, total] = await Promise.all([
     Review.find(filter)
       .populate('reviewer', 'name profile')
-      .populate('placeId', 'name')
+      .populate('placeId', 'name media')
       .skip(skip)
       .limit(limit)
       .sort({ [sortBy]: sortOrder }),

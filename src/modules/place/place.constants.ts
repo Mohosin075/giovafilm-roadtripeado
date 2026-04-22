@@ -1,1 +1,1 @@
-export const placeSearchableFields = ['name', 'description', 'address']
+export const placeSearchableFields = ['name', 'description', 'address', 'country']

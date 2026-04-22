@@ -8,6 +8,7 @@ export interface IMap {
   images: string[] // Multiple images
   features: string[] // Key features list
   places: Types.ObjectId[] // Array of Place IDs
+  country?: string // Country name
   status: 'Draft' | 'Published'
   isPaid: boolean
   rating: number // Optional rating field

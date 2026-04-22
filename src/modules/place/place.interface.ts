@@ -5,6 +5,7 @@ export interface IPlace {
   name: string
   map: Types.ObjectId // Ref Map
   category: Types.ObjectId // Ref Category
+  country?: string // Country name
   description: string
   media: string[]
   address: string

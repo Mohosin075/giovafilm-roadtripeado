@@ -71,6 +71,10 @@ const BusinessSchema = new Schema<IBusiness, BusinessModel>(
       enum: ['Pending', 'Approved', 'Rejected'],
       default: 'Pending',
     },
+    viewCount: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,

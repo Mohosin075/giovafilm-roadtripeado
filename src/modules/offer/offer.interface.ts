@@ -5,7 +5,8 @@ export interface IOffer {
   _id: Types.ObjectId
   title: string
   photo?: string
-  place: Types.ObjectId // Ref Place
+  place?: Types.ObjectId // Ref Place
+  business?: Types.ObjectId // Ref Business
   description: string
   discountType: DISCOUNT_TYPE
   discountValue?: string | number

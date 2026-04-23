@@ -43,7 +43,10 @@ router.patch(
   '/:id/status',
   auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   validateRequest(updateBusinessStatusZodSchema),
-  BusinessController.updateBusinessStatus
+  BusinessController.updateBusinessStatus,
 )
+
+router.get('/:id/stats', BusinessController.getBusinessStats)
+router.post('/:id/view', BusinessController.incrementViewCount)
 
 export const BusinessRoutes = router

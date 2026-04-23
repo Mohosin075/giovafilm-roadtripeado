@@ -2,8 +2,10 @@ import { StatusCodes } from 'http-status-codes'
 import ApiError from '../../errors/ApiError'
 import { IBusiness, BusinessStatus } from './business.interface'
 import { Business } from './business.model'
+import { Offer } from '../offer/offer.model'
 import QueryBuilder from '../../builder/QueryBuilder'
 import { businessSearchableFields } from './business.constants'
+import { OFFER_STATUS } from '../../enum/offer'
 
 /**
  * Creates a new business listing and sets it as Pending.
@@ -113,6 +115,34 @@ const deleteBusiness = async (id: string): Promise<IBusiness | null> => {
   return result
 }
 
+const getBusinessStats = async (businessId: string) => {
+  const business = await Business.findById(businessId)
+  if (!business) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Business not found')
+  }
+
+  // Get all offers for this business and sum their redemptions
+  const offers = await Offer.find({ business: businessId })
+  const totalOfferRedemptions = offers.reduce(
+    (acc, offer) => acc + (offer.redemptionsCount || 0),
+    0,
+  )
+
+  return {
+    viewCount: business.viewCount || 0,
+    totalOfferRedemptions,
+    activeOffersCount: offers.filter(o => o.status === OFFER_STATUS.ACTIVE).length,
+  }
+}
+
+const incrementViewCount = async (id: string) => {
+  return await Business.findByIdAndUpdate(
+    id,
+    { $inc: { viewCount: 1 } },
+    { new: true },
+  )
+}
+
 export const BusinessService = {
   createBusiness,
   getAllBusinesses,
@@ -120,4 +150,6 @@ export const BusinessService = {
   updateBusiness,
   updateBusinessStatus,
   deleteBusiness,
+  getBusinessStats,
+  incrementViewCount,
 }

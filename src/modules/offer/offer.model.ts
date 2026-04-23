@@ -6,7 +6,8 @@ const OfferSchema = new Schema<IOffer, OfferModel>(
   {
     title: { type: String, required: true, trim: true },
     photo: { type: String },
-    place: { type: Schema.Types.ObjectId, ref: 'Place', required: true },
+    place: { type: Schema.Types.ObjectId, ref: 'Place' },
+    business: { type: Schema.Types.ObjectId, ref: 'Business' },
     description: { type: String, required: true },
     discountType: {
       type: String,
@@ -18,7 +19,7 @@ const OfferSchema = new Schema<IOffer, OfferModel>(
     validUntil: { type: Date },
     redemptionRules: { type: [String], default: [] },
     buttonLabel: { type: String, default: 'Redeem Offer' },
-    redemptionDuration: { type: Number, default: 15 }, // Default to 15 minutes
+    redemptionDuration: { type: Number, default: 5 }, // Default to 5 minutes
     status: {
       type: String,
       enum: Object.values(OFFER_STATUS),

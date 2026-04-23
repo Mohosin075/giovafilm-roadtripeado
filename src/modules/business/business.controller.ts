@@ -115,6 +115,28 @@ const deleteBusiness = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const getBusinessStats = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params
+  const result = await BusinessService.getBusinessStats(id)
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Business stats retrieved successfully',
+    data: result,
+  })
+})
+
+const incrementViewCount = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params
+  const result = await BusinessService.incrementViewCount(id)
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'View count incremented successfully',
+    data: result,
+  })
+})
+
 export const BusinessController = {
   createBusiness,
   getAllBusinesses,
@@ -122,4 +144,6 @@ export const BusinessController = {
   updateBusiness,
   updateBusinessStatus,
   deleteBusiness,
+  getBusinessStats,
+  incrementViewCount,
 }

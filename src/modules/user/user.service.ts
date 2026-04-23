@@ -290,15 +290,12 @@ const updateUserRole = async (userId: string, role: USER_ROLES) => {
 const inviteUser = async (payload: { email: string; role: USER_ROLES }) => {
   const email = payload.email.toLowerCase().trim()
 
-  const isUserExist = await User.findOne({
-    email,
-    status: { $nin: [USER_STATUS.DELETED] },
-  })
+  const isUserExist = await User.findOne({ email })
 
-  if (isUserExist) {
+  if (isUserExist && isUserExist.verified) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
-      'User with this email already exists.',
+      'User with this email already exists and is verified.',
     )
   }
 
@@ -313,13 +310,31 @@ const inviteUser = async (payload: { email: string; role: USER_ROLES }) => {
     authType: 'createAccount',
   }
 
-  const user = await User.create({
-    email,
-    role: payload.role,
-    status: USER_STATUS.ACTIVE,
-    verified: false,
-    authentication,
-  })
+  let user
+  if (isUserExist) {
+    // Update existing unverified or deleted user
+    user = await User.findOneAndUpdate(
+      { email },
+      {
+        $set: {
+          role: payload.role,
+          status: USER_STATUS.ACTIVE,
+          verified: false,
+          authentication,
+        },
+      },
+      { new: true },
+    )
+  } else {
+    // Create new user
+    user = await User.create({
+      email,
+      role: payload.role,
+      status: USER_STATUS.ACTIVE,
+      verified: false,
+      authentication,
+    })
+  }
 
   if (!user) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to invite user.')
@@ -332,7 +347,7 @@ const inviteUser = async (payload: { email: string; role: USER_ROLES }) => {
     otp,
   })
 
-  emailHelper.sendEmail(invitationEmail)
+  await emailHelper.sendEmail(invitationEmail)
 
   return 'User invited successfully.'
 }

@@ -50,7 +50,7 @@ const handleLoginLogic = async (
     // emailQueue.add('emails', otpTemplate)
 
     return authResponse(
-      StatusCodes.PROXY_AUTHENTICATION_REQUIRED,
+      StatusCodes.OK,
       `An OTP has been sent to your ${payload.email}. Please verify.`,
     )
   }
@@ -156,6 +156,7 @@ export const authResponse = (
   accessToken?: string,
   refreshToken?: string,
   token?: string,
+  needPassword?: boolean,
 ): IAuthResponse => {
   return {
     status,
@@ -164,5 +165,6 @@ export const authResponse = (
     ...(accessToken && { accessToken }),
     ...(refreshToken && { refreshToken }),
     ...(token && { token }),
+    ...(needPassword !== undefined && { needPassword }),
   }
 }

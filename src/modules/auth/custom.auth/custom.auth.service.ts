@@ -254,6 +254,7 @@ const resetPassword = async (resetToken: string, payload: IResetPassword) => {
   )
   const updatedUserData = {
     password: hashPassword,
+    verified: true, // Mark as verified when setting password for the first time
     authentication: {
       resetPassword: false,
       otp: '',
@@ -315,6 +316,43 @@ const verifyAccount = async (
 
   //either newly created user or existing user
   if (!isUserExist.verified) {
+    // If user was invited (has no password), they must set a password first
+    if (!isUserExist.password) {
+      await User.findByIdAndUpdate(
+        isUserExist._id,
+        {
+          $set: {
+            authentication: {
+              oneTimeCode: '',
+              expiresAt: null,
+              latestRequestAt: null,
+              requestCount: 0,
+              authType: '',
+              resetPassword: true,
+            },
+          },
+        },
+        { new: true },
+      )
+
+      const token = await Token.create({
+        token: cryptoToken(),
+        user: isUserExist._id,
+        expireAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+      })
+
+      return authResponse(
+        StatusCodes.OK,
+        'OTP verified successfully, please set your password to complete your account.',
+        undefined,
+        undefined,
+        undefined,
+        token?.token,
+        true, // needPassword
+      )
+    }
+
+    // Normal signup flow (already has password)
     await User.findByIdAndUpdate(
       isUserExist._id,
       { $set: { verified: true } },

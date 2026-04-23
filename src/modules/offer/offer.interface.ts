@@ -12,6 +12,8 @@ export interface IOffer {
   discountValue?: string | number
   validFrom?: Date
   validUntil?: Date
+  noExpiration?: boolean
+  maxRedemptions?: number
   redemptionRules?: string[]
   buttonLabel?: string
   redemptionDuration?: number // Duration in minutes, e.g., 15

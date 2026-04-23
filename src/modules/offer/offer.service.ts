@@ -91,6 +91,25 @@ const redeemOffer = async (id: string, userId: string) => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Offer is not active')
   }
 
+  // Check if maxRedemptions is reached
+  if (offer.maxRedemptions && offer.redemptionsCount >= offer.maxRedemptions) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Offer redemption limit reached',
+    )
+  }
+
+  // Check expiration date
+  const now = new Date()
+  if (offer.noExpiration !== true) {
+    if (offer.validFrom && now < new Date(offer.validFrom)) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Offer is not yet valid')
+    }
+    if (offer.validUntil && now > new Date(offer.validUntil)) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Offer has expired')
+    }
+  }
+
   // Check if there is an active redemption (timer still running)
   const activeRedemption = await OfferRedemption.findOne({
     user: userId,

@@ -13,6 +13,7 @@ export interface IOffer {
   validUntil?: Date
   redemptionRules?: string[]
   buttonLabel?: string
+  redemptionDuration?: number // Duration in minutes, e.g., 15
   status: OFFER_STATUS
   redemptionsCount: number // Default 0
   createdAt: Date

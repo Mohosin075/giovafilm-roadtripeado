@@ -41,4 +41,10 @@ router.post(
   OfferController.calculateDiscount,
 )
 
+router.post(
+  '/:id/redeem',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER),
+  OfferController.redeemOffer,
+)
+
 export const OfferRoutes = router

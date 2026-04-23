@@ -5,6 +5,8 @@ import sendResponse from '../../shared/sendResponse'
 import { OfferService } from './offer.service'
 import ApiError from '../../errors/ApiError'
 
+import { JwtPayload } from 'jsonwebtoken'
+
 const createOffer = catchAsync(async (req: Request, res: Response) => {
   const { images, ...offerData } = req.body
 
@@ -90,6 +92,19 @@ const calculateDiscount = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const redeemOffer = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params
+  const { authId } = req.user as JwtPayload
+
+  const result = await OfferService.redeemOffer(id, authId)
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Offer redeemed successfully',
+    data: result,
+  })
+})
+
 export const OfferController = {
   createOffer,
   getAllOffers,
@@ -97,4 +112,5 @@ export const OfferController = {
   updateOffer,
   deleteOffer,
   calculateDiscount,
+  redeemOffer,
 }

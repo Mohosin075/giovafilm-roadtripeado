@@ -2,9 +2,10 @@ import { StatusCodes } from 'http-status-codes'
 import ApiError from '../../errors/ApiError'
 import { IOffer } from './offer.interface'
 import { Offer } from './offer.model'
+import { OfferRedemption } from './offerRedemption.model'
 import QueryBuilder from '../../builder/QueryBuilder'
 import { offerSearchableFields } from './offer.constants'
-import { DISCOUNT_TYPE } from '../../enum/offer'
+import { DISCOUNT_TYPE, OFFER_STATUS } from '../../enum/offer'
 
 const createOffer = async (payload: IOffer): Promise<IOffer> => {
   const result = await Offer.create(payload)
@@ -80,6 +81,47 @@ const calculateDiscount = async (id: string, price: number) => {
   return { originalPrice: price, discountAmount, finalPrice }
 }
 
+const redeemOffer = async (id: string, userId: string) => {
+  const offer = await Offer.findById(id)
+  if (!offer) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Offer not found')
+  }
+
+  if (offer.status !== OFFER_STATUS.ACTIVE) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Offer is not active')
+  }
+
+  // Check if there is an active redemption (timer still running)
+  const activeRedemption = await OfferRedemption.findOne({
+    user: userId,
+    offer: id,
+    expiresAt: { $gt: new Date() },
+  })
+
+  if (activeRedemption) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'You already have an active redemption for this offer',
+    )
+  }
+
+  // Use redemptionDuration from offer model or default to 15
+  const durationInMinutes = offer.redemptionDuration || 15
+  const expiresAt = new Date(Date.now() + durationInMinutes * 60 * 1000)
+
+  const redemption = await OfferRedemption.create({
+    user: userId,
+    offer: id,
+    redemptionTime: new Date(),
+    expiresAt,
+  })
+
+  // Increment redemption count
+  await Offer.findByIdAndUpdate(id, { $inc: { redemptionsCount: 1 } })
+
+  return redemption
+}
+
 export const OfferService = {
   createOffer,
   getAllOffers,
@@ -87,4 +129,5 @@ export const OfferService = {
   updateOffer,
   deleteOffer,
   calculateDiscount,
+  redeemOffer,
 }

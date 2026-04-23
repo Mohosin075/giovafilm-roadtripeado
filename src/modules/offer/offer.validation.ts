@@ -15,6 +15,7 @@ export const createOfferZodSchema = z.object({
     validUntil: z.string().datetime().optional(),
     redemptionRules: z.array(z.string()).optional(),
     buttonLabel: z.string().optional(),
+    redemptionDuration: z.number().optional(),
     status: z.nativeEnum(OFFER_STATUS).default(OFFER_STATUS.ACTIVE),
     redemptionsCount: z.number().default(0),
   }).superRefine((data, ctx) => {
@@ -52,6 +53,7 @@ export const updateOfferZodSchema = z.object({
     validUntil: z.string().datetime().optional(),
     redemptionRules: z.array(z.string()).optional(),
     buttonLabel: z.string().optional(),
+    redemptionDuration: z.number().optional(),
     status: z.nativeEnum(OFFER_STATUS).optional(),
     redemptionsCount: z.number().nonnegative().optional(),
   }).superRefine((data, ctx) => {

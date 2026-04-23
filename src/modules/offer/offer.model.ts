@@ -18,6 +18,7 @@ const OfferSchema = new Schema<IOffer, OfferModel>(
     validUntil: { type: Date },
     redemptionRules: { type: [String], default: [] },
     buttonLabel: { type: String, default: 'Redeem Offer' },
+    redemptionDuration: { type: Number, default: 15 }, // Default to 15 minutes
     status: {
       type: String,
       enum: Object.values(OFFER_STATUS),

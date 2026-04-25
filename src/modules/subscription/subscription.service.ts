@@ -643,6 +643,7 @@ class SubscriptionService {
   ): Promise<{ sessionId: string; url: string }> {
     try {
       const user = await User.findById(userId).select('+email')
+      console.log({ user })
       if (!user) {
         throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
       }

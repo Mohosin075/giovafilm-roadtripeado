@@ -17,6 +17,7 @@ const app = express()
 app.post(
   '/api/v1/subscription/webhook',
   express.raw({ type: 'application/json' }),
+  // express.raw({ type: 'application/json' }),
   SubscriptionController.handleWebhook,
 )
 

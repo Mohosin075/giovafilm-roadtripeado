@@ -277,6 +277,7 @@ const resetPassword = async (resetToken: string, payload: IResetPassword) => {
 const verifyAccount = async (
   email: string,
   onetimeCode: string,
+  password?: string,
 ): Promise<IAuthResponse> => {
   //verify fo new user
   if (!onetimeCode) {
@@ -285,9 +286,7 @@ const verifyAccount = async (
   const isUserExist = await User.findOne({
     email: email.toLowerCase().trim(),
     status: { $nin: [USER_STATUS.DELETED] },
-  })
-    .select('+password +authentication')
-    .lean()
+  }).select('+password +authentication')
 
   if (!isUserExist) {
     throw new ApiError(
@@ -318,38 +317,70 @@ const verifyAccount = async (
   if (!isUserExist.verified) {
     // If user was invited (has no password), they must set a password first
     if (!isUserExist.password) {
-      await User.findByIdAndUpdate(
-        isUserExist._id,
-        {
-          $set: {
-            authentication: {
-              oneTimeCode: '',
-              expiresAt: null,
-              latestRequestAt: null,
-              requestCount: 0,
-              authType: '',
-              resetPassword: true,
+      if (password) {
+        // If password is provided during OTP verification (Invitation acceptance)
+        isUserExist.password = password
+        isUserExist.verified = true
+        isUserExist.authentication = {
+          oneTimeCode: '',
+          expiresAt: null,
+          latestRequestAt: null,
+          requestCount: 0,
+          authType: 'createAccount',
+          resetPassword: false,
+        } as any
+
+        await isUserExist.save()
+
+        const tokens = AuthHelper.createToken(
+          isUserExist._id,
+          isUserExist.role,
+          isUserExist.name!,
+          isUserExist.email!,
+        )
+
+        return authResponse(
+          StatusCodes.OK,
+          `Welcome ${isUserExist.name} to our platform. Your account is now verified and password set.`,
+          isUserExist.role,
+          tokens.accessToken,
+          tokens.refreshToken,
+        )
+      } else {
+        // If password is NOT provided, return the reset token to set password
+        await User.findByIdAndUpdate(
+          isUserExist._id,
+          {
+            $set: {
+              authentication: {
+                oneTimeCode: '',
+                expiresAt: null,
+                latestRequestAt: null,
+                requestCount: 0,
+                authType: '',
+                resetPassword: true,
+              },
             },
           },
-        },
-        { new: true },
-      )
+          { new: true },
+        )
 
-      const token = await Token.create({
-        token: cryptoToken(),
-        user: isUserExist._id,
-        expireAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
-      })
+        const token = await Token.create({
+          token: cryptoToken(),
+          user: isUserExist._id,
+          expireAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+        })
 
-      return authResponse(
-        StatusCodes.OK,
-        'OTP verified successfully, please set your password to complete your account.',
-        undefined,
-        undefined,
-        undefined,
-        token?.token,
-        true, // needPassword
-      )
+        return authResponse(
+          StatusCodes.OK,
+          'OTP verified successfully, please set your password to complete your account.',
+          undefined,
+          undefined,
+          undefined,
+          token?.token,
+          true, // needPassword
+        )
+      }
     }
 
     // Normal signup flow (already has password)
@@ -362,8 +393,8 @@ const verifyAccount = async (
     const tokens = AuthHelper.createToken(
       isUserExist._id,
       isUserExist.role,
-      isUserExist.name,
-      isUserExist.email,
+      isUserExist.name!,
+      isUserExist.email!,
     )
 
     console.log({ tokens })

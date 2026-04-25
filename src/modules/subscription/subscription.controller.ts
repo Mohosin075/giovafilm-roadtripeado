@@ -165,6 +165,7 @@ const createCheckoutSession = catchAsync(
 
 // Handle Stripe webhooks
 const handleWebhook = catchAsync(async (req: Request, res: Response) => {
+  console.log('hitting webhook handler')
   const signature = req.headers['stripe-signature'] as string
   const payload = req.body
 

@@ -4,6 +4,10 @@ import catchAsync from '../../shared/catchAsync'
 import sendResponse from '../../shared/sendResponse'
 import { MapService } from './map.service'
 import { JwtPayload } from 'jsonwebtoken'
+import { jwtHelper } from '../../helpers/jwtHelper'
+import config from '../../config'
+import { Secret } from 'jsonwebtoken'
+import { USER_ROLES } from '../../enum/user'
 
 const createMap = catchAsync(async (req: Request, res: Response) => {
   const result = await MapService.createMap(req.body)
@@ -16,7 +20,33 @@ const createMap = catchAsync(async (req: Request, res: Response) => {
 })
 
 const getAllMaps = catchAsync(async (req: Request, res: Response) => {
-  const result = await MapService.getAllMaps(req.query)
+  const tokenWithBearer = req.headers.authorization
+  let isAdmin = false
+
+  if (tokenWithBearer && tokenWithBearer.startsWith('Bearer')) {
+    const token = tokenWithBearer.split(' ')[1]
+    try {
+      const verifyUser = jwtHelper.verifyToken(
+        token,
+        config.jwt.jwt_secret as Secret,
+      ) as JwtPayload
+      if (
+        verifyUser.role === USER_ROLES.ADMIN ||
+        verifyUser.role === USER_ROLES.SUPER_ADMIN
+      ) {
+        isAdmin = true
+      }
+    } catch (error) {
+      // Ignore token verification errors for public route
+    }
+  }
+
+  const query = { ...req.query }
+  if (!isAdmin) {
+    query.isActive = true
+  }
+
+  const result = await MapService.getAllMaps(query)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,

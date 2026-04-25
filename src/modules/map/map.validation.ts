@@ -13,6 +13,7 @@ export const createMapZodSchema = z.object({
     isPaid: z.boolean().default(false),
     rating: z.number().min(0).max(5).default(0),
     totalReview: z.number().nonnegative().default(0),
+    isActive: z.boolean().default(true),
   }),
 })
 
@@ -29,5 +30,6 @@ export const updateMapZodSchema = z.object({
     isPaid: z.boolean().optional(),
     rating: z.number().min(0).max(5).optional(),
     totalReview: z.number().nonnegative().optional(),
+    isActive: z.boolean().optional(),
   }),
 })

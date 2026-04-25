@@ -14,6 +14,7 @@ export interface IMap {
   rating: number // Optional rating field
   totalReview: number // Number of reviews
   viewCount: number
+  isActive: boolean
   createdAt: Date
   updatedAt: Date
 }

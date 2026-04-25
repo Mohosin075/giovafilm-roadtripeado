@@ -15,8 +15,8 @@ const OfferSchema = new Schema<IOffer, OfferModel>(
       required: true,
     },
     discountValue: { type: Schema.Types.Mixed }, // String or Number
-    validFrom: { type: Date },
-    validUntil: { type: Date },
+    validFrom: { type: Date, required: false },
+    validUntil: { type: Date, required: false },
     noExpiration: { type: Boolean, default: false },
     maxRedemptions: { type: Number },
     redemptionRules: { type: [String], default: [] },

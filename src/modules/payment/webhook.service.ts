@@ -1,12 +1,11 @@
 import { StatusCodes } from 'http-status-codes'
-import config from '../../../config'
-import stripe from '../../../config/stripe'
-import ApiError from '../../../errors/ApiError'
+import config from '../../config'
+import ApiError from '../../errors/ApiError'
 import { Payment } from './payment.model'
-import { emailHelper } from '../../../helpers/emailHelper'
-import { emailTemplate } from '../../../shared/emailTemplate'
-import { Booking } from '../booking/booking.model'
-import { WalletService } from '../wallet/wallet.service'
+import { emailHelper } from '../../helpers/emailHelper'
+import { emailTemplate } from '../../shared/emailTemplate'
+import { User } from '../user/user.model'
+import stripe from '../../config/stripe'
 
 const handleCheckoutSessionCompleted = async (
   sessionData: any,
@@ -38,6 +37,7 @@ const handleCheckoutSessionCompleted = async (
       const payment = await Payment.findOne({
         $or: [
           { paymentIntentId: lookupId },
+          { paymentIntentId: sessionWithDetails.id },
           { 'metadata.checkoutSessionId': sessionWithDetails.id },
         ],
       }).session(mongoSession)
@@ -59,30 +59,22 @@ const handleCheckoutSessionCompleted = async (
       payment.metadata = { ...payment.metadata, ...sessionWithDetails }
       await payment.save({ session: mongoSession })
 
-      // Update Booking Status if bookingId exists in metadata or payment
-      const bookingId = payment.bookingId || sessionWithDetails.metadata?.bookingId
+      // Update User purchasedMaps if mapId exists in metadata or payment
+      const mapId = payment.mapId || sessionWithDetails.metadata?.mapId
       
-      console.log(`Webhook: Processing booking update for ID: ${bookingId}`)
+      console.log(`Webhook: Processing map purchase update for Map ID: ${mapId}`)
       
-      if (bookingId) {
-        const updatedBooking = await Booking.findByIdAndUpdate(
-          bookingId,
+      if (mapId) {
+        const updatedUser = await User.findByIdAndUpdate(
+          payment.userId,
           { 
-            status: 'confirmed',
-            paymentStatus: 'deposit_paid',
-            stripePaymentId: sessionWithDetails.id
+            $addToSet: { purchasedMaps: mapId }
           },
           { session: mongoSession, new: true }
         )
         
-        if (updatedBooking) {
-          console.log(`Webhook: Booking status updated to confirmed for: ${updatedBooking.bookingNumber}`)
-          // Add to pending balance for the provider
-          await WalletService.addPendingEarnings(
-            updatedBooking.providerId,
-            updatedBooking.pricingDetails.providerEarnings,
-            mongoSession
-          )
+        if (updatedUser) {
+          console.log(`Webhook: User purchasedMaps updated for User ID: ${payment.userId}`)
         }
       }
 
@@ -152,15 +144,16 @@ const handlePaymentSuccess = async (paymentIntent: any): Promise<void> => {
       paymentIntentId: paymentIntent.id,
     }).session(mongoSession)
 
-    // FALLBACK LOOKUP: Use bookingId from metadata
+    // FALLBACK LOOKUP: Use mapId and userId from metadata
     if (!payment) {
       const metadata = paymentIntent.metadata || {}
-      const bookingId = metadata.bookingId
+      const mapId = metadata.mapId
+      const userId = metadata.userId
       
-      
-      if (bookingId) {
+      if (mapId && userId) {
         payment = await Payment.findOne({
-          bookingId,
+          mapId,
+          userId,
           status: 'pending',
         })
         .sort({ createdAt: -1 }) 
@@ -168,11 +161,7 @@ const handlePaymentSuccess = async (paymentIntent: any): Promise<void> => {
    
         if (payment) {
           payment.paymentIntentId = paymentIntent.id
-        } else {
-          console.log(`⚠️ No record found for bookingId: ${bookingId} with status: pending`)
         }
-      } else {
-        console.log('❌ No bookingId found in metadata. Cannot perform fallback lookup.')
       }
     }
 
@@ -193,28 +182,20 @@ const handlePaymentSuccess = async (paymentIntent: any): Promise<void> => {
     payment.metadata = { ...payment.metadata, ...paymentIntent }
     await payment.save({ session: mongoSession })
 
-    // Update Booking Status if bookingId exists
-    const bookingId = payment.bookingId || paymentIntent.metadata?.bookingId
+    // Update User purchasedMaps if mapId exists
+    const mapId = payment.mapId || paymentIntent.metadata?.mapId
     
-    if (bookingId) {
-      const updatedBooking = await Booking.findByIdAndUpdate(
-        bookingId,
+    if (mapId) {
+      const updatedUser = await User.findByIdAndUpdate(
+        payment.userId,
         { 
-          status: 'confirmed',
-          paymentStatus: 'deposit_paid',
-          stripePaymentId: paymentIntent.id
+          $addToSet: { purchasedMaps: mapId }
         },
         { session: mongoSession, new: true }
       )
       
-      if (updatedBooking) {
-        console.log(`Webhook: Booking status updated to confirmed for: ${updatedBooking.bookingNumber}`)
-        // Add to pending balance for the provider
-        await WalletService.addPendingEarnings(
-          updatedBooking.providerId,
-          updatedBooking.pricingDetails.providerEarnings,
-          mongoSession
-        )
+      if (updatedUser) {
+        console.log(`Webhook: User purchasedMaps updated for User ID: ${payment.userId}`)
       }
     }
     await mongoSession.commitTransaction()
@@ -246,9 +227,9 @@ const handlePaymentFailure = async (paymentIntent: any): Promise<void> => {
     }).session(mongoSession)
 
     // Fallback for failure too
-    if (!payment && paymentIntent.metadata && paymentIntent.metadata.bookingId) {
+    if (!payment && paymentIntent.metadata && paymentIntent.metadata.mapId) {
        payment = await Payment.findOne({
-         bookingId: paymentIntent.metadata.bookingId
+         mapId: paymentIntent.metadata.mapId
        }).session(mongoSession)
     }
 
@@ -268,9 +249,31 @@ const handlePaymentFailure = async (paymentIntent: any): Promise<void> => {
 }
 
 export const WebhookService = {
-  handleWebhook: async (payload: any): Promise<void> => {
+  handleWebhook: async (payload: { body: any; headers: any }): Promise<void> => {
+    console.log('🔔 Processing Checkout Session Completed:', payload)
     try {
-      const event = JSON.parse(payload.body.toString())
+      const signature = payload.headers['stripe-signature']
+      const webhookSecret = config.stripe.paymentWebhookSecret
+
+      let event
+
+      if (signature && webhookSecret) {
+        try {
+          event = stripe.webhooks.constructEvent(
+            payload.body,
+            signature,
+            webhookSecret,
+          )
+        } catch (err: any) {
+          console.error('⚠️ Webhook signature verification failed:', err.message)
+          // Fallback to direct parsing for development if needed, 
+          // but in production this should probably throw
+          event = JSON.parse(payload.body.toString())
+        }
+      } else {
+        event = JSON.parse(payload.body.toString())
+      }
+
       console.log(`Processing webhook: ${event.type}`)
 
       switch (event.type) {

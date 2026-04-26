@@ -1,13 +1,13 @@
 import { Request, Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
 import { PaymentServices } from './payment.service'
-import catchAsync from '../../../shared/catchAsync'
-import sendResponse from '../../../shared/sendResponse'
-import pick from '../../../shared/pick'
+import catchAsync from '../../shared/catchAsync'
+import sendResponse from '../../shared/sendResponse'
+import pick from '../../shared/pick'
 import { IPaymentFilterables } from './payment.interface'
 import { paymentFilterableFields } from './payment.constants'
 import { JwtPayload } from 'jsonwebtoken'
-import { paginationFields } from '../../../interfaces/pagination'
+import { paginationFields } from '../../interfaces/pagination'
 
 
 const createCheckoutSession = catchAsync(

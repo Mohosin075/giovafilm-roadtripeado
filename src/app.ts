@@ -9,6 +9,7 @@ import router from './routes'
 import globalErrorHandler from './middleware/globalErrorHandler'
 import config from './config'
 import { SubscriptionController } from './modules/subscription/subscription.controller'
+import { PaymentController } from './modules/payment/payment.controller'
 
 const app = express()
 
@@ -17,8 +18,13 @@ const app = express()
 app.post(
   '/api/v1/subscription/webhook',
   express.raw({ type: 'application/json' }),
-  // express.raw({ type: 'application/json' }),
   SubscriptionController.handleWebhook,
+)
+
+app.post(
+  '/api/v1/payment/webhook',
+  express.raw({ type: 'application/json' }),
+  PaymentController.handleWebhook,
 )
 
 // Body parsers must come after webhook

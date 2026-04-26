@@ -43,7 +43,7 @@ const getAllMaps = catchAsync(async (req: Request, res: Response) => {
 
   const query = { ...req.query }
   if (!isAdmin) {
-    query.isActive = true
+    query.isActive = 'true'
   }
 
   const result = await MapService.getAllMaps(query)

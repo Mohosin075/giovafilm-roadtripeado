@@ -3,8 +3,8 @@ import { z } from 'zod'
 export const PaymentValidations = {
   create: z.object({
     body: z.object({
-      bookingId: z.string({
-        required_error: 'Booking ID is required',
+      mapId: z.string({
+        required_error: 'Map ID is required',
       }),
       amount: z.number({
         required_error: 'Amount is required',

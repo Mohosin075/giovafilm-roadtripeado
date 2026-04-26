@@ -3,14 +3,14 @@ import { PaymentController } from './payment.controller'
 import { PaymentValidations } from './payment.validation'
 import validateRequest from '../../middleware/validateRequest'
 import auth from '../../middleware/auth'
-import { USER_ROLES } from '../../../enum/user'
+import { USER_ROLES } from '../../enum/user'
 
 const router = express.Router()
 
 router.get(
   '/',
   auth(
-    USER_ROLES.PROFESSIONAL,
+    
     USER_ROLES.USER,
     USER_ROLES.SUPER_ADMIN,
     USER_ROLES.ADMIN,
@@ -21,7 +21,7 @@ router.get(
 router.get(
   '/my-payments',
   auth(
-    USER_ROLES.PROFESSIONAL,
+    
     USER_ROLES.USER,
         USER_ROLES.SUPER_ADMIN,
     USER_ROLES.ADMIN,
@@ -32,7 +32,7 @@ router.get(
 router.get(
   '/:id',
   auth(
-    USER_ROLES.PROFESSIONAL,
+    
     USER_ROLES.USER,
   ),
   PaymentController.getSinglePayment,
@@ -41,7 +41,7 @@ router.get(
 router.get(
   '/:id/invoice',
   auth(
-    USER_ROLES.PROFESSIONAL,
+    
     USER_ROLES.USER,
     USER_ROLES.SUPER_ADMIN,
     USER_ROLES.ADMIN,
@@ -53,8 +53,9 @@ router.get(
 router.post(
   '/create-checkout-session',
   auth(
-    USER_ROLES.PROFESSIONAL,
     USER_ROLES.USER,
+    USER_ROLES.ADMIN,
+    USER_ROLES.SUPER_ADMIN
   ),
   validateRequest(PaymentValidations.create),
   PaymentController.createCheckoutSession,
@@ -63,7 +64,7 @@ router.post(
 router.get(
   '/verify-checkout/:sessionId',
   auth(
-    USER_ROLES.PROFESSIONAL,
+    
     USER_ROLES.USER,
   ),
   PaymentController.verifyCheckoutSession,
@@ -76,7 +77,7 @@ router.get(
 router.post(
   '/create-payment-intent',
   auth(
-    USER_ROLES.PROFESSIONAL,
+    
     USER_ROLES.USER,
     USER_ROLES.SUPER_ADMIN,
     USER_ROLES.ADMIN,
@@ -89,7 +90,7 @@ router.post(
 router.post(
   '/ephemeral-key',
   auth(
-    USER_ROLES.PROFESSIONAL,
+    
     USER_ROLES.USER,
     USER_ROLES.SUPER_ADMIN,
   ),

@@ -9,9 +9,9 @@ const paymentSchema = new Schema<IPayment, PaymentModel>(
       ref: 'User',
       required: true,
     },
-    bookingId: {
+    mapId: {
       type: Schema.Types.ObjectId,
-      ref: 'Booking',
+      ref: 'Map',
     },
     userEmail: {
       type: String,

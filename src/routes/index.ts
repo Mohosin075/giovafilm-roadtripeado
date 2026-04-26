@@ -20,6 +20,7 @@ import { ContactRoutes } from '../modules/contact/contact.route'
 import { StatsRoutes } from '../modules/stats/stats.route'
 import { FavouriteRoutes } from '../modules/favourite/favourite.route'
 import { StatusCodes } from 'http-status-codes'
+import { PaymentRoutes } from '../modules/payment/payment.route'
 
 const router = express.Router()
 
@@ -44,6 +45,7 @@ const apiRoutes: { path: string; route: Router }[] = [
   { path: '/contact', route: ContactRoutes },
   { path: '/stats', route: StatsRoutes },
   { path: '/favourite', route: FavouriteRoutes },
+  { path: '/payment', route: PaymentRoutes },
 ]
 
 apiRoutes.forEach(route => {

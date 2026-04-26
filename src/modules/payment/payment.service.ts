@@ -1,22 +1,22 @@
-import { USER_ROLES } from '../../../enum/user'
+import { USER_ROLES } from '../../enum/user'
 import { StatusCodes } from 'http-status-codes'
-import ApiError from '../../../errors/ApiError'
+import ApiError from '../../errors/ApiError'
 import { IPaymentFilterables, IPayment } from './payment.interface'
 import { Payment } from './payment.model'
 import { JwtPayload } from 'jsonwebtoken'
-import { IPaginationOptions } from '../../../interfaces/pagination'
-import { paginationHelper } from '../../../helpers/paginationHelper'
+import { IPaginationOptions } from '../../interfaces/pagination'
+import { paginationHelper } from '../../helpers/paginationHelper'
 import { paymentSearchableFields } from './payment.constants'
 import { Types } from 'mongoose'
 import { User } from '../user/user.model'
 
-import stripe from '../../../config/stripe'
-import config from '../../../config'
+import config from '../../config'
 
 import { WebhookService } from './webhook.service'
-import { emailHelper } from '../../../helpers/emailHelper'
-import { emailTemplate } from '../../../shared/emailTemplate'
-import { generatePDFInvoice } from '../../../helpers/invoiceHelper'
+import { emailHelper } from '../../helpers/emailHelper'
+import { emailTemplate } from '../../shared/emailTemplate'
+import stripe from '../../config/stripe'
+import { generatePDFInvoice } from '../../helpers/invoiceHelper'
 
 const createCheckoutSession = async (
   user: any,
@@ -44,15 +44,15 @@ const createCheckoutSession = async (
       cancel_url: `${config.clientUrl}/payment/cancel?success=false`,
       customer_email: user.email,
       metadata: {
-        userId: user.userId.toString(),
-        bookingId: payload.bookingId.toString(),
+        userId: user.authId.toString(),
+        mapId: payload.mapId.toString(),
         ...payload.metadata
       },
     })
 
     await Payment.create({
-      userId: user.userId,
-      bookingId: payload.bookingId,
+      userId: user.authId,
+      mapId: payload.mapId,
       userEmail: user.email,
       amount: payload.amount,
       currency: payload.currency || 'EUR',
@@ -61,7 +61,7 @@ const createCheckoutSession = async (
       status: 'pending',
       metadata: {
         checkoutSessionId: session.id,
-        bookingId: payload.bookingId.toString(),
+        mapId: payload.mapId.toString(),
         ...payload.metadata
       },
     })
@@ -167,17 +167,17 @@ const createPaymentIntent = async (
       amount: Math.round(payload.amount * 100), // Convert to cents
       currency: payload.currency || 'eur',
       metadata: {
-        userId: user.userId,
+        userId: user.authId.toString(),
         userEmail: user.email,
-        bookingId: payload.bookingId,
+        mapId: payload.mapId.toString(),
         ...payload.metadata
       },
     })
 
     // Create payment record
     await Payment.create({
-      userId: user.userId,
-      bookingId: payload.bookingId,
+      userId: user.authId,
+      mapId: payload.mapId,
       userEmail: user.email,
       amount: payload.amount,
       currency: (payload.currency || 'EUR').toUpperCase(),
@@ -185,8 +185,8 @@ const createPaymentIntent = async (
       paymentIntentId: paymentIntent.id,
       status: 'pending',
       metadata: {
-        userId: user.userId,
-        bookingId: payload.bookingId,
+        userId: user.authId.toString(),
+        mapId: payload.mapId.toString(),
         ...payload.metadata
       },
     })
@@ -221,13 +221,13 @@ const createEphemeralKey = async (
         email: user.email,
         name: user.name,
         metadata: {
-          userId: user.userId,
+          userId: user.authId.toString(),
         },
       })
       customerId = customer.id
 
       // Update user record with stripeCustomerId
-      await User.findByIdAndUpdate(user.userId, { stripeCustomerId: customer.id })
+      await User.findByIdAndUpdate(user.authId, { stripeCustomerId: customer.id })
     }
 
     // Create ephemeral key
@@ -333,9 +333,9 @@ const getAllPayments = async (
   }
 
   // Regular users can only see their own payments
-  if (user.activeRole === USER_ROLES.USER || user.activeRole === USER_ROLES.PROFESSIONAL) {
+  if (user.activeRole === USER_ROLES.USER) {
     andConditions.push({
-      userId: new Types.ObjectId(user.userId),
+      userId: new Types.ObjectId(user.authId),
     })
   }
 
@@ -348,7 +348,7 @@ const getAllPayments = async (
       .sort({ [sortBy]: sortOrder })
       .populate('userId', 'name email')
       .populate({
-        path: 'bookingId'
+        path: 'mapId'
       }),
     Payment.countDocuments(whereConditions),
   ])
@@ -467,12 +467,12 @@ const getMyPayments = async (
     paginationHelper.calculatePagination(pagination)
 
   const [result, total] = await Promise.all([
-    Payment.find({ userId: new Types.ObjectId(user.userId) })
+    Payment.find({ userId: new Types.ObjectId(user.authId) })
       .skip(skip)
       .limit(limit)
       .sort({ [sortBy]: sortOrder })
       .populate('userId', 'name email'),
-    Payment.countDocuments({ userId: new Types.ObjectId(user.userId) }),
+    Payment.countDocuments({ userId: new Types.ObjectId(user.authId) }),
   ])
 
   return {
@@ -491,7 +491,7 @@ const generateInvoice = async (id: string): Promise<string | Buffer> => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Payment ID')
   }
 
-  const payment = await Payment.findById(id).populate('userId').populate('bookingId')
+  const payment = await Payment.findById(id).populate('userId').populate('mapId')
 
   if (!payment) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Payment not found')

@@ -22,6 +22,11 @@ export interface IPlace {
     tips?: string
   }
   services?: string[]
+  schedules?: string
+  entryCost?: string
+  difficulty?: 'Easy' | 'Moderate' | 'Hard'
+  hikeTime?: string
+  atmosphere?: string
   status: 'Draft' | 'Published'
   rating?: number
   totalReview?: number

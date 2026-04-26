@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { placeDifficulty } from './place.constants'
 
 export const createPlaceZodSchema = z.object({
   body: z.object({
@@ -29,6 +30,11 @@ export const createPlaceZodSchema = z.object({
       })
       .optional(),
     services: z.array(z.string()).optional(),
+    schedules: z.string().optional(),
+    entryCost: z.string().optional(),
+    difficulty: z.enum(placeDifficulty as [string, ...string[]]).optional(),
+    hikeTime: z.string().optional(),
+    atmosphere: z.string().optional(),
     status: z.enum(['Draft', 'Published']).default('Draft'),
     images: z.array(z.string()).optional(),
   }),
@@ -62,6 +68,11 @@ export const updatePlaceZodSchema = z.object({
       })
       .optional(),
     services: z.array(z.string()).optional(),
+    schedules: z.string().optional(),
+    entryCost: z.string().optional(),
+    difficulty: z.enum(placeDifficulty as [string, ...string[]]).optional(),
+    hikeTime: z.string().optional(),
+    atmosphere: z.string().optional(),
     status: z.enum(['Draft', 'Published']).optional(),
     images: z.array(z.string()).optional(),
   }),

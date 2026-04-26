@@ -1,5 +1,6 @@
 import { Schema, model } from 'mongoose'
 import { IPlace, PlaceModel } from './place.interface'
+import { placeDifficulty } from './place.constants'
 
 const PlaceSchema = new Schema<IPlace, PlaceModel>(
   {
@@ -31,6 +32,14 @@ const PlaceSchema = new Schema<IPlace, PlaceModel>(
       tips: { type: String },
     },
     services: { type: [String], default: [] },
+    schedules: { type: String },
+    entryCost: { type: String },
+    difficulty: {
+      type: String,
+      enum: placeDifficulty,
+    },
+    hikeTime: { type: String },
+    atmosphere: { type: String },
     status: {
       type: String,
       enum: ['Draft', 'Published'],

@@ -41,6 +41,7 @@ export interface IBusiness {
   }
   plan?: Types.ObjectId // Reference to SubscriptionPlan
   status: BusinessStatus
+  isAccuracyVerified: boolean
   viewCount: number
   createdAt: Date
   updatedAt: Date

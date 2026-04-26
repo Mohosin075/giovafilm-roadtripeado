@@ -77,6 +77,7 @@ export const updateBusinessZodSchema = z.object({
     }).optional(),
     plan: z.string().optional(),
   }),
+  isAccuracyVerified: z.boolean().optional(),
 })
 
 export const updateBusinessStatusZodSchema = z.object({
@@ -84,5 +85,6 @@ export const updateBusinessStatusZodSchema = z.object({
     status: z.enum(['Pending', 'Approved', 'Rejected'], {
       required_error: 'Status is required to update',
     }),
+    isAccuracyVerified: z.boolean().optional(),
   }),
 })

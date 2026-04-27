@@ -42,6 +42,29 @@ const getAllBusinesses = async (query: Record<string, unknown>) => {
 }
 
 /**
+ * Retrieves businesses belonging to the authenticated user.
+ * @param userId The user's ID
+ * @param query The query parameters from the request
+ * @returns Paginated list of businesses and metadata
+ */
+const getMyBusinesses = async (userId: string, query: Record<string, unknown>) => {
+  const businessQuery = new QueryBuilder(Business.find({ user: userId }).populate('user category'), query)
+    .search(businessSearchableFields)
+    .filter()
+    .sort()
+    .paginate()
+    .fields()
+
+  const result = await businessQuery.modelQuery
+  const meta = await businessQuery.getPaginationInfo()
+
+  return {
+    meta,
+    data: result,
+  }
+}
+
+/**
  * Retrieves a single business by its ID.
  * @param id The business document ID
  * @returns The business document or throws a NotFound error
@@ -146,6 +169,7 @@ const incrementViewCount = async (id: string) => {
 export const BusinessService = {
   createBusiness,
   getAllBusinesses,
+  getMyBusinesses,
   getBusinessById,
   updateBusiness,
   updateBusinessStatus,

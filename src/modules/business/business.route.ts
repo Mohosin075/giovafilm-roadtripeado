@@ -23,6 +23,13 @@ router
   )
   .get(BusinessController.getAllBusinesses)
 
+// Route to get my businesses
+router.get(
+  '/my-business',
+  auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  BusinessController.getMyBusinesses
+)
+
 router
   .route('/:id')
   .get(BusinessController.getBusinessById)

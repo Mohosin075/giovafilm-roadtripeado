@@ -49,6 +49,22 @@ const getAllBusinesses = catchAsync(async (req: Request, res: Response) => {
 })
 
 /**
+ * Controller to retrieve a paginated listing of businesses owned by the user.
+ */
+const getMyBusinesses = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user as JwtPayload
+  // Assuming the user's ID is at user.authId based on createBusiness
+  const result = await BusinessService.getMyBusinesses(user.authId, req.query)
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'My businesses retrieved successfully',
+    meta: result.meta,
+    data: result.data,
+  })
+})
+
+/**
  * Controller to retrieve single business detailed information by ID.
  */
 const getBusinessById = catchAsync(async (req: Request, res: Response) => {
@@ -140,6 +156,7 @@ const incrementViewCount = catchAsync(async (req: Request, res: Response) => {
 export const BusinessController = {
   createBusiness,
   getAllBusinesses,
+  getMyBusinesses,
   getBusinessById,
   updateBusiness,
   updateBusinessStatus,

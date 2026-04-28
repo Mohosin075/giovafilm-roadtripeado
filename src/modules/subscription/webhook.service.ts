@@ -6,6 +6,7 @@ import { stripeService } from './stripe.service'
 import { Subscription } from './subscription.model'
 import { SubscriptionPlan } from './subscription-plan.model'
 import { User } from '../user/user.model'
+import { Business } from '../business/business.model'
 
 class WebhookService {
   // Process webhook events with idempotency
@@ -289,6 +290,13 @@ class WebhookService {
           : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       })
 
+      // Update business hasActiveSubscription
+      const isActive = ['active', 'trialing'].includes(stripeSubscription.status)
+      await Business.updateMany(
+        { user: userId },
+        { hasActiveSubscription: isActive }
+      )
+
       // Send welcome email
       const { emailNotificationService } = await import(
         './email-notification.service'
@@ -396,6 +404,13 @@ class WebhookService {
 
       await User.findByIdAndUpdate(subscription.userId, userUpdate)
 
+      // Update business hasActiveSubscription
+      const isActive = ['active', 'trialing'].includes(stripeSubscription.status)
+      await Business.updateMany(
+        { user: subscription.userId },
+        { hasActiveSubscription: isActive }
+      )
+
       console.log(`Subscription updated from webhook: ${subscription._id}`)
       console.log(`User profile updated for user: ${subscription.userId}`)
     } catch (error) {
@@ -430,6 +445,12 @@ class WebhookService {
         subscriptionStatus: 'canceled',
         subscriptionTier: 'free',
       })
+
+      // Update business hasActiveSubscription
+      await Business.updateMany(
+        { user: subscription.userId },
+        { hasActiveSubscription: false }
+      )
 
       // Send cancellation email
       const { emailNotificationService } = await import(
@@ -535,6 +556,13 @@ class WebhookService {
         subscriptionStatus: stripeSubscription.status,
       })
 
+      // Update business hasActiveSubscription
+      const isActive = ['active', 'trialing'].includes(stripeSubscription.status)
+      await Business.updateMany(
+        { user: subscription.userId },
+        { hasActiveSubscription: isActive }
+      )
+
       // Send payment success email
       const { emailNotificationService } = await import(
         './email-notification.service'
@@ -589,6 +617,13 @@ class WebhookService {
       await User.findByIdAndUpdate(subscription.userId, {
         subscriptionStatus: newStatus,
       })
+
+      // Update business hasActiveSubscription
+      const isActive = ['active', 'trialing'].includes(newStatus)
+      await Business.updateMany(
+        { user: subscription.userId },
+        { hasActiveSubscription: isActive }
+      )
 
       // Send payment failed email
       const { emailNotificationService } = await import(

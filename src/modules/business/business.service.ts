@@ -25,6 +25,13 @@ const createBusiness = async (payload: IBusiness): Promise<IBusiness> => {
  * @returns Paginated list of businesses and metadata
  */
 const getAllBusinesses = async (query: Record<string, unknown>) => {
+  // If requesting specifically for the map, enforce active subscription and approved status
+  if (query.mapView === 'true') {
+    query.hasActiveSubscription = true
+    query.status = 'Approved'
+    delete query.mapView
+  }
+
   const businessQuery = new QueryBuilder(Business.find().populate('user category'), query)
     .search(businessSearchableFields)
     .filter()

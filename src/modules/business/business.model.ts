@@ -79,6 +79,10 @@ const BusinessSchema = new Schema<IBusiness, BusinessModel>(
       type: Number,
       default: 0,
     },
+    hasActiveSubscription: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

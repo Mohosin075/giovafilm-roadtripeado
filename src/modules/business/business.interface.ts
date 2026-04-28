@@ -43,6 +43,7 @@ export interface IBusiness {
   status: BusinessStatus
   isAccuracyVerified: boolean
   viewCount: number
+  hasActiveSubscription: boolean
   createdAt: Date
   updatedAt: Date
 }

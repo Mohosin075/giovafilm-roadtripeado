@@ -16,6 +16,7 @@ import {
 } from './subscription.interface'
 import { emailNotificationService } from './email-notification.service'
 import QueryBuilder from '../../builder/QueryBuilder'
+import { Business } from '../business/business.model'
 
 class SubscriptionService {
   // Get all available subscription plans
@@ -197,6 +198,13 @@ class SubscriptionService {
           ? new Date(currentPeriodEnd * 1000)
           : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       })
+
+      // Update business hasActiveSubscription
+      const isActive = ['active', 'trialing'].includes(stripeSubscription.status)
+      await Business.updateMany(
+        { user: userId },
+        { hasActiveSubscription: isActive }
+      )
 
       // Send welcome email
       await emailNotificationService.sendSubscriptionWelcomeEmail(
@@ -490,6 +498,17 @@ class SubscriptionService {
       if (!cancelAtPeriodEnd) {
         updateData.status = 'canceled'
         updateData.endedAt = new Date()
+
+        // Update user profile status
+        await User.findByIdAndUpdate(userId, {
+          subscriptionStatus: 'canceled',
+        })
+
+        // Update business hasActiveSubscription
+        await Business.updateMany(
+          { user: userId },
+          { hasActiveSubscription: false }
+        )
       }
 
       const updatedSubscription = await Subscription.findByIdAndUpdate(
@@ -554,6 +573,13 @@ class SubscriptionService {
         },
         { new: true },
       ).populate(['planId'])
+
+      // Update business hasActiveSubscription
+      const isActive = ['active', 'trialing'].includes(updatedSubscription!.status)
+      await Business.updateMany(
+        { user: userId },
+        { hasActiveSubscription: isActive }
+      )
 
       // Send reactivation email
       const plan = updatedSubscription?.planId as unknown as ISubscriptionPlan

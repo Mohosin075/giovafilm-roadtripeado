@@ -30,7 +30,8 @@ export const createSubscriptionPlanSchema = z.object({
     features: z
       .array(z.string().min(1, 'Feature cannot be empty'))
       .min(1, 'At least one feature is required'),
-    priority: z.number().default(0),
+    maxPhotos: z.number().min(1, 'Max photos must be at least 1').optional(),
+    priority: z.number().optional(),
   }),
 })
 

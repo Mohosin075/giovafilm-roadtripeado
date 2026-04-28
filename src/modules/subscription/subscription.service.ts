@@ -724,15 +724,29 @@ class SubscriptionService {
 
   // Admin: Create subscription plan
   async createSubscriptionPlan(
-    planData: Omit<ISubscriptionPlan, '_id' | 'createdAt' | 'updatedAt'>,
+    planData: Omit<ISubscriptionPlan, '_id' | 'createdAt' | 'updatedAt'> &
+      Partial<Pick<ISubscriptionPlan, 'maxPhotos' | 'priority'>>,
   ): Promise<ISubscriptionPlan> {
     try {
+      const existingPlan = await SubscriptionPlan.findOne({
+        name: { $regex: `^${planData.name.trim()}$`, $options: 'i' },
+      })
+      if (existingPlan) {
+        throw new ApiError(
+          StatusCodes.CONFLICT,
+          `Subscription plan "${planData.name}" already exists`,
+        )
+      }
+
+      const maxPhotos = planData.maxPhotos ?? 1
+      const priority = planData.priority ?? 0
+
       // Create Stripe product
       const stripeProduct = await stripeService.createProduct({
         name: planData.name,
         description: planData.description,
         metadata: {
-          maxPhotos: planData.maxPhotos.toString(),
+          maxPhotos: maxPhotos.toString(),
         },
       })
 
@@ -751,6 +765,8 @@ class SubscriptionService {
       // Create local plan
       const plan = new SubscriptionPlan({
         ...planData,
+        maxPhotos,
+        priority,
         stripeProductId: stripeProduct.id,
         stripePriceId: stripePrice.id,
       })
@@ -760,6 +776,7 @@ class SubscriptionService {
       console.log(`Subscription plan created: ${plan._id}`)
       return plan
     } catch (error) {
+      if (error instanceof ApiError) throw error
       console.error('Error creating subscription plan:', error)
       throw new ApiError(
         StatusCodes.INTERNAL_SERVER_ERROR,

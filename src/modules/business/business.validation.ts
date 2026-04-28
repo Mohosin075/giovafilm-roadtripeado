@@ -75,7 +75,7 @@ export const updateBusinessZodSchema = z.object({
       ownerPhone: z.string().optional(),
       contactEmail: z.string().email().optional(),
     }).optional(),
-    plan: z.string(),
+    plan: z.string().optional(),
   }),
   isAccuracyVerified: z.boolean().optional(),
 })

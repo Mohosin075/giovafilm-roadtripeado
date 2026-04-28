@@ -41,7 +41,7 @@ router
     BusinessController.updateBusiness
   )
   .delete(
-    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN), // Only admins can delete a business
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER), // Only admins can delete a business
     BusinessController.deleteBusiness
   )
 

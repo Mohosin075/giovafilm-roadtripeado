@@ -14,7 +14,7 @@ const router = express.Router()
 router
   .route('/')
   .post(
-    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER),
     fileAndBodyProcessorUsingDiskStorage(),
     validateRequest(createOfferZodSchema),
     OfferController.createOffer,

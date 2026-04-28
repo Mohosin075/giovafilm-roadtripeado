@@ -821,6 +821,48 @@ class SubscriptionService {
     }
   }
 
+  // Admin: Delete subscription plan (soft delete)
+  async deleteSubscriptionPlan(planId: string): Promise<ISubscriptionPlan> {
+    try {
+      const plan = await SubscriptionPlan.findById(planId)
+      if (!plan) {
+        throw new ApiError(StatusCodes.NOT_FOUND, 'Subscription plan not found')
+      }
+
+      // Do not allow deleting plans that are currently in active use
+      const activeSubscriptions = await Subscription.countDocuments({
+        planId: new Types.ObjectId(planId),
+        status: { $in: ['active', 'trialing'] },
+      })
+
+      if (activeSubscriptions > 0) {
+        throw new ApiError(
+          StatusCodes.BAD_REQUEST,
+          'Cannot delete a plan with active subscriptions',
+        )
+      }
+
+      // Stripe resources are deactivated instead of permanently deleted.
+      await stripeService.archivePrice(plan.stripePriceId)
+      await stripeService.updateProduct(plan.stripeProductId, { active: false })
+
+      const deletedPlan = await SubscriptionPlan.findByIdAndUpdate(
+        planId,
+        { isActive: false },
+        { new: true },
+      )
+
+      return deletedPlan!
+    } catch (error) {
+      if (error instanceof ApiError) throw error
+      console.error('Error deleting subscription plan:', error)
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to delete subscription plan',
+      )
+    }
+  }
+
   // Get subscription analytics
   async getSubscriptionAnalytics(filters?: {
     startDate?: Date

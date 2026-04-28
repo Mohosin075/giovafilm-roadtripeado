@@ -730,6 +730,13 @@ class WebhookService {
           subscriptionStatus: stripeSubscription.status,
           stripeCustomerId: session.customer as string,
         })
+
+        // Update business subscription flag right after successful checkout
+        const isActive = ['active', 'trialing'].includes(stripeSubscription.status)
+        await Business.updateMany(
+          { user: userId },
+          { hasActiveSubscription: isActive }
+        )
       }
 
       console.log(`Checkout completed for user: ${userId}`)

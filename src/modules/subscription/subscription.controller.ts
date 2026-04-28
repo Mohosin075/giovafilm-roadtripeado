@@ -214,6 +214,22 @@ const updateSubscriptionPlan = catchAsync(
   },
 )
 
+// Admin: Delete subscription plan (soft delete)
+const deleteSubscriptionPlan = catchAsync(
+  async (req: Request, res: Response) => {
+    const { planId } = req.params
+
+    const plan = await subscriptionService.deleteSubscriptionPlan(planId)
+
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Subscription plan deleted successfully',
+      data: plan,
+    })
+  },
+)
+
 // Admin: Get all plans (including inactive)
 const getAllPlans = catchAsync(async (req: Request, res: Response) => {
   // For admin, get all plans including inactive ones
@@ -401,6 +417,7 @@ export const SubscriptionController = {
   // Admin endpoints (require admin role)
   createSubscriptionPlan,
   updateSubscriptionPlan,
+  deleteSubscriptionPlan,
   getAllPlans,
   getAllSubscriptions,
   getSubscriptionAnalytics,

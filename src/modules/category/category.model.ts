@@ -5,7 +5,7 @@ const CategorySchema = new Schema<ICategory, CategoryModel>(
   {
     name: { type: String, required: true, trim: true },
     color: { type: String, required: true, trim: true },
-    icon: { type: String, required: true, trim: true },
+    icon: { type: String,  trim: true },
     status: {
       type: String,
       enum: ['Active', 'Hidden'],

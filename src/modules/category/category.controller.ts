@@ -7,11 +7,16 @@ import { CategoryService } from './category.service'
 const createCategory = catchAsync(async (req: Request, res: Response) => {
   const categoryData = { ...req.body }
 
-  // Handle image upload from disk storage for icon
+  // Backward compatibility: support existing "images" field.
   if (req.body.images) {
     categoryData.icon = Array.isArray(req.body.images)
       ? req.body.images[0]
       : req.body.images
+  }
+  if (req.body.icon) {
+    categoryData.icon = Array.isArray(req.body.icon)
+      ? req.body.icon[0]
+      : req.body.icon
   }
 
   const result = await CategoryService.createCategory(categoryData)
@@ -49,11 +54,16 @@ const updateCategory = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
   const categoryData = { ...req.body }
 
-  // Handle image upload from disk storage for icon
+  // Backward compatibility: support existing "images" field.
   if (req.body.images) {
     categoryData.icon = Array.isArray(req.body.images)
       ? req.body.images[0]
       : req.body.images
+  }
+  if (req.body.icon) {
+    categoryData.icon = Array.isArray(req.body.icon)
+      ? req.body.icon[0]
+      : req.body.icon
   }
 
   const result = await CategoryService.updateCategory(id, categoryData)

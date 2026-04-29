@@ -6,7 +6,7 @@ import path from 'path'
 import fs from 'fs'
 import sharp from 'sharp'
 
-type IFolderName = 'images' | 'media' | 'documents'
+type IFolderName = 'images' | 'icon' | 'media' | 'documents'
 interface ProcessedFiles {
   [key: string]: string | string[] | undefined
 }
@@ -14,6 +14,7 @@ interface ProcessedFiles {
 // Define upload configuration with maxCount information
 const uploadFields = [
   { name: 'images', maxCount: 5 },
+  { name: 'icon', maxCount: 1 },
   { name: 'media', maxCount: 3 },
   { name: 'documents', maxCount: 3 },
 ] as const
@@ -30,6 +31,7 @@ export const fileAndBodyProcessor = () => {
     try {
       const allowedTypes = {
         images: ['image/jpeg', 'image/png', 'image/jpg'],
+        icon: ['image/jpeg', 'image/png', 'image/jpg'],
         media: ['video/mp4', 'audio/mpeg'],
         documents: ['application/pdf'],
       }
@@ -94,7 +96,7 @@ export const fileAndBodyProcessor = () => {
 
               // Apply Sharp optimization for images
               if (
-                fieldName === 'images' &&
+                ['images', 'icon'].includes(fieldName) &&
                 file.mimetype.startsWith('image/')
               ) {
                 try {
@@ -185,6 +187,7 @@ export const fileAndBodyProcessorUsingDiskStorage = () => {
     try {
       const allowedTypes = {
         images: ['image/jpeg', 'image/png', 'image/jpg'],
+        icon: ['image/jpeg', 'image/png', 'image/jpg'],
         media: ['video/mp4', 'audio/mpeg'],
         documents: ['application/pdf'],
       }
@@ -247,7 +250,7 @@ export const fileAndBodyProcessorUsingDiskStorage = () => {
 
               // Apply Sharp optimization for images
               if (
-                fieldName === 'images' &&
+                ['images', 'icon'].includes(fieldName) &&
                 file.mimetype.startsWith('image/')
               ) {
                 try {

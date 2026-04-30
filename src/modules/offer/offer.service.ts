@@ -8,7 +8,27 @@ import { offerSearchableFields } from './offer.constants'
 import { DISCOUNT_TYPE, OFFER_STATUS } from '../../enum/offer'
 
 const createOffer = async (payload: IOffer): Promise<IOffer> => {
-  console.log(payload, 'payload')
+  const status = payload.status || OFFER_STATUS.ACTIVE
+  if (status === OFFER_STATUS.ACTIVE && (payload.place || payload.business)) {
+    const query: any[] = []
+    if (payload.place) query.push({ place: payload.place })
+    if (payload.business) query.push({ business: payload.business })
+
+    if (query.length > 0) {
+      const existingActiveOffer = await Offer.findOne({
+        $or: query,
+        status: OFFER_STATUS.ACTIVE,
+      })
+
+      if (existingActiveOffer) {
+        throw new ApiError(
+          StatusCodes.BAD_REQUEST,
+          'An active offer already exists for this place or business',
+        )
+      }
+    }
+  }
+
   const result = await Offer.create(payload)
   return result
 }
@@ -50,10 +70,42 @@ const updateOffer = async (
     throw new ApiError(StatusCodes.NOT_FOUND, 'Offer not found')
   }
 
+  const targetStatus = payload.status || isExist.status
+  const targetPlace = payload.place || isExist.place
+  const targetBusiness = payload.business || isExist.business
+
+  if (targetStatus === OFFER_STATUS.ACTIVE && (targetPlace || targetBusiness)) {
+    const query: any[] = []
+    if (targetPlace) query.push({ place: targetPlace })
+    if (targetBusiness) query.push({ business: targetBusiness })
+
+    if (query.length > 0) {
+      const existingActiveOffer = await Offer.findOne({
+        _id: { $ne: id },
+        $or: query,
+        status: OFFER_STATUS.ACTIVE,
+      })
+
+      if (existingActiveOffer) {
+        throw new ApiError(
+          StatusCodes.BAD_REQUEST,
+          'An active offer already exists for this place or business',
+        )
+      }
+    }
+  }
+
   const result = await Offer.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,
   }).populate('place')
+  return result
+}
+
+const getOffersByPlaceOrBusinessId = async (id: string) => {
+  const result = await Offer.findOne({
+    $or: [{ place: id }, { business: id }],
+  }).populate('place business')
   return result
 }
 
@@ -153,4 +205,5 @@ export const OfferService = {
   deleteOffer,
   calculateDiscount,
   redeemOffer,
+  getOffersByPlaceOrBusinessId,
 }

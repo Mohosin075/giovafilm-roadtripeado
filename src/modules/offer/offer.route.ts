@@ -11,6 +11,11 @@ import { fileAndBodyProcessorUsingDiskStorage } from '../../middleware/processRe
 
 const router = express.Router()
 
+router.get(
+  '/by-place-or-business/:id',
+  OfferController.getOffersByPlaceOrBusinessId,
+)
+
 router
   .route('/')
   .post(
@@ -20,6 +25,8 @@ router
     OfferController.createOffer,
   )
   .get(OfferController.getAllOffers)
+
+
 
 router
   .route('/:id')

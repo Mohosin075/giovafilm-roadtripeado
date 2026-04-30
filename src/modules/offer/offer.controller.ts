@@ -64,6 +64,17 @@ const updateOffer = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const getOffersByPlaceOrBusinessId = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params
+  const result = await OfferService.getOffersByPlaceOrBusinessId(id)
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Offers retrieved successfully',
+    data: result,
+  })
+})
+
 const deleteOffer = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
   const result = await OfferService.deleteOffer(id)
@@ -113,4 +124,5 @@ export const OfferController = {
   deleteOffer,
   calculateDiscount,
   redeemOffer,
+  getOffersByPlaceOrBusinessId,
 }

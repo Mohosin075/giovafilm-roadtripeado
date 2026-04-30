@@ -6,7 +6,7 @@ export const createOfferZodSchema = z.object({
     title: z.string({ required_error: 'Title is required' }),
     photo: z.string().optional(),
     place: z.string().optional(),
-    business: z.string({ required_error: 'Business ID is required' }),
+    business: z.string().optional(),
     description: z.string({ required_error: 'Description is required' }),
     discountType: z.nativeEnum(DISCOUNT_TYPE, {
       required_error: 'Discount Type is required',

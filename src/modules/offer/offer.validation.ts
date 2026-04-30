@@ -5,7 +5,8 @@ export const createOfferZodSchema = z.object({
   body: z.object({
     title: z.string({ required_error: 'Title is required' }),
     photo: z.string().optional(),
-    place: z.string({ required_error: 'Place ID is required' }),
+    place: z.string().optional(),
+    business: z.string({ required_error: 'Business ID is required' }),
     description: z.string({ required_error: 'Description is required' }),
     discountType: z.nativeEnum(DISCOUNT_TYPE, {
       required_error: 'Discount Type is required',
@@ -48,6 +49,7 @@ export const updateOfferZodSchema = z.object({
     title: z.string().optional(),
     photo: z.string().optional(),
     place: z.string().optional(),
+    business: z.string().optional(),
     description: z.string().optional(),
     discountType: z.nativeEnum(DISCOUNT_TYPE).optional(),
     discountValue: z.union([z.string(), z.number()]).optional(),

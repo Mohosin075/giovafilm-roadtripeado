@@ -8,12 +8,16 @@ import { offerSearchableFields } from './offer.constants'
 import { DISCOUNT_TYPE, OFFER_STATUS } from '../../enum/offer'
 
 const createOffer = async (payload: IOffer): Promise<IOffer> => {
+  console.log(payload, 'payload')
   const result = await Offer.create(payload)
   return result
 }
 
 const getAllOffers = async (query: Record<string, unknown>) => {
-  const offerQuery = new QueryBuilder(Offer.find().populate('place'), query)
+  const offerQuery = new QueryBuilder(
+    Offer.find().populate('business'),
+    query,
+  )
     .search(offerSearchableFields)
     .filter()
     .sort()

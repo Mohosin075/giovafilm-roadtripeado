@@ -7,7 +7,6 @@ export enum USER_ROLES {
   SUPER_ADMIN = 'super_admin',
   ADMIN = 'admin',
   USER = 'user',
-  ORGANIZER = 'organizer',
   MAP_EDITOR = 'map_editor',
 }
 

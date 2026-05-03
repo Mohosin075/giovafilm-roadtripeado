@@ -32,7 +32,10 @@ export const createPlaceZodSchema = z.object({
     services: z.array(z.string()).optional(),
     schedules: z.string().optional(),
     entryCost: z.string().optional(),
-    difficulty: z.enum(placeDifficulty as [string, ...string[]]).optional(),
+    difficulty: z.preprocess(
+      (val) => (val === '' || val === null ? undefined : val),
+      z.enum(placeDifficulty as [string, ...string[]]).optional()
+    ),
     hikeTime: z.string().optional(),
     atmosphere: z.string().optional(),
     status: z.enum(['Draft', 'Published']).default('Draft'),
@@ -70,7 +73,10 @@ export const updatePlaceZodSchema = z.object({
     services: z.array(z.string()).optional(),
     schedules: z.string().optional(),
     entryCost: z.string().optional(),
-    difficulty: z.enum(placeDifficulty as [string, ...string[]]).optional(),
+    difficulty: z.preprocess(
+      (val) => (val === '' || val === null ? undefined : val),
+      z.enum(placeDifficulty as [string, ...string[]]).optional()
+    ),
     hikeTime: z.string().optional(),
     atmosphere: z.string().optional(),
     status: z.enum(['Draft', 'Published']).optional(),

@@ -37,6 +37,8 @@ const PlaceSchema = new Schema<IPlace, PlaceModel>(
     difficulty: {
       type: String,
       enum: placeDifficulty,
+      default: 'Easy',
+      set: (v: string) => (v === '' ? undefined : v),
     },
     hikeTime: { type: String },
     atmosphere: { type: String },

@@ -30,7 +30,7 @@ router
   .route('/:id')
   .get(MapController.getMapById)
   .patch(
-    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.MAP_EDITOR),
     fileAndBodyProcessorUsingDiskStorage(),
     validateRequest(updateMapZodSchema),
     MapController.updateMap

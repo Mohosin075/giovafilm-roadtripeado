@@ -22,7 +22,7 @@ const router = express.Router()
 
 router.get(
   '/profile',
-  auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN),
+  auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN, USER_ROLES.MAP_EDITOR),
   UserController.getProfile,
 )
 
@@ -61,7 +61,7 @@ router.get(
 
 router.patch(
   '/profile',
-  auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN),
+  auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN, USER_ROLES.MAP_EDITOR),
 
   fileAndBodyProcessorUsingDiskStorage(),
 

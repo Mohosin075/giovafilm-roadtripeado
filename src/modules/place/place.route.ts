@@ -14,7 +14,7 @@ const router = express.Router()
 router
   .route('/')
   .post(
-    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.MAP_EDITOR),
     fileAndBodyProcessorUsingDiskStorage(),
     validateRequest(createPlaceZodSchema),
     PlaceController.createPlace,
@@ -25,7 +25,7 @@ router
   .route('/:id')
   .get(PlaceController.getPlaceById)
   .patch(
-    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.MAP_EDITOR),
     fileAndBodyProcessorUsingDiskStorage(),
     validateRequest(updatePlaceZodSchema),
     PlaceController.updatePlace,

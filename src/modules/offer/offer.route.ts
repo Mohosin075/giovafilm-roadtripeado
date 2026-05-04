@@ -19,7 +19,7 @@ router.get(
 router
   .route('/')
   .post(
-    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER),
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER, USER_ROLES.MAP_EDITOR),
     fileAndBodyProcessorUsingDiskStorage(),
     validateRequest(createOfferZodSchema),
     OfferController.createOffer,
@@ -32,7 +32,7 @@ router
   .route('/:id')
   .get(OfferController.getOfferById)
   .patch(
-    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.MAP_EDITOR),
     fileAndBodyProcessorUsingDiskStorage(),
     validateRequest(updateOfferZodSchema),
     OfferController.updateOffer,

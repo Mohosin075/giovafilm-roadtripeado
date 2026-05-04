@@ -74,6 +74,7 @@ const getMapById = async (id: string): Promise<IMap | null> => {
 }
 
 const updateMap = async (id: string, payload: Partial<IMap>): Promise<IMap | null> => {
+  console.log(payload, id)
   const isExist = await Map.findById(id)
   if (!isExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')

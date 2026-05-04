@@ -44,6 +44,9 @@ export const createPlaceZodSchema = z.object({
 })
 
 export const updatePlaceZodSchema = z.object({
+  params: z.object({
+    id: z.string({ required_error: 'Place ID is required' }),
+  }),
   body: z.object({
     name: z.string().optional(),
     map: z.string().optional(),

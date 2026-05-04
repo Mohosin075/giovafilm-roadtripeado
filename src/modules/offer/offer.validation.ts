@@ -45,6 +45,9 @@ export const createOfferZodSchema = z.object({
 })
 
 export const updateOfferZodSchema = z.object({
+  params: z.object({
+    id: z.string({ required_error: 'Offer ID is required' }),
+  }),
   body: z.object({
     title: z.string().optional(),
     photo: z.string().optional(),

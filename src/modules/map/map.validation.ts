@@ -18,6 +18,9 @@ export const createMapZodSchema = z.object({
 })
 
 export const updateMapZodSchema = z.object({
+  params: z.object({
+    id: z.string({ required_error: 'Map ID is required' }),
+  }),
   body: z.object({
     name: z.string().optional(),
     description: z.string().optional(),

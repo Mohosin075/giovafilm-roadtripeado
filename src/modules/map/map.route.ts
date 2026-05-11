@@ -25,6 +25,7 @@ router.get(
 )
 
 router.get('/available-countries', MapController.getAvailableCountries)
+router.get('/discovery', MapController.getDiscoveryData)
 
 router
   .route('/:id')

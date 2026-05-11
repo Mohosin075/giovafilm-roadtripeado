@@ -118,6 +118,16 @@ const getAvailableCountries = catchAsync(async (req: Request, res: Response) => 
   })
 })
 
+const getDiscoveryData = catchAsync(async (req: Request, res: Response) => {
+  const result = await MapService.getDiscoveryData(req.query)
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Discovery data retrieved successfully',
+    data: result,
+  })
+})
+
 export const MapController = {
   createMap,
   getAllMaps,
@@ -127,4 +137,5 @@ export const MapController = {
   purchaseMap,
   getPurchasedMaps,
   getAvailableCountries,
+  getDiscoveryData,
 }

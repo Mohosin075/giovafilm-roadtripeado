@@ -5,8 +5,11 @@ import { Map } from './map.model'
 import QueryBuilder from '../../builder/QueryBuilder'
 import { User } from '../user/user.model'
 import { Place } from '../place/place.model'
+import { Business } from '../business/business.model'
 import mongoose from 'mongoose'
 import { mapSearchableFields } from './map.constants'
+import { placeSearchableFields } from '../place/place.constants'
+import { businessSearchableFields } from '../business/business.constants'
 
 const createMap = async (payload: IMap): Promise<IMap> => {
   const result = await Map.create(payload)
@@ -166,6 +169,62 @@ const getAvailableCountries = async (): Promise<string[]> => {
   return result.filter((country): country is string => typeof country === 'string' && country !== 'Unknown')
 }
 
+const getDiscoveryData = async (query: Record<string, unknown>) => {
+  // Use QueryBuilder for Places
+  const placeQuery = new QueryBuilder(
+    Place.find({ status: 'Published' }).populate('category').lean(),
+    query
+  )
+    .search(placeSearchableFields)
+    .filter()
+    .sort()
+
+  // Use QueryBuilder for Businesses
+  const businessQuery = new QueryBuilder(
+    Business.find({ status: 'Approved' }).populate('category').lean(),
+    query
+  )
+    .search(businessSearchableFields)
+    .filter()
+    .sort()
+
+  // For map discovery, we often want all points or a larger limit
+  // If limit is not provided, we might want to fetch more than the default 10
+  if (!query.limit) {
+    placeQuery.modelQuery.limit(100)
+    businessQuery.modelQuery.limit(100)
+  } else {
+    placeQuery.paginate()
+    businessQuery.paginate()
+  }
+
+  const [places, businesses] = await Promise.all([
+    placeQuery.modelQuery,
+    businessQuery.modelQuery,
+  ])
+
+  // Map to include type
+  const formattedPlaces = places.map(place => ({
+    ...(place as any),
+    type: 'place',
+  }))
+
+  const formattedBusinesses = businesses.map(business => ({
+    ...(business as any),
+    type: 'business',
+  }))
+
+  // Combine results
+  const result = [...formattedPlaces, ...formattedBusinesses]
+
+  // If there's a searchTerm, we might want to sort by relevance or alphabetically
+  if (query.searchTerm) {
+    result.sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  return result
+}
+
 export const MapService = {
   createMap,
   getAllMaps,
@@ -175,4 +234,5 @@ export const MapService = {
   purchaseMap,
   getPurchasedMaps,
   getAvailableCountries,
+  getDiscoveryData,
 }

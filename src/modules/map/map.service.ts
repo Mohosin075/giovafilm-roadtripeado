@@ -170,10 +170,32 @@ const getAvailableCountries = async (): Promise<string[]> => {
 }
 
 const getDiscoveryData = async (query: Record<string, unknown>) => {
+  const page = Number(query.page) || 1
+  const limit = Number(query.limit) || 10
+  
+  // Prepare separate queries because Place and Business have different schemas
+  const placeQueryObj = { ...query }
+  const businessQueryObj = { ...query }
+
+  // 1. Handle "map" filter (Only applicable for Places)
+  if (businessQueryObj.map) {
+    delete businessQueryObj.map
+  }
+
+  // 2. Handle "country" filter (Business uses location.country)
+  if (businessQueryObj.country) {
+    businessQueryObj['location.country'] = businessQueryObj.country
+    delete businessQueryObj.country
+  }
+
+  // 3. Handle "status" default if not provided
+  if (!placeQueryObj.status) placeQueryObj.status = 'Published'
+  if (!businessQueryObj.status) businessQueryObj.status = 'Approved'
+
   // Use QueryBuilder for Places
   const placeQuery = new QueryBuilder(
-    Place.find({ status: 'Published' }).populate('category').lean(),
-    query
+    Place.find().populate('category').lean(),
+    placeQueryObj
   )
     .search(placeSearchableFields)
     .filter()
@@ -181,22 +203,17 @@ const getDiscoveryData = async (query: Record<string, unknown>) => {
 
   // Use QueryBuilder for Businesses
   const businessQuery = new QueryBuilder(
-    Business.find({ status: 'Approved' }).populate('category').lean(),
-    query
+    Business.find().populate('category').lean(),
+    businessQueryObj
   )
     .search(businessSearchableFields)
     .filter()
     .sort()
 
-  // For map discovery, we often want all points or a larger limit
-  // If limit is not provided, we might want to fetch more than the default 10
-  if (!query.limit) {
-    placeQuery.modelQuery.limit(100)
-    businessQuery.modelQuery.limit(100)
-  } else {
-    placeQuery.paginate()
-    businessQuery.paginate()
-  }
+  // We fetch more items and then combine, sort, and paginate in memory 
+  // to ensure consistent combined results.
+  placeQuery.modelQuery.limit(100)
+  businessQuery.modelQuery.limit(100)
 
   const [places, businesses] = await Promise.all([
     placeQuery.modelQuery,
@@ -215,14 +232,38 @@ const getDiscoveryData = async (query: Record<string, unknown>) => {
   }))
 
   // Combine results
-  const result = [...formattedPlaces, ...formattedBusinesses]
+  let result = [...formattedPlaces, ...formattedBusinesses]
 
   // If there's a searchTerm, we might want to sort by relevance or alphabetically
   if (query.searchTerm) {
     result.sort((a, b) => a.name.localeCompare(b.name))
+  } else if (query.sort) {
+    // Basic sorting on combined results if needed
+    const isDesc = (query.sort as string).startsWith('-')
+    const sortField = (query.sort as string).replace('-', '')
+    
+    result.sort((a: any, b: any) => {
+      if (a[sortField] < b[sortField]) return isDesc ? 1 : -1
+      if (a[sortField] > b[sortField]) return isDesc ? -1 : 1
+      return 0
+    })
   }
 
-  return result
+  // Apply pagination on the combined data
+  const total = result.length
+  const totalPage = Math.ceil(total / limit)
+  const skip = (page - 1) * limit
+  result = result.slice(skip, skip + limit)
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPage,
+    },
+    data: result,
+  }
 }
 
 export const MapService = {

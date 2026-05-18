@@ -40,7 +40,14 @@ const getAllCategories = catchAsync(async (req: Request, res: Response) => {
 })
 
 const getCategoryById = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params
+  const id = (req.params && (req.params as any).id) || (req.query && (req.query as any).id) || (req.body && (req.body as any).id)
+  if (!id) {
+    return sendResponse(res, {
+      statusCode: StatusCodes.BAD_REQUEST,
+      success: false,
+      message: 'Category id is required in URL params, query or request body',
+    })
+  }
   const result = await CategoryService.getCategoryById(id)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -51,7 +58,20 @@ const getCategoryById = catchAsync(async (req: Request, res: Response) => {
 })
 
 const updateCategory = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params
+  const id = (req.params && (req.params as any).id) || (req.body && (req.body as any).id)
+  console.log('Category update request:', {
+    method: req.method,
+    url: req.originalUrl,
+    params: req.params,
+    body: req.body && typeof req.body === 'object' ? { ...req.body } : req.body,
+  })
+  if (!id) {
+    return sendResponse(res, {
+      statusCode: StatusCodes.BAD_REQUEST,
+      success: false,
+      message: 'Category id is required in URL params or request body',
+    })
+  }
   const categoryData = { ...req.body }
 
   // Backward compatibility: support existing "images" field.
@@ -76,7 +96,14 @@ const updateCategory = catchAsync(async (req: Request, res: Response) => {
 })
 
 const deleteCategory = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params
+  const id = (req.params && (req.params as any).id) || (req.body && (req.body as any).id)
+  if (!id) {
+    return sendResponse(res, {
+      statusCode: StatusCodes.BAD_REQUEST,
+      success: false,
+      message: 'Category id is required in URL params or request body',
+    })
+  }
   const result = await CategoryService.deleteCategory(id)
   sendResponse(res, {
     statusCode: StatusCodes.OK,

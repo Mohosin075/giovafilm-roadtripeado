@@ -44,6 +44,7 @@ const updatePlace = catchAsync(async (req: Request, res: Response) => {
   if (req.body.images) {
     req.body.media = req.body.images
   }
+  console.log(req.body)
   const result = await PlaceService.updatePlace(id, req.body)
   sendResponse(res, {
     statusCode: StatusCodes.OK,

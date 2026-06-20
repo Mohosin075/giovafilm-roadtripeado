@@ -15,7 +15,6 @@ router.post('/', (0, validateRequest_1.default)(public_validation_1.PublicValida
 router.get('/:type', public_controller_1.PublicController.getAllPublics);
 router.delete('/:id', public_controller_1.PublicController.deletePublic);
 router.patch('/update/:id', public_controller_1.PublicController.updatePublic);
-router.post('/contact', (0, validateRequest_1.default)(public_validation_1.PublicValidation.contactZodSchema), public_controller_1.PublicController.createContact);
 router.post('/faq', (0, auth_1.default)(user_1.USER_ROLES.ADMIN), (0, validateRequest_1.default)(public_validation_1.FaqValidations.create), public_controller_1.PublicController.createFaq);
 router.patch('/faq/:id', (0, auth_1.default)(user_1.USER_ROLES.ADMIN), (0, validateRequest_1.default)(public_validation_1.FaqValidations.update), public_controller_1.PublicController.updateFaq);
 router.get('/faq/single/:id', public_controller_1.PublicController.getSingleFaq);

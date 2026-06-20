@@ -19,6 +19,7 @@ const verifyEmailOrPhoneOtpZodSchema = zod_1.z.object({
             message: 'Invalid phone number format',
         }),
         oneTimeCode: zod_1.z.string().min(1, { message: 'OTP is required' }),
+        password: zod_1.z.string().min(6).optional(),
     }),
 });
 const forgetPasswordZodSchema = zod_1.z.object({
@@ -76,6 +77,7 @@ const verifyAccountZodSchema = zod_1.z.object({
             message: 'Invalid phone number format',
         }),
         oneTimeCode: zod_1.z.string().min(1, { message: 'OTP is required' }),
+        password: zod_1.z.string().min(6).optional(),
     }),
 });
 const resendOtpZodSchema = zod_1.z.object({

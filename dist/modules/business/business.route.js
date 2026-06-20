@@ -17,13 +17,17 @@ router
     .route('/')
     .post((0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), (0, processReqBody_1.fileAndBodyProcessorUsingDiskStorage)(), (0, validateRequest_1.default)(business_validation_1.createBusinessZodSchema), business_controller_1.BusinessController.createBusiness)
     .get(business_controller_1.BusinessController.getAllBusinesses);
+// Route to get my businesses
+router.get('/my-business', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), business_controller_1.BusinessController.getMyBusinesses);
 router
     .route('/:id')
     .get(business_controller_1.BusinessController.getBusinessById)
     // Only admin/super_admin or the owner should update, but for simplicity auth is USER
     .patch((0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), (0, processReqBody_1.fileAndBodyProcessorUsingDiskStorage)(), (0, validateRequest_1.default)(business_validation_1.updateBusinessZodSchema), business_controller_1.BusinessController.updateBusiness)
-    .delete((0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), // Only admins can delete a business
+    .delete((0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.USER), // Only admins can delete a business
 business_controller_1.BusinessController.deleteBusiness);
 // Admin route to approve/reject
 router.patch('/:id/status', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), (0, validateRequest_1.default)(business_validation_1.updateBusinessStatusZodSchema), business_controller_1.BusinessController.updateBusinessStatus);
+router.get('/:id/stats', business_controller_1.BusinessController.getBusinessStats);
+router.post('/:id/view', business_controller_1.BusinessController.incrementViewCount);
 exports.BusinessRoutes = router;

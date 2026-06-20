@@ -1,37 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -44,8 +11,7 @@ const subscription_service_1 = require("./subscription.service");
 const webhook_service_1 = require("./webhook.service");
 // Get available subscription plans
 const getAvailablePlans = (0, catchAsync_1.default)(async (req, res) => {
-    const { userType } = req.query;
-    const plans = await subscription_service_1.subscriptionService.getAvailablePlans(userType);
+    const plans = await subscription_service_1.subscriptionService.getAvailablePlans();
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -157,6 +123,7 @@ const createCheckoutSession = (0, catchAsync_1.default)(async (req, res) => {
 });
 // Handle Stripe webhooks
 const handleWebhook = (0, catchAsync_1.default)(async (req, res) => {
+    console.log('hitting webhook handler');
     const signature = req.headers['stripe-signature'];
     const payload = req.body;
     console.log({ payload });
@@ -188,11 +155,21 @@ const updateSubscriptionPlan = (0, catchAsync_1.default)(async (req, res) => {
         data: plan,
     });
 });
+// Admin: Delete subscription plan (soft delete)
+const deleteSubscriptionPlan = (0, catchAsync_1.default)(async (req, res) => {
+    const { planId } = req.params;
+    const plan = await subscription_service_1.subscriptionService.deleteSubscriptionPlan(planId);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Subscription plan deleted successfully',
+        data: plan,
+    });
+});
 // Admin: Get all plans (including inactive)
 const getAllPlans = (0, catchAsync_1.default)(async (req, res) => {
-    const { userType } = req.query;
     // For admin, get all plans including inactive ones
-    const plans = await subscription_service_1.subscriptionService.getAvailablePlans(userType);
+    const plans = await subscription_service_1.subscriptionService.getAvailablePlans();
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -283,28 +260,20 @@ const resumeSubscription = (0, catchAsync_1.default)(async (req, res) => {
 });
 // Get usage data
 const getUsageData = (0, catchAsync_1.default)(async (req, res) => {
-    const user = req.user;
-    const userId = user.authId.toString();
-    const { usageTrackingService } = await Promise.resolve().then(() => __importStar(require('./usage-tracking.service')));
-    const usageData = await usageTrackingService.getUsageWithLimits(userId);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Usage data retrieved successfully',
-        data: usageData,
+        data: {},
     });
 });
 // Check usage warnings
 const getUsageWarnings = (0, catchAsync_1.default)(async (req, res) => {
-    const user = req.user;
-    const userId = user.authId.toString();
-    const { usageTrackingService } = await Promise.resolve().then(() => __importStar(require('./usage-tracking.service')));
-    const warnings = await usageTrackingService.checkApproachingLimits(userId);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Usage warnings retrieved successfully',
-        data: warnings,
+        data: { warnings: [], suggestions: [] },
     });
 });
 // Get billing portal session
@@ -343,6 +312,7 @@ exports.SubscriptionController = {
     // Admin endpoints (require admin role)
     createSubscriptionPlan,
     updateSubscriptionPlan,
+    deleteSubscriptionPlan,
     getAllPlans,
     getAllSubscriptions,
     getSubscriptionAnalytics,

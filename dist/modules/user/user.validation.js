@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.favoriteOfferSchema = exports.favoriteMapSchema = exports.addUserInterestSchema = exports.createStaffSchema = exports.STAFF_SPECIALTY = exports.updateUserSchema = void 0;
+exports.favoriteOfferSchema = exports.favoritePlaceSchema = exports.favoriteMapSchema = exports.addUserInterestSchema = exports.updateUserRoleSchema = exports.inviteUserSchema = exports.createStaffSchema = exports.STAFF_SPECIALTY = exports.updateUserSchema = void 0;
 const zod_1 = require("zod");
 const user_1 = require("../../enum/user");
 // ------------------ SUB-SCHEMAS ------------------
@@ -68,6 +68,22 @@ exports.createStaffSchema = zod_1.z.object({
         bio: zod_1.z.string().optional(),
     }),
 });
+exports.inviteUserSchema = zod_1.z.object({
+    body: zod_1.z.object({
+        email: zod_1.z.string().email({ message: 'Invalid email address' }),
+        role: zod_1.z.nativeEnum(user_1.USER_ROLES),
+    }),
+});
+exports.updateUserRoleSchema = zod_1.z.object({
+    params: zod_1.z.object({
+        userId: zod_1.z.string({
+            required_error: 'User ID is required',
+        }),
+    }),
+    body: zod_1.z.object({
+        role: zod_1.z.nativeEnum(user_1.USER_ROLES),
+    }),
+});
 exports.addUserInterestSchema = zod_1.z.object({
     body: zod_1.z.object({
         interest: zod_1.z.array(zod_1.z.nativeEnum(user_1.InterestCategory)).optional(),
@@ -77,6 +93,13 @@ exports.favoriteMapSchema = zod_1.z.object({
     params: zod_1.z.object({
         mapId: zod_1.z.string({
             required_error: 'Map ID is required',
+        }),
+    }),
+});
+exports.favoritePlaceSchema = zod_1.z.object({
+    params: zod_1.z.object({
+        placeId: zod_1.z.string({
+            required_error: 'Place ID is required',
         }),
     }),
 });

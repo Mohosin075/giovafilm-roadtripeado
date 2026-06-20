@@ -199,6 +199,7 @@ const resetPassword = async (resetToken, payload) => {
     const hashPassword = await bcrypt_1.default.hash(newPassword, Number(config_1.default.bcrypt_salt_rounds));
     const updatedUserData = {
         password: hashPassword,
+        verified: true, // Mark as verified when setting password for the first time
         authentication: {
             resetPassword: false,
             otp: '',
@@ -211,7 +212,7 @@ const resetPassword = async (resetToken, payload) => {
     await user_model_1.User.findByIdAndUpdate(isUserExist._id, { $set: updatedUserData }, { new: true });
     return { message: 'Password reset successfully' };
 };
-const verifyAccount = async (email, onetimeCode) => {
+const verifyAccount = async (email, onetimeCode, password) => {
     //verify fo new user
     if (!onetimeCode) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'OTP is required.');
@@ -219,9 +220,7 @@ const verifyAccount = async (email, onetimeCode) => {
     const isUserExist = await user_model_1.User.findOne({
         email: email.toLowerCase().trim(),
         status: { $nin: [user_1.USER_STATUS.DELETED] },
-    })
-        .select('+password +authentication')
-        .lean();
+    }).select('+password +authentication');
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `No account found with this ${email}, please register first.`);
     }
@@ -236,6 +235,47 @@ const verifyAccount = async (email, onetimeCode) => {
     }
     //either newly created user or existing user
     if (!isUserExist.verified) {
+        // If user was invited (has no password), they must set a password first
+        if (!isUserExist.password) {
+            if (password) {
+                // If password is provided during OTP verification (Invitation acceptance)
+                isUserExist.password = password;
+                isUserExist.verified = true;
+                isUserExist.authentication = {
+                    oneTimeCode: '',
+                    expiresAt: null,
+                    latestRequestAt: null,
+                    requestCount: 0,
+                    authType: 'createAccount',
+                    resetPassword: false,
+                };
+                await isUserExist.save();
+                const tokens = auth_helper_1.AuthHelper.createToken(isUserExist._id, isUserExist.role, isUserExist.name, isUserExist.email);
+                return (0, common_1.authResponse)(http_status_codes_1.StatusCodes.OK, `Welcome ${isUserExist.name} to our platform. Your account is now verified and password set.`, isUserExist.role, tokens.accessToken, tokens.refreshToken);
+            }
+            else {
+                // If password is NOT provided, return the reset token to set password
+                await user_model_1.User.findByIdAndUpdate(isUserExist._id, {
+                    $set: {
+                        authentication: {
+                            oneTimeCode: '',
+                            expiresAt: null,
+                            latestRequestAt: null,
+                            requestCount: 0,
+                            authType: '',
+                            resetPassword: true,
+                        },
+                    },
+                }, { new: true });
+                const token = await token_model_1.Token.create({
+                    token: (0, crypto_1.default)(),
+                    user: isUserExist._id,
+                    expireAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+                });
+                return (0, common_1.authResponse)(http_status_codes_1.StatusCodes.OK, 'OTP verified successfully, please set your password to complete your account.', undefined, undefined, undefined, token === null || token === void 0 ? void 0 : token.token, true);
+            }
+        }
+        // Normal signup flow (already has password)
         await user_model_1.User.findByIdAndUpdate(isUserExist._id, { $set: { verified: true } }, { new: true });
         const tokens = auth_helper_1.AuthHelper.createToken(isUserExist._id, isUserExist.role, isUserExist.name, isUserExist.email);
         console.log({ tokens });

@@ -18,6 +18,18 @@ const getMyAwards = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const redeemFreeMap = (0, catchAsync_1.default)(async (req, res) => {
+    const { authId } = req.user;
+    const { mapId } = req.body;
+    const result = await award_service_1.AwardServices.redeemFreeMap(authId, mapId);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Free map redeemed successfully',
+        data: result,
+    });
+});
 exports.AwardController = {
     getMyAwards,
+    redeemFreeMap,
 };

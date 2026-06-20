@@ -10,12 +10,10 @@ const sendResponse_1 = __importDefault(require("../../shared/sendResponse"));
 const offer_service_1 = require("./offer.service");
 const ApiError_1 = __importDefault(require("../../errors/ApiError"));
 const createOffer = (0, catchAsync_1.default)(async (req, res) => {
-    const offerData = { ...req.body };
+    const { images, ...offerData } = req.body;
     // Handle image upload from disk storage
-    if (req.body.images) {
-        offerData.photo = Array.isArray(req.body.images)
-            ? req.body.images[0]
-            : req.body.images;
+    if (images) {
+        offerData.photo = Array.isArray(images) ? images[0] : images;
     }
     const result = await offer_service_1.OfferService.createOffer(offerData);
     (0, sendResponse_1.default)(res, {
@@ -47,18 +45,27 @@ const getOfferById = (0, catchAsync_1.default)(async (req, res) => {
 });
 const updateOffer = (0, catchAsync_1.default)(async (req, res) => {
     const { id } = req.params;
-    const offerData = { ...req.body };
+    const { images, ...offerData } = req.body;
     // Handle image upload from disk storage
-    if (req.body.images) {
-        offerData.photo = Array.isArray(req.body.images)
-            ? req.body.images[0]
-            : req.body.images;
+    if (images) {
+        offerData.photo = Array.isArray(images) ? images[0] : images;
     }
+    console.log(req.body);
     const result = await offer_service_1.OfferService.updateOffer(id, offerData);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Offer updated successfully',
+        data: result,
+    });
+});
+const getOffersByPlaceOrBusinessId = (0, catchAsync_1.default)(async (req, res) => {
+    const { id } = req.params;
+    const result = await offer_service_1.OfferService.getOffersByPlaceOrBusinessId(id);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Offers retrieved successfully',
         data: result,
     });
 });
@@ -86,6 +93,17 @@ const calculateDiscount = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const redeemOffer = (0, catchAsync_1.default)(async (req, res) => {
+    const { id } = req.params;
+    const { authId } = req.user;
+    const result = await offer_service_1.OfferService.redeemOffer(id, authId);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Offer redeemed successfully',
+        data: result,
+    });
+});
 exports.OfferController = {
     createOffer,
     getAllOffers,
@@ -93,4 +111,6 @@ exports.OfferController = {
     updateOffer,
     deleteOffer,
     calculateDiscount,
+    redeemOffer,
+    getOffersByPlaceOrBusinessId,
 };

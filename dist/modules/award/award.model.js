@@ -7,6 +7,8 @@ const awardSchema = new mongoose_1.Schema({
     type: {
         type: String,
         enum: [
+            'PDF Itinerary',
+            'Free Map',
             'Gourmet Guide',
             'Top Reviewer',
             'Trail Master',

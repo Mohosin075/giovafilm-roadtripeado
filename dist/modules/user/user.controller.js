@@ -85,6 +85,28 @@ const updateUserStatus = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const updateUserRole = (0, catchAsync_1.default)(async (req, res) => {
+    const { userId } = req.params;
+    const { role } = req.body;
+    if (!role) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Role is required');
+    }
+    const result = await user_service_1.UserServices.updateUserRole(userId, role);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'User role updated successfully',
+        data: result,
+    });
+});
+const inviteUser = (0, catchAsync_1.default)(async (req, res) => {
+    const result = await user_service_1.UserServices.inviteUser(req.body);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: result,
+    });
+});
 const getProfile = (0, catchAsync_1.default)(async (req, res) => {
     const result = await user_service_1.UserServices.getProfile(req.user);
     (0, sendResponse_1.default)(res, {
@@ -153,6 +175,8 @@ exports.UserController = {
     deleteUser,
     getUserById,
     updateUserStatus,
+    updateUserRole,
+    inviteUser,
     getProfile,
     deleteProfile,
     addUserInterest,

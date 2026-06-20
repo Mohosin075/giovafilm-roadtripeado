@@ -43,14 +43,6 @@ const subscriptionPlanSchema = new mongoose_1.Schema({
             required: true,
         },
     ],
-    maxTeamMembers: {
-        type: Number,
-        default: 1,
-    },
-    maxServices: {
-        type: Number,
-        default: 1,
-    },
     maxPhotos: {
         type: Number,
         default: 1,
@@ -68,21 +60,14 @@ const subscriptionPlanSchema = new mongoose_1.Schema({
         type: String,
         required: true,
     },
-    userTypes: [
-        {
-            type: String,
-            enum: ['user', 'organizer', 'admin', 'super_admin'],
-            required: true,
-        },
-    ],
     priority: {
         type: Number,
-        default: 0,
+        default: 1,
     },
 }, {
     timestamps: true,
 });
 // Index for efficient queries
-subscriptionPlanSchema.index({ isActive: 1, userTypes: 1 });
+subscriptionPlanSchema.index({ isActive: 1 });
 subscriptionPlanSchema.index({ stripePriceId: 1 });
 exports.SubscriptionPlan = (0, mongoose_1.model)('SubscriptionPlan', subscriptionPlanSchema);

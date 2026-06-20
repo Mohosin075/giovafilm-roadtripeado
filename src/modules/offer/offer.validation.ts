@@ -5,6 +5,7 @@ export const createOfferZodSchema = z.object({
   body: z.object({
     title: z.string({ required_error: 'Title is required' }),
     photo: z.string().optional(),
+    images: z.any().optional(),
     place: z.string().optional(),
     business: z.string().optional(),
     description: z.string({ required_error: 'Description is required' }),
@@ -51,6 +52,7 @@ export const updateOfferZodSchema = z.object({
   body: z.object({
     title: z.string().optional(),
     photo: z.string().optional(),
+    images: z.any().optional(),
     place: z.string().optional(),
     business: z.string().optional(),
     description: z.string().optional(),

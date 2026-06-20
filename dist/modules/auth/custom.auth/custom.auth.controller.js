@@ -63,8 +63,8 @@ const resetPassword = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 const verifyAccount = (0, catchAsync_1.default)(async (req, res) => {
-    const { oneTimeCode, phone, email } = req.body;
-    const result = await custom_auth_service_1.CustomAuthServices.verifyAccount(email, oneTimeCode);
+    const { oneTimeCode, phone, email, password } = req.body;
+    const result = await custom_auth_service_1.CustomAuthServices.verifyAccount(email, oneTimeCode, password);
     const { status, message, accessToken, refreshToken, role, token } = result;
     res.cookie('refreshToken', refreshToken, {
         secure: process.env.NODE_ENV === 'production',

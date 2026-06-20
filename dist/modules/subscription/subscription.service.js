@@ -46,14 +46,12 @@ const subscription_model_1 = require("./subscription.model");
 const subscription_plan_model_1 = require("./subscription-plan.model");
 const email_notification_service_1 = require("./email-notification.service");
 const QueryBuilder_1 = __importDefault(require("../../builder/QueryBuilder"));
+const business_model_1 = require("../business/business.model");
 class SubscriptionService {
     // Get all available subscription plans
-    async getAvailablePlans(userType) {
+    async getAvailablePlans() {
         try {
             const query = { isActive: true };
-            if (userType) {
-                query.userTypes = { $in: [userType] };
-            }
             const plans = await subscription_plan_model_1.SubscriptionPlan.find(query).sort({
                 priority: 1,
                 price: 1,
@@ -189,6 +187,9 @@ class SubscriptionService {
                     ? new Date(currentPeriodEnd * 1000)
                     : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
             });
+            // Update business hasActiveSubscription
+            const isActive = ['active', 'trialing'].includes(stripeSubscription.status);
+            await business_model_1.Business.updateMany({ user: userId }, { hasActiveSubscription: isActive });
             // Send welcome email
             await email_notification_service_1.emailNotificationService.sendSubscriptionWelcomeEmail(subscription, plan, !!stripeSubscription.trial_start);
             // Get client secret for payment confirmation if needed
@@ -397,6 +398,12 @@ class SubscriptionService {
             if (!cancelAtPeriodEnd) {
                 updateData.status = 'canceled';
                 updateData.endedAt = new Date();
+                // Update user profile status
+                await user_model_1.User.findByIdAndUpdate(userId, {
+                    subscriptionStatus: 'canceled',
+                });
+                // Update business hasActiveSubscription
+                await business_model_1.Business.updateMany({ user: userId }, { hasActiveSubscription: false });
             }
             const updatedSubscription = await subscription_model_1.Subscription.findByIdAndUpdate(subscriptionId, updateData, { new: true }).populate(['planId']);
             console.log(`Subscription canceled: ${subscriptionId}`);
@@ -433,6 +440,9 @@ class SubscriptionService {
                 canceledAt: null,
                 resumedAt: new Date(),
             }, { new: true }).populate(['planId']);
+            // Update business hasActiveSubscription
+            const isActive = ['active', 'trialing'].includes(updatedSubscription.status);
+            await business_model_1.Business.updateMany({ user: userId }, { hasActiveSubscription: isActive });
             // Send reactivation email
             const plan = updatedSubscription === null || updatedSubscription === void 0 ? void 0 : updatedSubscription.planId;
             if (plan) {
@@ -499,6 +509,7 @@ class SubscriptionService {
     async createCheckoutSession(userId, planId, successUrl, cancelUrl) {
         try {
             const user = await user_model_1.User.findById(userId).select('+email');
+            console.log({ user });
             if (!user) {
                 throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
             }
@@ -541,15 +552,22 @@ class SubscriptionService {
     }
     // Admin: Create subscription plan
     async createSubscriptionPlan(planData) {
+        var _a, _b;
         try {
+            const existingPlan = await subscription_plan_model_1.SubscriptionPlan.findOne({
+                name: { $regex: `^${planData.name.trim()}$`, $options: 'i' },
+            });
+            if (existingPlan) {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.CONFLICT, `Subscription plan "${planData.name}" already exists`);
+            }
+            const maxPhotos = (_a = planData.maxPhotos) !== null && _a !== void 0 ? _a : 1;
+            const priority = (_b = planData.priority) !== null && _b !== void 0 ? _b : 0;
             // Create Stripe product
             const stripeProduct = await stripe_service_1.stripeService.createProduct({
                 name: planData.name,
                 description: planData.description,
                 metadata: {
-                    userTypes: planData.userTypes.join(','),
-                    maxTeamMembers: planData.maxTeamMembers.toString(),
-                    maxServices: planData.maxServices.toString(),
+                    maxPhotos: maxPhotos.toString(),
                 },
             });
             // Create Stripe price
@@ -566,6 +584,8 @@ class SubscriptionService {
             // Create local plan
             const plan = new subscription_plan_model_1.SubscriptionPlan({
                 ...planData,
+                maxPhotos,
+                priority,
                 stripeProductId: stripeProduct.id,
                 stripePriceId: stripePrice.id,
             });
@@ -574,6 +594,8 @@ class SubscriptionService {
             return plan;
         }
         catch (error) {
+            if (error instanceof ApiError_1.default)
+                throw error;
             console.error('Error creating subscription plan:', error);
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to create subscription plan');
         }
@@ -614,6 +636,34 @@ class SubscriptionService {
                 throw error;
             console.error('Error updating subscription plan:', error);
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to update subscription plan');
+        }
+    }
+    // Admin: Delete subscription plan (soft delete)
+    async deleteSubscriptionPlan(planId) {
+        try {
+            const plan = await subscription_plan_model_1.SubscriptionPlan.findById(planId);
+            if (!plan) {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Subscription plan not found');
+            }
+            // Do not allow deleting plans that are currently in active use
+            const activeSubscriptions = await subscription_model_1.Subscription.countDocuments({
+                planId: new mongoose_1.Types.ObjectId(planId),
+                status: { $in: ['active', 'trialing'] },
+            });
+            if (activeSubscriptions > 0) {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Cannot delete a plan with active subscriptions');
+            }
+            // Stripe resources are deactivated instead of permanently deleted.
+            await stripe_service_1.stripeService.archivePrice(plan.stripePriceId);
+            await stripe_service_1.stripeService.updateProduct(plan.stripeProductId, { active: false });
+            const deletedPlan = await subscription_plan_model_1.SubscriptionPlan.findByIdAndUpdate(planId, { isActive: false }, { new: true });
+            return deletedPlan;
+        }
+        catch (error) {
+            if (error instanceof ApiError_1.default)
+                throw error;
+            console.error('Error deleting subscription plan:', error);
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to delete subscription plan');
         }
     }
     // Get subscription analytics

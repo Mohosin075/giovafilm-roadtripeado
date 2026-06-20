@@ -71,6 +71,18 @@ const BusinessSchema = new mongoose_1.Schema({
         enum: ['Pending', 'Approved', 'Rejected'],
         default: 'Pending',
     },
+    isAccuracyVerified: {
+        type: Boolean,
+        default: false,
+    },
+    viewCount: {
+        type: Number,
+        default: 0,
+    },
+    hasActiveSubscription: {
+        type: Boolean,
+        default: false,
+    },
 }, {
     timestamps: true,
     toJSON: { virtuals: true },

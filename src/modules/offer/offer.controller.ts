@@ -55,6 +55,8 @@ const updateOffer = catchAsync(async (req: Request, res: Response) => {
     offerData.photo = Array.isArray(images) ? images[0] : images
   }
 
+  console.log(req.body)
+
   const result = await OfferService.updateOffer(id, offerData)
   sendResponse(res, {
     statusCode: StatusCodes.OK,

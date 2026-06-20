@@ -13,6 +13,7 @@ const sharp_1 = __importDefault(require("sharp"));
 // Define upload configuration with maxCount information
 const uploadFields = [
     { name: 'images', maxCount: 5 },
+    { name: 'icon', maxCount: 1 },
     { name: 'media', maxCount: 3 },
     { name: 'documents', maxCount: 3 },
 ];
@@ -24,6 +25,7 @@ const fileAndBodyProcessor = () => {
         try {
             const allowedTypes = {
                 images: ['image/jpeg', 'image/png', 'image/jpg'],
+                icon: ['image/jpeg', 'image/png', 'image/jpg'],
                 media: ['video/mp4', 'audio/mpeg'],
                 documents: ['application/pdf'],
             };
@@ -70,7 +72,7 @@ const fileAndBodyProcessor = () => {
                             const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`;
                             const filePath = `/uploads/${fieldName}/${filename}`;
                             // Apply Sharp optimization for images
-                            if (fieldName === 'images' &&
+                            if (['images', 'icon'].includes(fieldName) &&
                                 file.mimetype.startsWith('image/')) {
                                 try {
                                     // Create Sharp instance
@@ -145,6 +147,7 @@ const fileAndBodyProcessorUsingDiskStorage = () => {
         try {
             const allowedTypes = {
                 images: ['image/jpeg', 'image/png', 'image/jpg'],
+                icon: ['image/jpeg', 'image/png', 'image/jpg'],
                 media: ['video/mp4', 'audio/mpeg'],
                 documents: ['application/pdf'],
             };
@@ -189,7 +192,7 @@ const fileAndBodyProcessorUsingDiskStorage = () => {
                         for (const file of fileArray) {
                             const filePath = `/uploads/${fieldName}/${file.filename}`;
                             // Apply Sharp optimization for images
-                            if (fieldName === 'images' &&
+                            if (['images', 'icon'].includes(fieldName) &&
                                 file.mimetype.startsWith('image/')) {
                                 try {
                                     const fullPath = path_1.default.join(uploadsDir, fieldName, file.filename);

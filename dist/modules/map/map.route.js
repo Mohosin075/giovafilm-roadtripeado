@@ -17,10 +17,12 @@ router
     .post((0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), (0, processReqBody_1.fileAndBodyProcessorUsingDiskStorage)(), (0, validateRequest_1.default)(map_validation_1.createMapZodSchema), map_controller_1.MapController.createMap)
     .get(map_controller_1.MapController.getAllMaps);
 router.get('/purchased/all', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), map_controller_1.MapController.getPurchasedMaps);
+router.get('/available-countries', map_controller_1.MapController.getAvailableCountries);
+router.get('/discovery', map_controller_1.MapController.getDiscoveryData);
 router
     .route('/:id')
     .get(map_controller_1.MapController.getMapById)
-    .patch((0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), (0, processReqBody_1.fileAndBodyProcessorUsingDiskStorage)(), (0, validateRequest_1.default)(map_validation_1.updateMapZodSchema), map_controller_1.MapController.updateMap)
+    .patch((0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.MAP_EDITOR), (0, processReqBody_1.fileAndBodyProcessorUsingDiskStorage)(), (0, validateRequest_1.default)(map_validation_1.updateMapZodSchema), map_controller_1.MapController.updateMap)
     .delete((0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), map_controller_1.MapController.deleteMap);
 router.post('/:id/purchase', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), map_controller_1.MapController.purchaseMap);
 exports.MapRoutes = router;

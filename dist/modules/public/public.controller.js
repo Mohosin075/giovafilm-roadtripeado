@@ -37,15 +37,6 @@ const deletePublic = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
-const createContact = (0, catchAsync_1.default)(async (req, res) => {
-    const result = await public_service_1.PublicServices.createContact(req.body);
-    (0, sendResponse_1.default)(res, {
-        statusCode: http_status_codes_1.StatusCodes.OK,
-        success: true,
-        message: 'Thank you for contacting us. We will get back to you soon.',
-        data: result,
-    });
-});
 const createFaq = (0, catchAsync_1.default)(async (req, res) => {
     const faqData = req.body;
     const result = await public_service_1.PublicServices.createFaq(faqData);
@@ -111,7 +102,6 @@ exports.PublicController = {
     createPublic,
     getAllPublics,
     deletePublic,
-    createContact,
     createFaq,
     updateFaq,
     getSingleFaq,

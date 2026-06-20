@@ -10,11 +10,16 @@ const sendResponse_1 = __importDefault(require("../../shared/sendResponse"));
 const category_service_1 = require("./category.service");
 const createCategory = (0, catchAsync_1.default)(async (req, res) => {
     const categoryData = { ...req.body };
-    // Handle image upload from disk storage for icon
+    // Backward compatibility: support existing "images" field.
     if (req.body.images) {
         categoryData.icon = Array.isArray(req.body.images)
             ? req.body.images[0]
             : req.body.images;
+    }
+    if (req.body.icon) {
+        categoryData.icon = Array.isArray(req.body.icon)
+            ? req.body.icon[0]
+            : req.body.icon;
     }
     const result = await category_service_1.CategoryService.createCategory(categoryData);
     (0, sendResponse_1.default)(res, {
@@ -35,7 +40,14 @@ const getAllCategories = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 const getCategoryById = (0, catchAsync_1.default)(async (req, res) => {
-    const { id } = req.params;
+    const id = (req.params && req.params.id) || (req.query && req.query.id) || (req.body && req.body.id);
+    if (!id) {
+        return (0, sendResponse_1.default)(res, {
+            statusCode: http_status_codes_1.StatusCodes.BAD_REQUEST,
+            success: false,
+            message: 'Category id is required in URL params, query or request body',
+        });
+    }
     const result = await category_service_1.CategoryService.getCategoryById(id);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
@@ -45,13 +57,31 @@ const getCategoryById = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 const updateCategory = (0, catchAsync_1.default)(async (req, res) => {
-    const { id } = req.params;
+    const id = (req.params && req.params.id) || (req.body && req.body.id);
+    console.log('Category update request:', {
+        method: req.method,
+        url: req.originalUrl,
+        params: req.params,
+        body: req.body && typeof req.body === 'object' ? { ...req.body } : req.body,
+    });
+    if (!id) {
+        return (0, sendResponse_1.default)(res, {
+            statusCode: http_status_codes_1.StatusCodes.BAD_REQUEST,
+            success: false,
+            message: 'Category id is required in URL params or request body',
+        });
+    }
     const categoryData = { ...req.body };
-    // Handle image upload from disk storage for icon
+    // Backward compatibility: support existing "images" field.
     if (req.body.images) {
         categoryData.icon = Array.isArray(req.body.images)
             ? req.body.images[0]
             : req.body.images;
+    }
+    if (req.body.icon) {
+        categoryData.icon = Array.isArray(req.body.icon)
+            ? req.body.icon[0]
+            : req.body.icon;
     }
     const result = await category_service_1.CategoryService.updateCategory(id, categoryData);
     (0, sendResponse_1.default)(res, {
@@ -62,7 +92,14 @@ const updateCategory = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 const deleteCategory = (0, catchAsync_1.default)(async (req, res) => {
-    const { id } = req.params;
+    const id = (req.params && req.params.id) || (req.body && req.body.id);
+    if (!id) {
+        return (0, sendResponse_1.default)(res, {
+            statusCode: http_status_codes_1.StatusCodes.BAD_REQUEST,
+            success: false,
+            message: 'Category id is required in URL params or request body',
+        });
+    }
     const result = await category_service_1.CategoryService.deleteCategory(id);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,

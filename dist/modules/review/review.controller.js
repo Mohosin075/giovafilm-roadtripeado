@@ -70,6 +70,16 @@ const getSingleReview = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const getMyReviews = (0, catchAsync_1.default)(async (req, res) => {
+    const paginationOptions = (0, pick_1.default)(req.query, pagination_1.paginationFields);
+    const result = await review_service_1.ReviewService.getMyReviews(req.user, paginationOptions);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'My reviews retrieved successfully',
+        data: result,
+    });
+});
 exports.ReviewController = {
     createReview,
     updateReview,
@@ -77,4 +87,5 @@ exports.ReviewController = {
     deleteReview,
     getSingleReview,
     getReviewsByPlace,
+    getMyReviews,
 };

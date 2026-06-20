@@ -76,6 +76,12 @@ const UserSchema = new mongoose_1.Schema({
             ref: 'Map',
         },
     ],
+    favoritePlaces: [
+        {
+            type: mongoose_1.Schema.Types.ObjectId,
+            ref: 'Place',
+        },
+    ],
     favoriteOffers: [
         {
             type: mongoose_1.Schema.Types.ObjectId,
@@ -88,6 +94,10 @@ const UserSchema = new mongoose_1.Schema({
             ref: 'Map',
         },
     ],
+    // --- Points & Rewards ---
+    points: { type: Number, default: 0 },
+    level: { type: Number, default: 1 },
+    redeemedFreeMap: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Map', default: null },
     // --- Subscription Fields ---
     stripeCustomerId: { type: String, default: null },
     subscriptionStatus: { type: String, default: 'none' },
@@ -117,7 +127,7 @@ UserSchema.virtual('awards', {
 UserSchema.index({ location: '2dsphere' }); // Geo queries support
 // ------------------ PRE HOOKS ------------------
 UserSchema.pre('save', async function (next) {
-    if (!this.isModified('password'))
+    if (!this.isModified('password') || !this.password)
         return next();
     this.password = await bcrypt_1.default.hash(this.password, 10);
     next();

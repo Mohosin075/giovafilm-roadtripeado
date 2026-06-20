@@ -9,6 +9,7 @@ const MapSchema = new mongoose_1.Schema({
     images: [{ type: String, required: true }],
     features: [{ type: String, default: [] }],
     places: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'Place' }],
+    country: { type: String },
     status: {
         type: String,
         enum: ['Draft', 'Published'],
@@ -17,6 +18,8 @@ const MapSchema = new mongoose_1.Schema({
     isPaid: { type: Boolean, default: false },
     rating: { type: Number, default: 0 },
     totalReview: { type: Number, default: 0 },
+    viewCount: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
 }, {
     timestamps: true,
     toJSON: { virtuals: true },

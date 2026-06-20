@@ -11,10 +11,25 @@ const QueryBuilder_1 = __importDefault(require("../../builder/QueryBuilder"));
 const place_constants_1 = require("./place.constants");
 const map_model_1 = require("../map/map.model");
 const mongoose_1 = __importDefault(require("mongoose"));
+const reverseGeocoding_1 = require("../../utils/reverseGeocoding");
 const createPlace = async (payload) => {
+    var _a;
     const session = await mongoose_1.default.startSession();
     try {
         session.startTransaction();
+        // Auto-populate country if not provided
+        if (!payload.country && ((_a = payload.location) === null || _a === void 0 ? void 0 : _a.coordinates)) {
+            const [lng, lat] = payload.location.coordinates;
+            // MongoDB stores [lng, lat], but Google API needs (lat, lng)
+            const country = await (0, reverseGeocoding_1.getCountryFromCoordinates)(lat, lng);
+            console.log('country', country);
+            if (country) {
+                payload.country = country;
+            }
+            else {
+                payload.country = 'Unknown'; // Fallback
+            }
+        }
         // Check if map exists
         const map = await map_model_1.Map.findById(payload.map).session(session);
         if (!map) {
@@ -23,7 +38,11 @@ const createPlace = async (payload) => {
         const result = await place_model_1.Place.create([payload], { session });
         const createdPlace = result[0];
         // Add place to map
-        await map_model_1.Map.findByIdAndUpdate(payload.map, { $push: { places: createdPlace._id } }, { session });
+        await map_model_1.Map.findByIdAndUpdate(payload.map, {
+            $push: { places: createdPlace._id },
+            // If map doesn't have a country, set it from the place
+            $set: { country: createdPlace.country }
+        }, { session });
         await session.commitTransaction();
         return createdPlace;
     }
@@ -57,6 +76,7 @@ const getPlaceById = async (id) => {
     return result;
 };
 const updatePlace = async (id, payload) => {
+    var _a;
     const isExist = await place_model_1.Place.findById(id);
     if (!isExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Place not found');
@@ -64,6 +84,14 @@ const updatePlace = async (id, payload) => {
     const session = await mongoose_1.default.startSession();
     try {
         session.startTransaction();
+        // Auto-populate country if coordinates are updated but country is not
+        if (((_a = payload.location) === null || _a === void 0 ? void 0 : _a.coordinates) && !payload.country) {
+            const [lng, lat] = payload.location.coordinates;
+            const country = await (0, reverseGeocoding_1.getCountryFromCoordinates)(lat, lng);
+            if (country) {
+                payload.country = country;
+            }
+        }
         // Handle map change
         if (payload.map && payload.map.toString() !== isExist.map.toString()) {
             // Remove from old map

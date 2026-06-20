@@ -7,8 +7,10 @@ exports.BusinessService = void 0;
 const http_status_codes_1 = require("http-status-codes");
 const ApiError_1 = __importDefault(require("../../errors/ApiError"));
 const business_model_1 = require("./business.model");
+const offer_model_1 = require("../offer/offer.model");
 const QueryBuilder_1 = __importDefault(require("../../builder/QueryBuilder"));
 const business_constants_1 = require("./business.constants");
+const offer_1 = require("../../enum/offer");
 /**
  * Creates a new business listing and sets it as Pending.
  * @param payload The business data to be created
@@ -25,7 +27,33 @@ const createBusiness = async (payload) => {
  * @returns Paginated list of businesses and metadata
  */
 const getAllBusinesses = async (query) => {
+    // If requesting specifically for the map, enforce active subscription and approved status
+    if (query.mapView === 'true') {
+        query.hasActiveSubscription = true;
+        query.status = 'Approved';
+        delete query.mapView;
+    }
     const businessQuery = new QueryBuilder_1.default(business_model_1.Business.find().populate('user category'), query)
+        .search(business_constants_1.businessSearchableFields)
+        .filter()
+        .sort()
+        .paginate()
+        .fields();
+    const result = await businessQuery.modelQuery;
+    const meta = await businessQuery.getPaginationInfo();
+    return {
+        meta,
+        data: result,
+    };
+};
+/**
+ * Retrieves businesses belonging to the authenticated user.
+ * @param userId The user's ID
+ * @param query The query parameters from the request
+ * @returns Paginated list of businesses and metadata
+ */
+const getMyBusinesses = async (userId, query) => {
+    const businessQuery = new QueryBuilder_1.default(business_model_1.Business.find({ user: userId }).populate('user category'), query)
         .search(business_constants_1.businessSearchableFields)
         .filter()
         .sort()
@@ -97,11 +125,31 @@ const deleteBusiness = async (id) => {
     const result = await business_model_1.Business.findByIdAndDelete(id);
     return result;
 };
+const getBusinessStats = async (businessId) => {
+    const business = await business_model_1.Business.findById(businessId);
+    if (!business) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Business not found');
+    }
+    // Get all offers for this business and sum their redemptions
+    const offers = await offer_model_1.Offer.find({ business: businessId });
+    const totalOfferRedemptions = offers.reduce((acc, offer) => acc + (offer.redemptionsCount || 0), 0);
+    return {
+        viewCount: business.viewCount || 0,
+        totalOfferRedemptions,
+        activeOffersCount: offers.filter(o => o.status === offer_1.OFFER_STATUS.ACTIVE).length,
+    };
+};
+const incrementViewCount = async (id) => {
+    return await business_model_1.Business.findByIdAndUpdate(id, { $inc: { viewCount: 1 } }, { new: true });
+};
 exports.BusinessService = {
     createBusiness,
     getAllBusinesses,
+    getMyBusinesses,
     getBusinessById,
     updateBusiness,
     updateBusinessStatus,
     deleteBusiness,
+    getBusinessStats,
+    incrementViewCount,
 };

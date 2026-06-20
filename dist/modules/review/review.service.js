@@ -12,6 +12,7 @@ const user_model_1 = require("../user/user.model");
 const place_model_1 = require("../place/place.model");
 const paginationHelper_1 = require("../../helpers/paginationHelper");
 const createReview = async (user, payload) => {
+    var _a;
     payload.reviewer = user.authId;
     const isUserExist = await user_model_1.User.findById(user.authId);
     if (!isUserExist) {
@@ -27,6 +28,17 @@ const createReview = async (user, payload) => {
         const result = await review_model_1.Review.create([payload], { session });
         if (!result) {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to create Review, please try again later.');
+        }
+        // Calculate points: 10 points for review, 5 points per media/photo
+        const pointsForReview = 10;
+        const pointsForMedia = (((_a = payload.media) === null || _a === void 0 ? void 0 : _a.length) || 0) * 5;
+        const totalPointsEarned = pointsForReview + pointsForMedia;
+        // Update user points and level
+        const user = await user_model_1.User.findById(payload.reviewer);
+        if (user) {
+            const newPoints = (user.points || 0) + totalPointsEarned;
+            const newLevel = Math.floor(newPoints / 1000) + 1;
+            await user_model_1.User.findByIdAndUpdate(payload.reviewer, { $set: { points: newPoints, level: newLevel } }, { session });
         }
         // update the review count and rating of the place
         await place_model_1.Place.findByIdAndUpdate(payload.placeId, [
@@ -69,7 +81,7 @@ const getAllReviews = async (paginationOptions, filter = {}) => {
     const [result, total] = await Promise.all([
         review_model_1.Review.find(filter)
             .populate('reviewer', 'name profile')
-            .populate('placeId', 'name')
+            .populate('placeId', 'name media')
             .skip(skip)
             .limit(limit)
             .sort({ [sortBy]: sortOrder }),
@@ -212,6 +224,9 @@ const getSingleReview = async (id) => {
     }
     return result;
 };
+const getMyReviews = async (user, paginationOptions) => {
+    return await getAllReviews(paginationOptions, { reviewer: user.authId });
+};
 exports.ReviewService = {
     createReview,
     getAllReviews,
@@ -219,4 +234,5 @@ exports.ReviewService = {
     updateReview,
     deleteReview,
     getSingleReview,
+    getMyReviews,
 };

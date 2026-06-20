@@ -5,6 +5,8 @@ const mongoose_1 = require("mongoose");
 const contactSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
     email: { type: String, required: true },
+    phone: { type: String, required: true },
+    country: { type: String, required: true },
     subject: { type: String, required: true },
     message: { type: String, required: true },
 }, {

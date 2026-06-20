@@ -49,6 +49,21 @@ const getAllBusinesses = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 /**
+ * Controller to retrieve a paginated listing of businesses owned by the user.
+ */
+const getMyBusinesses = (0, catchAsync_1.default)(async (req, res) => {
+    const user = req.user;
+    // Assuming the user's ID is at user.authId based on createBusiness
+    const result = await business_service_1.BusinessService.getMyBusinesses(user.authId, req.query);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'My businesses retrieved successfully',
+        meta: result.meta,
+        data: result.data,
+    });
+});
+/**
  * Controller to retrieve single business detailed information by ID.
  */
 const getBusinessById = (0, catchAsync_1.default)(async (req, res) => {
@@ -110,11 +125,34 @@ const deleteBusiness = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const getBusinessStats = (0, catchAsync_1.default)(async (req, res) => {
+    const { id } = req.params;
+    const result = await business_service_1.BusinessService.getBusinessStats(id);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Business stats retrieved successfully',
+        data: result,
+    });
+});
+const incrementViewCount = (0, catchAsync_1.default)(async (req, res) => {
+    const { id } = req.params;
+    const result = await business_service_1.BusinessService.incrementViewCount(id);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'View count incremented successfully',
+        data: result,
+    });
+});
 exports.BusinessController = {
     createBusiness,
     getAllBusinesses,
+    getMyBusinesses,
     getBusinessById,
     updateBusiness,
     updateBusinessStatus,
     deleteBusiness,
+    getBusinessStats,
+    incrementViewCount,
 };

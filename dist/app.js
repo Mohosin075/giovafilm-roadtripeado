@@ -14,10 +14,12 @@ const routes_1 = __importDefault(require("./routes"));
 const globalErrorHandler_1 = __importDefault(require("./middleware/globalErrorHandler"));
 const config_1 = __importDefault(require("./config"));
 const subscription_controller_1 = require("./modules/subscription/subscription.controller");
+const payment_controller_1 = require("./modules/payment/payment.controller");
 const app = (0, express_1.default)();
 // -------------------- Middleware --------------------
 // Stripe webhook must come before express.json()
 app.post('/api/v1/subscription/webhook', express_1.default.raw({ type: 'application/json' }), subscription_controller_1.SubscriptionController.handleWebhook);
+app.post('/api/v1/payment/webhook', express_1.default.raw({ type: 'application/json' }), payment_controller_1.PaymentController.handleWebhook);
 // Body parsers must come after webhook
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));

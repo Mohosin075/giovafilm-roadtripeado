@@ -39,7 +39,7 @@ const handleLoginLogic = async (payload, isUserExist) => {
         });
         emailHelper_1.emailHelper.sendEmail(otpTemplate);
         // emailQueue.add('emails', otpTemplate)
-        return (0, exports.authResponse)(http_status_codes_1.StatusCodes.PROXY_AUTHENTICATION_REQUIRED, `An OTP has been sent to your ${payload.email}. Please verify.`);
+        return (0, exports.authResponse)(http_status_codes_1.StatusCodes.OK, `An OTP has been sent to your ${payload.email}. Please verify.`);
     }
     if (status === user_1.USER_STATUS.DELETED) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'No account found with this email');
@@ -88,7 +88,7 @@ const handleLoginLogic = async (payload, isUserExist) => {
 exports.AuthCommonServices = {
     handleLoginLogic,
 };
-const authResponse = (status, message, role, accessToken, refreshToken, token) => {
+const authResponse = (status, message, role, accessToken, refreshToken, token, needPassword) => {
     return {
         status,
         message,
@@ -96,6 +96,7 @@ const authResponse = (status, message, role, accessToken, refreshToken, token) =
         ...(accessToken && { accessToken }),
         ...(refreshToken && { refreshToken }),
         ...(token && { token }),
+        ...(needPassword !== undefined && { needPassword }),
     };
 };
 exports.authResponse = authResponse;

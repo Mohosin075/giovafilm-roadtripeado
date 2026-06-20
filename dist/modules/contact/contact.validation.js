@@ -12,6 +12,12 @@ exports.createContactSchema = zod_1.z.object({
             required_error: 'Email is required',
         })
             .email('Invalid email address'),
+        phone: zod_1.z.string({
+            required_error: 'Phone is required',
+        }),
+        country: zod_1.z.string({
+            required_error: 'Country is required',
+        }),
         subject: zod_1.z.string({
             required_error: 'Subject is required',
         }),

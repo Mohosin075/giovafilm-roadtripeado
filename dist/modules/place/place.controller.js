@@ -9,6 +9,9 @@ const catchAsync_1 = __importDefault(require("../../shared/catchAsync"));
 const sendResponse_1 = __importDefault(require("../../shared/sendResponse"));
 const place_service_1 = require("./place.service");
 const createPlace = (0, catchAsync_1.default)(async (req, res) => {
+    if (req.body.images) {
+        req.body.media = req.body.images;
+    }
     const result = await place_service_1.PlaceService.createPlace(req.body);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.CREATED,
@@ -39,6 +42,10 @@ const getPlaceById = (0, catchAsync_1.default)(async (req, res) => {
 });
 const updatePlace = (0, catchAsync_1.default)(async (req, res) => {
     const { id } = req.params;
+    if (req.body.images) {
+        req.body.media = req.body.images;
+    }
+    console.log(req.body);
     const result = await place_service_1.PlaceService.updatePlace(id, req.body);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,

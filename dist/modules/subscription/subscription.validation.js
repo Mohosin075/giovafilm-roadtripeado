@@ -32,20 +32,8 @@ exports.createSubscriptionPlanSchema = zod_1.z.object({
         features: zod_1.z
             .array(zod_1.z.string().min(1, 'Feature cannot be empty'))
             .min(1, 'At least one feature is required'),
-        maxTeamMembers: zod_1.z
-            .number()
-            .min(1, 'Max team members must be at least 1')
-            .default(1),
-        maxServices: zod_1.z
-            .number()
-            .min(1, 'Max services must be at least 1')
-            .default(1),
-        userTypes: zod_1.z
-            .array(zod_1.z.enum(['user', 'organizer', 'admin', 'super_admin'], {
-            errorMap: () => ({ message: 'Invalid user type' }),
-        }))
-            .min(1, 'At least one user type is required'),
-        priority: zod_1.z.number().default(0),
+        maxPhotos: zod_1.z.number().min(1, 'Max photos must be at least 1').optional(),
+        priority: zod_1.z.number().optional(),
     }),
 });
 exports.updateSubscriptionPlanSchema = zod_1.z.object({
@@ -63,14 +51,6 @@ exports.updateSubscriptionPlanSchema = zod_1.z.object({
         features: zod_1.z
             .array(zod_1.z.string().min(1, 'Feature cannot be empty'))
             .min(1, 'At least one feature is required')
-            .optional(),
-        maxTeamMembers: zod_1.z
-            .number()
-            .min(1, 'Max team members must be at least 1')
-            .optional(),
-        maxServices: zod_1.z
-            .number()
-            .min(1, 'Max services must be at least 1')
             .optional(),
         isActive: zod_1.z.boolean().optional(),
         priority: zod_1.z.number().optional(),
@@ -103,9 +83,7 @@ exports.createCheckoutSessionSchema = zod_1.z.object({
 });
 // Query Validation
 exports.getPlansQuerySchema = zod_1.z.object({
-    query: zod_1.z.object({
-        userType: zod_1.z.enum(['user', 'organizer', 'admin', 'super_admin']).optional(),
-    }),
+    query: zod_1.z.object({}),
 });
 // Params Validation
 exports.subscriptionParamsSchema = zod_1.z.object({

@@ -12,6 +12,9 @@ const user_1 = require("../../enum/user");
 const paginationHelper_1 = require("../../helpers/paginationHelper");
 const config_1 = __importDefault(require("../../config"));
 const user_constants_1 = require("./user.constants");
+const crypto_1 = require("../../utils/crypto");
+const emailTemplate_1 = require("../../shared/emailTemplate");
+const emailHelper_1 = require("../../helpers/emailHelper");
 const updateProfile = async (user, payload) => {
     console.log({ payload });
     const isUserExist = await user_model_1.User.findOne({
@@ -127,6 +130,9 @@ const getAllUsers = async (paginationOptions, filterables = {}) => {
     };
 };
 const deleteUser = async (userId) => {
+    if (!mongoose_1.Types.ObjectId.isValid(userId)) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid User ID.');
+    }
     const isUserExist = await user_model_1.User.findOne({
         _id: userId,
         status: { $nin: [user_1.USER_STATUS.DELETED] },
@@ -141,6 +147,9 @@ const deleteUser = async (userId) => {
     return 'User deleted successfully.';
 };
 const deleteProfile = async (userId, password) => {
+    if (!mongoose_1.Types.ObjectId.isValid(userId)) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid User ID.');
+    }
     const isUserExist = await user_model_1.User.findOne({
         _id: userId,
         status: { $nin: [user_1.USER_STATUS.DELETED] },
@@ -154,11 +163,14 @@ const deleteProfile = async (userId, password) => {
     }
     const deletedUser = await user_model_1.User.findOneAndUpdate({ _id: userId, status: { $nin: [user_1.USER_STATUS.DELETED] } }, { $set: { status: user_1.USER_STATUS.DELETED } }, { new: true });
     if (!deletedUser) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to delete user.');
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to delete profile.');
     }
-    return 'User deleted successfully.';
+    return 'Profile deleted successfully.';
 };
 const getUserById = async (userId) => {
+    if (!mongoose_1.Types.ObjectId.isValid(userId)) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid User ID.');
+    }
     const user = await user_model_1.User.findOne({
         _id: userId,
         status: { $nin: [user_1.USER_STATUS.DELETED] },
@@ -169,6 +181,9 @@ const getUserById = async (userId) => {
     return user;
 };
 const updateUserStatus = async (userId, status) => {
+    if (!mongoose_1.Types.ObjectId.isValid(userId)) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid User ID.');
+    }
     const isUserExist = await user_model_1.User.findOne({
         _id: userId,
         status: { $nin: [user_1.USER_STATUS.DELETED] },
@@ -181,6 +196,72 @@ const updateUserStatus = async (userId, status) => {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to update user status.');
     }
     return 'User status updated successfully.';
+};
+const updateUserRole = async (userId, role) => {
+    if (!mongoose_1.Types.ObjectId.isValid(userId)) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid User ID.');
+    }
+    const isUserExist = await user_model_1.User.findOne({
+        _id: userId,
+        status: { $nin: [user_1.USER_STATUS.DELETED] },
+    });
+    if (!isUserExist) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
+    }
+    const updatedUser = await user_model_1.User.findOneAndUpdate({ _id: userId, status: { $nin: [user_1.USER_STATUS.DELETED] } }, { $set: { role } }, { new: true });
+    if (!updatedUser) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to update user role.');
+    }
+    return 'User role updated successfully.';
+};
+const inviteUser = async (payload) => {
+    const email = payload.email.toLowerCase().trim();
+    const isUserExist = await user_model_1.User.findOne({ email });
+    if (isUserExist && isUserExist.verified) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'User with this email already exists and is verified.');
+    }
+    const otp = (0, crypto_1.generateOtp)();
+    const otpExpiresIn = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours for invitation
+    const authentication = {
+        oneTimeCode: otp,
+        expiresAt: otpExpiresIn,
+        latestRequestAt: new Date(),
+        requestCount: 1,
+        authType: 'createAccount',
+    };
+    let user;
+    if (isUserExist) {
+        // Update existing unverified or deleted user
+        user = await user_model_1.User.findOneAndUpdate({ email }, {
+            $set: {
+                role: payload.role,
+                status: user_1.USER_STATUS.ACTIVE,
+                verified: false,
+                authentication,
+            },
+        }, { new: true });
+    }
+    else {
+        // Create new user
+        user = await user_model_1.User.create({
+            email,
+            role: payload.role,
+            status: user_1.USER_STATUS.ACTIVE,
+            verified: false,
+            authentication,
+        });
+    }
+    if (!user) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to invite user.');
+    }
+    // Send invitation email
+    const invitationEmail = emailTemplate_1.emailTemplate.userInvitation({
+        email: user.email,
+        role: user.role,
+        otp,
+    });
+    await emailHelper_1.emailHelper.sendEmail(invitationEmail);
+    return 'User invited successfully.';
 };
 const getProfile = async (user) => {
     // --- Fetch user ---
@@ -195,6 +276,9 @@ const getProfile = async (user) => {
 };
 exports.getProfile = getProfile;
 const addUserInterest = async (userId, interest) => {
+    if (!mongoose_1.Types.ObjectId.isValid(userId)) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid User ID.');
+    }
     const isUserExist = await user_model_1.User.findOne({
         _id: userId,
         status: { $nin: [user_1.USER_STATUS.DELETED] },
@@ -210,6 +294,12 @@ const addUserInterest = async (userId, interest) => {
 };
 const toggleFavoriteMap = async (userId, mapId) => {
     var _a;
+    if (!mongoose_1.Types.ObjectId.isValid(userId)) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid User ID.');
+    }
+    if (!mongoose_1.Types.ObjectId.isValid(mapId)) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid Map ID.');
+    }
     const isUserExist = await user_model_1.User.findById(userId);
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
@@ -226,6 +316,9 @@ const toggleFavoriteMap = async (userId, mapId) => {
     return result;
 };
 const getFavoriteMaps = async (userId) => {
+    if (!mongoose_1.Types.ObjectId.isValid(userId)) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid User ID.');
+    }
     const user = await user_model_1.User.findById(userId).populate({
         path: 'favoriteMaps',
         populate: { path: 'places', populate: { path: 'category' } },
@@ -237,6 +330,12 @@ const getFavoriteMaps = async (userId) => {
 };
 const toggleFavoriteOffer = async (userId, offerId) => {
     var _a;
+    if (!mongoose_1.Types.ObjectId.isValid(userId)) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid User ID.');
+    }
+    if (!mongoose_1.Types.ObjectId.isValid(offerId)) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid Offer ID.');
+    }
     const isUserExist = await user_model_1.User.findById(userId);
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
@@ -256,6 +355,9 @@ const toggleFavoriteOffer = async (userId, offerId) => {
     }
 };
 const getFavoriteOffers = async (userId) => {
+    if (!mongoose_1.Types.ObjectId.isValid(userId)) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid User ID.');
+    }
     const user = await user_model_1.User.findById(userId).populate({
         path: 'favoriteOffers',
         populate: { path: 'place' },
@@ -265,6 +367,20 @@ const getFavoriteOffers = async (userId) => {
     }
     return user.favoriteOffers || [];
 };
+const updatePointsAndLevel = async (userId, pointsToAdd) => {
+    const user = await user_model_1.User.findById(userId);
+    if (!user)
+        return;
+    const newPoints = (user.points || 0) + pointsToAdd;
+    // Simple level logic: every 1000 points = 1 level
+    const newLevel = Math.floor(newPoints / 1000) + 1;
+    await user_model_1.User.findByIdAndUpdate(userId, {
+        $set: {
+            points: newPoints,
+            level: newLevel,
+        },
+    });
+};
 exports.UserServices = {
     updateProfile,
     createAdmin,
@@ -272,6 +388,8 @@ exports.UserServices = {
     deleteUser,
     getUserById,
     updateUserStatus,
+    updateUserRole,
+    inviteUser,
     getProfile: exports.getProfile,
     deleteProfile,
     addUserInterest,
@@ -279,4 +397,5 @@ exports.UserServices = {
     getFavoriteMaps,
     toggleFavoriteOffer,
     getFavoriteOffers,
+    updatePointsAndLevel,
 };

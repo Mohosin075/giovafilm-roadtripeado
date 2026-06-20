@@ -10,4 +10,5 @@ const auth_1 = __importDefault(require("../../middleware/auth"));
 const user_1 = require("../../enum/user");
 const router = express_1.default.Router();
 router.get('/my-awards', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), award_controller_1.AwardController.getMyAwards);
+router.post('/redeem-free-map', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), award_controller_1.AwardController.redeemFreeMap);
 exports.AwardRoutes = router;

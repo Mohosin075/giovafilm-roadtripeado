@@ -2,11 +2,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.updatePlaceZodSchema = exports.createPlaceZodSchema = void 0;
 const zod_1 = require("zod");
+const place_constants_1 = require("./place.constants");
 exports.createPlaceZodSchema = zod_1.z.object({
     body: zod_1.z.object({
         name: zod_1.z.string({ required_error: 'Place name is required' }),
         map: zod_1.z.string({ required_error: 'Map ID is required' }),
         category: zod_1.z.string({ required_error: 'Category ID is required' }),
+        country: zod_1.z.string().optional(),
         description: zod_1.z.string({ required_error: 'Description is required' }),
         media: zod_1.z.array(zod_1.z.string()).optional(),
         address: zod_1.z.string({ required_error: 'Address is required' }),
@@ -30,14 +32,24 @@ exports.createPlaceZodSchema = zod_1.z.object({
         })
             .optional(),
         services: zod_1.z.array(zod_1.z.string()).optional(),
+        schedules: zod_1.z.string().optional(),
+        entryCost: zod_1.z.string().optional(),
+        difficulty: zod_1.z.preprocess((val) => (val === '' || val === null ? undefined : val), zod_1.z.enum(place_constants_1.placeDifficulty).optional()),
+        hikeTime: zod_1.z.string().optional(),
+        atmosphere: zod_1.z.string().optional(),
         status: zod_1.z.enum(['Draft', 'Published']).default('Draft'),
+        images: zod_1.z.array(zod_1.z.string()).optional(),
     }),
 });
 exports.updatePlaceZodSchema = zod_1.z.object({
+    params: zod_1.z.object({
+        id: zod_1.z.string({ required_error: 'Place ID is required' }),
+    }),
     body: zod_1.z.object({
         name: zod_1.z.string().optional(),
         map: zod_1.z.string().optional(),
         category: zod_1.z.string().optional(),
+        country: zod_1.z.string().optional(),
         description: zod_1.z.string().optional(),
         media: zod_1.z.array(zod_1.z.string()).optional(),
         address: zod_1.z.string().optional(),
@@ -60,6 +72,12 @@ exports.updatePlaceZodSchema = zod_1.z.object({
         })
             .optional(),
         services: zod_1.z.array(zod_1.z.string()).optional(),
+        schedules: zod_1.z.string().optional(),
+        entryCost: zod_1.z.string().optional(),
+        difficulty: zod_1.z.preprocess((val) => (val === '' || val === null ? undefined : val), zod_1.z.enum(place_constants_1.placeDifficulty).optional()),
+        hikeTime: zod_1.z.string().optional(),
+        atmosphere: zod_1.z.string().optional(),
         status: zod_1.z.enum(['Draft', 'Published']).optional(),
+        images: zod_1.z.array(zod_1.z.string()).optional(),
     }),
 });

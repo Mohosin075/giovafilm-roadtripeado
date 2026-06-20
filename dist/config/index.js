@@ -15,7 +15,7 @@ exports.default = {
     port: process.env.PORT,
     cors_origins: process.env.CORS_ORIGINS
         ? process.env.CORS_ORIGINS.split(',')
-        : ['http://localhost:3000'],
+        : ['https://roadtripeado.shop', 'http://localhost:3000', 'http://10.10.26.172:3000', 'http://195.35.6.13:3008', 'http://localhost:3001', 'https://mohosin5004.binarybards.online'],
     bcrypt_salt_rounds: process.env.BCRYPT_SALT_ROUNDS,
     firebase_service_account_base64: process.env.FIREBASE_SERVICE_ACCOUNT_BASE64,
     server_map_api_key: process.env.SERVER_MAP_API_KEY,
@@ -102,5 +102,6 @@ exports.default = {
     stripe: {
         stripeSecretKey: process.env.STRIPE_API_SECRET,
         webhookSecret: process.env.WEBHOOK_SECRET,
+        paymentWebhookSecret: process.env.PAYMENT_WEBHOOK_SECRET,
     },
 };

@@ -20,11 +20,16 @@ const updateProfile = async (user, payload) => {
     const isUserExist = await user_model_1.User.findOne({
         _id: user.authId,
         status: { $nin: [user_1.USER_STATUS.DELETED] },
+        isDeleted: { $ne: true },
     });
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
     }
-    const updatedProfile = await user_model_1.User.findOneAndUpdate({ _id: user.authId, status: { $nin: [user_1.USER_STATUS.DELETED] } }, {
+    const updatedProfile = await user_model_1.User.findOneAndUpdate({
+        _id: user.authId,
+        status: { $nin: [user_1.USER_STATUS.DELETED] },
+        isDeleted: { $ne: true },
+    }, {
         $set: payload,
     }, { new: true });
     if (!updatedProfile) {
@@ -51,6 +56,7 @@ const createAdmin = async () => {
     const isAdminExist = await user_model_1.User.findOne({
         email: admin.email,
         status: { $nin: [user_1.USER_STATUS.DELETED] },
+        isDeleted: { $ne: true },
     });
     if (isAdminExist) {
         console.log('Admin account already exist, skipping creation.🦥');
@@ -90,6 +96,8 @@ const getAllUsers = async (paginationOptions, filterables = {}) => {
             }
         });
     }
+    // Exclude soft-deleted users
+    filterConditions.push({ isDeleted: { $ne: true } });
     // Handle status filtering (allows retrieving deleted users if explicitly requested)
     if (filterData.status) {
         filterConditions.push({ status: filterData.status });
@@ -143,12 +151,20 @@ const deleteUser = async (userId) => {
     }
     const isUserExist = await user_model_1.User.findOne({
         _id: userId,
-        status: { $nin: [user_1.USER_STATUS.DELETED] },
+        isDeleted: { $ne: true },
     });
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
     }
-    const deletedUser = await user_model_1.User.findOneAndUpdate({ _id: userId, status: { $nin: [user_1.USER_STATUS.DELETED] } }, { $set: { status: user_1.USER_STATUS.DELETED } }, { new: true });
+    const deletedEmail = `${isUserExist.email}_deleted_${Date.now()}`;
+    const deletedUser = await user_model_1.User.findOneAndUpdate({ _id: userId, isDeleted: { $ne: true } }, {
+        $set: {
+            isDeleted: true,
+            deletedAt: new Date(),
+            status: user_1.USER_STATUS.DELETED,
+            email: deletedEmail,
+        },
+    }, { new: true });
     if (!deletedUser) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to delete user.');
     }
@@ -160,7 +176,7 @@ const deleteProfile = async (userId, password) => {
     }
     const isUserExist = await user_model_1.User.findOne({
         _id: userId,
-        status: { $nin: [user_1.USER_STATUS.DELETED] },
+        isDeleted: { $ne: true },
     }).select('+password');
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
@@ -169,7 +185,15 @@ const deleteProfile = async (userId, password) => {
     if (!isPasswordMatched) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, 'Password is incorrect.');
     }
-    const deletedUser = await user_model_1.User.findOneAndUpdate({ _id: userId, status: { $nin: [user_1.USER_STATUS.DELETED] } }, { $set: { status: user_1.USER_STATUS.DELETED } }, { new: true });
+    const deletedEmail = `${isUserExist.email}_deleted_${Date.now()}`;
+    const deletedUser = await user_model_1.User.findOneAndUpdate({ _id: userId, isDeleted: { $ne: true } }, {
+        $set: {
+            isDeleted: true,
+            deletedAt: new Date(),
+            status: user_1.USER_STATUS.DELETED,
+            email: deletedEmail,
+        },
+    }, { new: true });
     if (!deletedUser) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to delete profile.');
     }
@@ -181,7 +205,7 @@ const getUserById = async (userId) => {
     }
     const user = await user_model_1.User.findOne({
         _id: userId,
-        status: { $nin: [user_1.USER_STATUS.DELETED] },
+        isDeleted: { $ne: true },
     }).select('-password -authentication -__v');
     if (!user) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
@@ -194,12 +218,12 @@ const updateUserStatus = async (userId, status) => {
     }
     const isUserExist = await user_model_1.User.findOne({
         _id: userId,
-        status: { $nin: [user_1.USER_STATUS.DELETED] },
+        isDeleted: { $ne: true },
     });
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
     }
-    const updatedUser = await user_model_1.User.findOneAndUpdate({ _id: userId, status: { $nin: [user_1.USER_STATUS.DELETED] } }, { $set: { status } }, { new: true });
+    const updatedUser = await user_model_1.User.findOneAndUpdate({ _id: userId, isDeleted: { $ne: true } }, { $set: { status } }, { new: true });
     if (!updatedUser) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to update user status.');
     }
@@ -211,12 +235,12 @@ const updateUserRole = async (userId, role) => {
     }
     const isUserExist = await user_model_1.User.findOne({
         _id: userId,
-        status: { $nin: [user_1.USER_STATUS.DELETED] },
+        isDeleted: { $ne: true },
     });
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
     }
-    const updatedUser = await user_model_1.User.findOneAndUpdate({ _id: userId, status: { $nin: [user_1.USER_STATUS.DELETED] } }, { $set: { role } }, { new: true });
+    const updatedUser = await user_model_1.User.findOneAndUpdate({ _id: userId, isDeleted: { $ne: true } }, { $set: { role } }, { new: true });
     if (!updatedUser) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to update user role.');
     }
@@ -275,7 +299,7 @@ const getProfile = async (user) => {
     // --- Fetch user ---
     const isUserExist = await user_model_1.User.findOne({
         _id: user.authId,
-        status: { $nin: [user_1.USER_STATUS.DELETED] },
+        isDeleted: { $ne: true },
     }).select('-authentication -password -__v');
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
@@ -289,12 +313,12 @@ const addUserInterest = async (userId, interest) => {
     }
     const isUserExist = await user_model_1.User.findOne({
         _id: userId,
-        status: { $nin: [user_1.USER_STATUS.DELETED] },
+        isDeleted: { $ne: true },
     });
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
     }
-    const updatedUser = await user_model_1.User.findOneAndUpdate({ _id: userId, status: { $nin: [user_1.USER_STATUS.DELETED] } }, { $set: { interest } }, { new: true });
+    const updatedUser = await user_model_1.User.findOneAndUpdate({ _id: userId, isDeleted: { $ne: true } }, { $set: { interest } }, { new: true });
     if (!updatedUser) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to update user interest.');
     }

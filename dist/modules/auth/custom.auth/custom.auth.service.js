@@ -56,7 +56,7 @@ const createUser = async (payload) => {
     payload.email = (_a = payload.email) === null || _a === void 0 ? void 0 : _a.toLowerCase().trim();
     const isUserExist = await user_model_1.User.findOne({
         email: payload.email,
-        status: { $nin: [user_1.USER_STATUS.DELETED] },
+        isDeleted: { $ne: true },
     });
     if (isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `An account with this email already exist, please login or try with another email.`);
@@ -101,6 +101,7 @@ const customLogin = async (payload) => {
     const isUserExist = await user_model_1.User.findOne({
         ...query,
         status: { $in: [user_1.USER_STATUS.ACTIVE] },
+        isDeleted: { $ne: true },
     })
         .select('+password +authentication')
         .lean();
@@ -118,6 +119,7 @@ const adminLogin = async (payload) => {
     const query = email ? { email: email.trim().toLowerCase() } : { phone: phone };
     const isUserExist = await user_model_1.User.findOne({
         ...query,
+        isDeleted: { $ne: true },
     })
         .select('+password +authentication')
         .lean();
@@ -142,6 +144,7 @@ const forgetPassword = async (email, phone) => {
     const isUserExist = await user_model_1.User.findOne({
         ...query,
         status: { $in: [user_1.USER_STATUS.ACTIVE, user_1.USER_STATUS.INACTIVE] },
+        isDeleted: { $ne: true },
     });
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'No account found with this email or phone');
@@ -219,7 +222,7 @@ const verifyAccount = async (email, onetimeCode, password) => {
     }
     const isUserExist = await user_model_1.User.findOne({
         email: email.toLowerCase().trim(),
-        status: { $nin: [user_1.USER_STATUS.DELETED] },
+        isDeleted: { $ne: true },
     }).select('+password +authentication');
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `No account found with this ${email}, please register first.`);
@@ -325,6 +328,7 @@ const socialLogin = async (appId, deviceToken) => {
     const isUserExist = await user_model_1.User.findOne({
         appId,
         status: { $in: [user_1.USER_STATUS.ACTIVE, user_1.USER_STATUS.INACTIVE] },
+        isDeleted: { $ne: true },
     });
     if (!isUserExist) {
         const createdUser = await user_model_1.User.create({
@@ -355,6 +359,7 @@ const resendOtpToPhoneOrEmail = async (authType, email, phone) => {
     const isUserExist = await user_model_1.User.findOne({
         ...query,
         status: { $in: [user_1.USER_STATUS.ACTIVE, user_1.USER_STATUS.INACTIVE] },
+        isDeleted: { $ne: true },
     }).select('+authentication');
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `No account found with this ${email ? 'email' : 'phone'}`);
@@ -395,7 +400,7 @@ const resendOtpToPhoneOrEmail = async (authType, email, phone) => {
 const deleteAccount = async (user, password) => {
     const { authId } = user;
     const isUserExist = await user_model_1.User.findById(authId).select('+password');
-    if (!isUserExist) {
+    if (!isUserExist || isUserExist.isDeleted) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to delete account. Please try again.');
     }
     if (isUserExist.status === user_1.USER_STATUS.DELETED) {
@@ -405,8 +410,14 @@ const deleteAccount = async (user, password) => {
     if (!isPasswordMatched) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Please provide a valid password to delete your account.');
     }
+    const deletedEmail = `${isUserExist.email}_deleted_${Date.now()}`;
     const deletedData = await user_model_1.User.findByIdAndUpdate(authId, {
-        $set: { status: user_1.USER_STATUS.DELETED },
+        $set: {
+            status: user_1.USER_STATUS.DELETED,
+            isDeleted: true,
+            deletedAt: new Date(),
+            email: deletedEmail,
+        },
     });
     return {
         status: http_status_codes_1.StatusCodes.OK,
@@ -419,6 +430,7 @@ const resendOtp = async (email, authType) => {
     const isUserExist = await user_model_1.User.findOne({
         email: email.toLowerCase().trim(),
         status: { $in: [user_1.USER_STATUS.ACTIVE, user_1.USER_STATUS.INACTIVE] },
+        isDeleted: { $ne: true },
     }).select('+authentication');
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `No account found with this ${email}, please try again.`);

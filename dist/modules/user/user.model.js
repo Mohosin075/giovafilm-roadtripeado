@@ -104,6 +104,8 @@ const UserSchema = new mongoose_1.Schema({
     subscriptionTier: { type: String, default: 'free' },
     trialUsed: { type: Boolean, default: false },
     subscriptionExpiresAt: { type: Date, default: null },
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: { type: Date, default: null },
 }, {
     timestamps: true,
     toJSON: { virtuals: true },

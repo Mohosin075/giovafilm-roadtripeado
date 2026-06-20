@@ -7,7 +7,9 @@ export interface IUserFilterables {
   role?: USER_ROLES
   name?: string
   email?: string
+  status?: string
 }
+
 
 // ------------------ SUB-TYPES ------------------
 export type IAuthentication = {

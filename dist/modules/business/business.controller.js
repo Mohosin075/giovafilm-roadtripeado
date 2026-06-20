@@ -90,6 +90,7 @@ const updateBusiness = (0, catchAsync_1.default)(async (req, res) => {
             ? req.body.images
             : [req.body.images];
     }
+    console.log(req.body);
     const result = await business_service_1.BusinessService.updateBusiness(id, businessData);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,

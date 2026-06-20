@@ -84,14 +84,22 @@ const getAllUsers = async (paginationOptions, filterables = {}) => {
     if (Object.keys(filterData).length > 0) {
         Object.entries(filterData).forEach(([key, value]) => {
             if (value !== undefined && value !== '') {
-                filterConditions.push({ [key]: value });
+                if (key !== 'status') {
+                    filterConditions.push({ [key]: value });
+                }
             }
         });
     }
-    // Always exclude deleted users
-    filterConditions.push({
-        status: { $nin: [user_1.USER_STATUS.DELETED, null] },
-    });
+    // Handle status filtering (allows retrieving deleted users if explicitly requested)
+    if (filterData.status) {
+        filterConditions.push({ status: filterData.status });
+    }
+    else {
+        // Default: Exclude deleted and null status users if no status is specified
+        filterConditions.push({
+            status: { $nin: [user_1.USER_STATUS.DELETED, null] },
+        });
+    }
     // Combine conditions
     if (searchConditions.length > 0 && filterConditions.length > 0) {
         whereConditions = {

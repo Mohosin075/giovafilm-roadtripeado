@@ -81,7 +81,7 @@ const verifyAccount = catchAsync(async (req: Request, res: Response) => {
     oneTimeCode,
     password,
   )
-  const { status, message, accessToken, refreshToken, role, token } = result
+  const { status, message, accessToken, refreshToken, role, token, needPassword } = result
 
   res.cookie('refreshToken', refreshToken, {
     secure: process.env.NODE_ENV === 'production',
@@ -92,7 +92,7 @@ const verifyAccount = catchAsync(async (req: Request, res: Response) => {
     statusCode: status,
     success: true,
     message: message,
-    data: { accessToken, refreshToken, role, token },
+    data: { accessToken, refreshToken, role, token, needPassword },
   })
 })
 

@@ -65,7 +65,7 @@ const resetPassword = (0, catchAsync_1.default)(async (req, res) => {
 const verifyAccount = (0, catchAsync_1.default)(async (req, res) => {
     const { oneTimeCode, phone, email, password } = req.body;
     const result = await custom_auth_service_1.CustomAuthServices.verifyAccount(email, oneTimeCode, password);
-    const { status, message, accessToken, refreshToken, role, token } = result;
+    const { status, message, accessToken, refreshToken, role, token, needPassword } = result;
     res.cookie('refreshToken', refreshToken, {
         secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
@@ -74,7 +74,7 @@ const verifyAccount = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: status,
         success: true,
         message: message,
-        data: { accessToken, refreshToken, role, token },
+        data: { accessToken, refreshToken, role, token, needPassword },
     });
 });
 const getRefreshToken = (0, catchAsync_1.default)(async (req, res) => {

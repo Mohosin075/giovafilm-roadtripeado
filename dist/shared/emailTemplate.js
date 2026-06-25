@@ -392,7 +392,7 @@ const userInvitation = (values) => {
                     
                     <!-- CTA Button -->
                     <div style="margin-bottom: 32px;">
-                      <a href="${config_1.default.clientUrl}/otp-verify?email=${values.email}" style="display:inline-block; background-color:#FFC107; color:#000000; padding:16px 40px; border-radius:10px; text-decoration:none; font-weight:700; font-size:16px; box-shadow: 0 4px 6px rgba(255, 193, 7, 0.2); transition: all 0.3s ease;">
+                      <a href="${config_1.default.clientUrl}/otp-verify?email=${values.email}" target="_blank" style="display:inline-block; background-color:#FFC107; color:#000000; padding:16px 40px; border-radius:10px; text-decoration:none; font-weight:700; font-size:16px; box-shadow: 0 4px 6px rgba(255, 193, 7, 0.2); transition: all 0.3s ease;">
                         Accept Invitation
                       </a>
                     </div>

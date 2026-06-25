@@ -41,7 +41,7 @@ const handleLoginLogic = async (payload, isUserExist) => {
         // emailQueue.add('emails', otpTemplate)
         return (0, exports.authResponse)(http_status_codes_1.StatusCodes.OK, `An OTP has been sent to your ${payload.email}. Please verify.`);
     }
-    if (isUserExist.isDeleted || status === user_1.USER_STATUS.DELETED) {
+    if (status === user_1.USER_STATUS.DELETED) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'No account found with this email');
     }
     if (status === user_1.USER_STATUS.INACTIVE) {

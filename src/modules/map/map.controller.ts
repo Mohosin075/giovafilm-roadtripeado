@@ -8,6 +8,9 @@ import { jwtHelper } from '../../helpers/jwtHelper'
 import config from '../../config'
 import { Secret } from 'jsonwebtoken'
 import { USER_ROLES } from '../../enum/user'
+import { getUserFromToken, getAccessibleMapIds } from '../../helpers/mapAccessHelper'
+import { Map } from './map.model'
+import ApiError from '../../errors/ApiError'
 
 const createMap = catchAsync(async (req: Request, res: Response) => {
   const result = await MapService.createMap(req.body)
@@ -20,26 +23,11 @@ const createMap = catchAsync(async (req: Request, res: Response) => {
 })
 
 const getAllMaps = catchAsync(async (req: Request, res: Response) => {
-  const tokenWithBearer = req.headers.authorization
-  let isAdmin = false
+  const authorizationHeader = req.headers.authorization
+  const user = await getUserFromToken(authorizationHeader)
+  const accessibleMapIds = await getAccessibleMapIds(user)
 
-  if (tokenWithBearer && tokenWithBearer.startsWith('Bearer')) {
-    const token = tokenWithBearer.split(' ')[1]
-    try {
-      const verifyUser = jwtHelper.verifyToken(
-        token,
-        config.jwt.jwt_secret as Secret,
-      ) as JwtPayload
-      if (
-        verifyUser.role === USER_ROLES.ADMIN ||
-        verifyUser.role === USER_ROLES.SUPER_ADMIN
-      ) {
-        isAdmin = true
-      }
-    } catch (error) {
-      // Ignore token verification errors for public route
-    }
-  }
+  const isAdmin = user && (user.role === USER_ROLES.ADMIN || user.role === USER_ROLES.SUPER_ADMIN)
 
   const query = { ...req.query }
   if (!isAdmin) {
@@ -47,22 +35,49 @@ const getAllMaps = catchAsync(async (req: Request, res: Response) => {
   }
 
   const result = await MapService.getAllMaps(query)
+
+  // Convert mongoose documents to plain objects to filter places for locked maps
+  const data = result.data.map((map: any) => {
+    const mapObj = map.toObject()
+    if (!accessibleMapIds.includes(mapObj._id.toString())) {
+      mapObj.places = (mapObj.places || []).filter((place: any) => {
+        return place.type === 'Business'
+      })
+    }
+    return mapObj
+  })
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Maps retrieved successfully',
     meta: result.meta,
-    data: result.data,
+    data,
   })
 })
 
 const getMapById = catchAsync(async (req: Request, res: Response) => {
+  const authorizationHeader = req.headers.authorization
+  const user = await getUserFromToken(authorizationHeader)
+  const accessibleMapIds = await getAccessibleMapIds(user)
+
   const result = await MapService.getMapById(req.params.id)
+  if (!result) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')
+  }
+
+  const mapObj = (result as any).toObject()
+  if (!accessibleMapIds.includes(mapObj._id.toString())) {
+    mapObj.places = (mapObj.places || []).filter((place: any) => {
+      return place.type === 'Business'
+    })
+  }
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Map retrieved successfully',
-    data: result,
+    data: mapObj,
   })
 })
 
@@ -119,7 +134,17 @@ const getAvailableCountries = catchAsync(async (req: Request, res: Response) => 
 })
 
 const getDiscoveryData = catchAsync(async (req: Request, res: Response) => {
-  const result = await MapService.getDiscoveryData(req.query)
+  const authorizationHeader = req.headers.authorization
+  const user = await getUserFromToken(authorizationHeader)
+  const accessibleMapIds = await getAccessibleMapIds(user)
+
+  // Find all paid maps to compute locked maps
+  const paidMaps = await Map.find({ isPaid: true }, '_id')
+  const paidMapIds = paidMaps.map(m => m._id.toString())
+  const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id))
+
+  const result = await MapService.getDiscoveryData(req.query, lockedMapIds)
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,

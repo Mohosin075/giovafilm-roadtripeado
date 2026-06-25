@@ -22,12 +22,4 @@ const tempAccessToken = (authId, role, name, email, deviceToken) => {
 const isPasswordMatched = async (plainTextPassword, hashedPassword) => {
     return await bcrypt_1.default.compare(plainTextPassword, hashedPassword);
 };
-const getCookieOptions = () => {
-    const isProduction = config_1.default.node_env === 'production';
-    return {
-        secure: isProduction,
-        httpOnly: true,
-        sameSite: isProduction ? 'none' : 'lax',
-    };
-};
-exports.AuthHelper = { createToken, isPasswordMatched, getCookieOptions };
+exports.AuthHelper = { createToken, isPasswordMatched };

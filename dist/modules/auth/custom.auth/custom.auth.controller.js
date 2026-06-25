@@ -9,13 +9,15 @@ const custom_auth_service_1 = require("./custom.auth.service");
 const sendResponse_1 = __importDefault(require("../../../shared/sendResponse"));
 const http_status_codes_1 = require("http-status-codes");
 const token_service_1 = require("../../token/token.service");
-const auth_helper_1 = require("../auth.helper");
 const customLogin = (0, catchAsync_1.default)(async (req, res) => {
     const { ...loginData } = req.body;
     console.log(loginData);
     const result = await custom_auth_service_1.CustomAuthServices.customLogin(loginData);
     const { status, message, accessToken, refreshToken, role } = result;
-    res.cookie('refreshToken', refreshToken, auth_helper_1.AuthHelper.getCookieOptions());
+    res.cookie('refreshToken', refreshToken, {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+    });
     (0, sendResponse_1.default)(res, {
         statusCode: status,
         success: true,
@@ -27,7 +29,10 @@ const adminLogin = (0, catchAsync_1.default)(async (req, res) => {
     const { ...loginData } = req.body;
     const result = await custom_auth_service_1.CustomAuthServices.adminLogin(loginData);
     const { status, message, accessToken, refreshToken, role } = result;
-    res.cookie('refreshToken', refreshToken, auth_helper_1.AuthHelper.getCookieOptions());
+    res.cookie('refreshToken', refreshToken, {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+    });
     (0, sendResponse_1.default)(res, {
         statusCode: status,
         success: true,
@@ -61,7 +66,10 @@ const verifyAccount = (0, catchAsync_1.default)(async (req, res) => {
     const { oneTimeCode, phone, email, password } = req.body;
     const result = await custom_auth_service_1.CustomAuthServices.verifyAccount(email, oneTimeCode, password);
     const { status, message, accessToken, refreshToken, role, token, needPassword } = result;
-    res.cookie('refreshToken', refreshToken, auth_helper_1.AuthHelper.getCookieOptions());
+    res.cookie('refreshToken', refreshToken, {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+    });
     (0, sendResponse_1.default)(res, {
         statusCode: status,
         success: true,
@@ -129,7 +137,10 @@ const socialLogin = (0, catchAsync_1.default)(async (req, res) => {
     const { appId, deviceToken } = req.body;
     const result = await custom_auth_service_1.CustomAuthServices.socialLogin(appId, deviceToken);
     const { status, message, accessToken, refreshToken, role } = result;
-    res.cookie('refreshToken', refreshToken, auth_helper_1.AuthHelper.getCookieOptions());
+    res.cookie('refreshToken', refreshToken, {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+    });
     (0, sendResponse_1.default)(res, {
         statusCode: status,
         success: true,

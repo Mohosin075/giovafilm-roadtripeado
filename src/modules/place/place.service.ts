@@ -56,9 +56,23 @@ const createPlace = async (payload: IPlace): Promise<IPlace> => {
   }
 }
 
-const getAllPlaces = async (query: Record<string, unknown>) => {
+const getAllPlaces = async (
+  query: Record<string, unknown>,
+  lockedMapIds?: string[]
+) => {
+  let baseQuery = Place.find()
+
+  if (lockedMapIds && lockedMapIds.length > 0) {
+    baseQuery = baseQuery.find({
+      $or: [
+        { map: { $nin: lockedMapIds } },
+        { type: 'Business' }
+      ]
+    })
+  }
+
   const placeQuery = new QueryBuilder(
-    Place.find().populate('category').populate('map'),
+    baseQuery.populate('category').populate('map'),
     query
   )
     .search(placeSearchableFields)

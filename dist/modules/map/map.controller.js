@@ -8,9 +8,10 @@ const http_status_codes_1 = require("http-status-codes");
 const catchAsync_1 = __importDefault(require("../../shared/catchAsync"));
 const sendResponse_1 = __importDefault(require("../../shared/sendResponse"));
 const map_service_1 = require("./map.service");
-const jwtHelper_1 = require("../../helpers/jwtHelper");
-const config_1 = __importDefault(require("../../config"));
 const user_1 = require("../../enum/user");
+const mapAccessHelper_1 = require("../../helpers/mapAccessHelper");
+const map_model_1 = require("./map.model");
+const ApiError_1 = __importDefault(require("../../errors/ApiError"));
 const createMap = (0, catchAsync_1.default)(async (req, res) => {
     const result = await map_service_1.MapService.createMap(req.body);
     (0, sendResponse_1.default)(res, {
@@ -21,41 +22,52 @@ const createMap = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 const getAllMaps = (0, catchAsync_1.default)(async (req, res) => {
-    const tokenWithBearer = req.headers.authorization;
-    let isAdmin = false;
-    if (tokenWithBearer && tokenWithBearer.startsWith('Bearer')) {
-        const token = tokenWithBearer.split(' ')[1];
-        try {
-            const verifyUser = jwtHelper_1.jwtHelper.verifyToken(token, config_1.default.jwt.jwt_secret);
-            if (verifyUser.role === user_1.USER_ROLES.ADMIN ||
-                verifyUser.role === user_1.USER_ROLES.SUPER_ADMIN) {
-                isAdmin = true;
-            }
-        }
-        catch (error) {
-            // Ignore token verification errors for public route
-        }
-    }
+    const authorizationHeader = req.headers.authorization;
+    const user = await (0, mapAccessHelper_1.getUserFromToken)(authorizationHeader);
+    const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
+    const isAdmin = user && (user.role === user_1.USER_ROLES.ADMIN || user.role === user_1.USER_ROLES.SUPER_ADMIN);
     const query = { ...req.query };
     if (!isAdmin) {
         query.isActive = 'true';
     }
     const result = await map_service_1.MapService.getAllMaps(query);
+    // Convert mongoose documents to plain objects to filter places for locked maps
+    const data = result.data.map((map) => {
+        const mapObj = map.toObject();
+        if (!accessibleMapIds.includes(mapObj._id.toString())) {
+            mapObj.places = (mapObj.places || []).filter((place) => {
+                return place.type === 'Business';
+            });
+        }
+        return mapObj;
+    });
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Maps retrieved successfully',
         meta: result.meta,
-        data: result.data,
+        data,
     });
 });
 const getMapById = (0, catchAsync_1.default)(async (req, res) => {
+    const authorizationHeader = req.headers.authorization;
+    const user = await (0, mapAccessHelper_1.getUserFromToken)(authorizationHeader);
+    const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
     const result = await map_service_1.MapService.getMapById(req.params.id);
+    if (!result) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Map not found');
+    }
+    const mapObj = result.toObject();
+    if (!accessibleMapIds.includes(mapObj._id.toString())) {
+        mapObj.places = (mapObj.places || []).filter((place) => {
+            return place.type === 'Business';
+        });
+    }
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Map retrieved successfully',
-        data: result,
+        data: mapObj,
     });
 });
 const updateMap = (0, catchAsync_1.default)(async (req, res) => {
@@ -106,7 +118,14 @@ const getAvailableCountries = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 const getDiscoveryData = (0, catchAsync_1.default)(async (req, res) => {
-    const result = await map_service_1.MapService.getDiscoveryData(req.query);
+    const authorizationHeader = req.headers.authorization;
+    const user = await (0, mapAccessHelper_1.getUserFromToken)(authorizationHeader);
+    const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
+    // Find all paid maps to compute locked maps
+    const paidMaps = await map_model_1.Map.find({ isPaid: true }, '_id');
+    const paidMapIds = paidMaps.map(m => m._id.toString());
+    const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id));
+    const result = await map_service_1.MapService.getDiscoveryData(req.query, lockedMapIds);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,

@@ -3,6 +3,9 @@ import { StatusCodes } from 'http-status-codes'
 import catchAsync from '../../shared/catchAsync'
 import sendResponse from '../../shared/sendResponse'
 import { PlaceService } from './place.service'
+import { getUserFromToken, getAccessibleMapIds } from '../../helpers/mapAccessHelper'
+import { Map } from '../map/map.model'
+import ApiError from '../../errors/ApiError'
 
 const createPlace = catchAsync(async (req: Request, res: Response) => {
   if (req.body.images) {
@@ -18,7 +21,19 @@ const createPlace = catchAsync(async (req: Request, res: Response) => {
 })
 
 const getAllPlaces = catchAsync(async (req: Request, res: Response) => {
-  const result = await PlaceService.getAllPlaces(req.query)
+  const authorizationHeader = req.headers.authorization
+  const user = await getUserFromToken(authorizationHeader)
+  const accessibleMapIds = await getAccessibleMapIds(user)
+
+  // Find all paid map IDs
+  const paidMaps = await Map.find({ isPaid: true }, '_id')
+  const paidMapIds = paidMaps.map(m => m._id.toString())
+
+  // Compute locked maps
+  const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id))
+
+  const result = await PlaceService.getAllPlaces(req.query, lockedMapIds)
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -31,6 +46,27 @@ const getAllPlaces = catchAsync(async (req: Request, res: Response) => {
 const getPlaceById = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
   const result = await PlaceService.getPlaceById(id)
+  if (!result) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
+  }
+
+  const authorizationHeader = req.headers.authorization
+  const user = await getUserFromToken(authorizationHeader)
+  const accessibleMapIds = await getAccessibleMapIds(user)
+
+  const mapId = result.map?._id || result.map
+  if (mapId) {
+    const isLocked = !accessibleMapIds.includes(mapId.toString())
+    if (isLocked) {
+      if (result.type !== 'Business') {
+        throw new ApiError(
+          StatusCodes.FORBIDDEN,
+          'You must purchase the map to access this location'
+        )
+      }
+    }
+  }
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,

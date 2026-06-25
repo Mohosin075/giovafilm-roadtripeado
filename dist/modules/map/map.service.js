@@ -61,7 +61,10 @@ const getAllMaps = async (query) => {
     };
 };
 const getMapById = async (id) => {
-    const result = await map_model_1.Map.findById(id).populate('places');
+    const result = await map_model_1.Map.findById(id).populate({
+        path: 'places',
+        populate: { path: 'category' },
+    });
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Map not found');
     }
@@ -136,7 +139,7 @@ const getAvailableCountries = async () => {
     const result = await place_model_1.Place.distinct('country', { status: 'Published' });
     return result.filter((country) => typeof country === 'string' && country !== 'Unknown');
 };
-const getDiscoveryData = async (query) => {
+const getDiscoveryData = async (query, lockedMapIds) => {
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 10;
     // Prepare separate queries because Place and Business have different schemas
@@ -156,8 +159,17 @@ const getDiscoveryData = async (query) => {
         placeQueryObj.status = 'Published';
     if (!businessQueryObj.status)
         businessQueryObj.status = 'Approved';
+    let basePlaceQuery = place_model_1.Place.find();
+    if (lockedMapIds && lockedMapIds.length > 0) {
+        basePlaceQuery = basePlaceQuery.find({
+            $or: [
+                { map: { $nin: lockedMapIds } },
+                { type: 'Business' }
+            ]
+        });
+    }
     // Use QueryBuilder for Places
-    const placeQuery = new QueryBuilder_1.default(place_model_1.Place.find().populate('category').lean(), placeQueryObj)
+    const placeQuery = new QueryBuilder_1.default(basePlaceQuery.populate('category').lean(), placeQueryObj)
         .search(place_constants_1.placeSearchableFields)
         .filter()
         .sort();

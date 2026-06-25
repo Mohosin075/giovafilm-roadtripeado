@@ -7,6 +7,11 @@ const PlaceSchema = new mongoose_1.Schema({
     name: { type: String, required: true, trim: true },
     map: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Map', required: true },
     category: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Category', required: true },
+    type: {
+        type: String,
+        enum: ['Business', 'Regular'],
+        default: 'Regular',
+    },
     country: { type: String, required: true },
     description: { type: String, required: true },
     media: { type: [String], default: [] },

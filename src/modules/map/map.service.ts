@@ -69,7 +69,10 @@ const getAllMaps = async (query: Record<string, unknown>) => {
 }
 
 const getMapById = async (id: string): Promise<IMap | null> => {
-  const result = await Map.findById(id).populate('places')
+  const result = await Map.findById(id).populate({
+    path: 'places',
+    populate: { path: 'category' },
+  })
   if (!result) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')
   }
@@ -169,7 +172,10 @@ const getAvailableCountries = async (): Promise<string[]> => {
   return result.filter((country): country is string => typeof country === 'string' && country !== 'Unknown')
 }
 
-const getDiscoveryData = async (query: Record<string, unknown>) => {
+const getDiscoveryData = async (
+  query: Record<string, unknown>,
+  lockedMapIds?: string[]
+) => {
   const page = Number(query.page) || 1
   const limit = Number(query.limit) || 10
   
@@ -192,9 +198,19 @@ const getDiscoveryData = async (query: Record<string, unknown>) => {
   if (!placeQueryObj.status) placeQueryObj.status = 'Published'
   if (!businessQueryObj.status) businessQueryObj.status = 'Approved'
 
+  let basePlaceQuery = Place.find()
+  if (lockedMapIds && lockedMapIds.length > 0) {
+    basePlaceQuery = basePlaceQuery.find({
+      $or: [
+        { map: { $nin: lockedMapIds } },
+        { type: 'Business' }
+      ]
+    })
+  }
+
   // Use QueryBuilder for Places
   const placeQuery = new QueryBuilder(
-    Place.find().populate('category').lean(),
+    basePlaceQuery.populate('category').lean(),
     placeQueryObj
   )
     .search(placeSearchableFields)

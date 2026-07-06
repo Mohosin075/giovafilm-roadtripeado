@@ -16,14 +16,9 @@ async function run() {
     try {
         await mongoose_1.default.connect(DATABASE_URL);
         console.log('Connected to database successfully.');
-        // Find and update places where type field is missing or null
-        const result = await Place.updateMany({
-            $or: [
-                { type: { $exists: false } },
-                { type: null }
-            ]
-        }, {
-            $set: { type: 'Regular' }
+        // Update all places (which currently have type: 'Regular') to type: 'Business'
+        const result = await Place.updateMany({}, {
+            $set: { type: 'Business' }
         });
         console.log(`Migration Complete:`);
         console.log(`- Matched documents: ${result.matchedCount}`);

@@ -6,6 +6,7 @@ import { PlaceService } from './place.service'
 import { getUserFromToken, getAccessibleMapIds } from '../../helpers/mapAccessHelper'
 import { Map } from '../map/map.model'
 import ApiError from '../../errors/ApiError'
+import { getCoordinatesFromUrl } from '../../utils/mapHelper'
 
 const createPlace = catchAsync(async (req: Request, res: Response) => {
   if (req.body.images) {
@@ -101,10 +102,33 @@ const deletePlace = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const extractCoordinates = catchAsync(async (req: Request, res: Response) => {
+  const { url } = req.body
+  if (!url) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Google Maps URL is required')
+  }
+
+  const coordinates = await getCoordinatesFromUrl(url)
+  if (!coordinates) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Could not extract coordinates. Try using the full URL from your browser address bar.'
+    )
+  }
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Coordinates extracted successfully',
+    data: coordinates,
+  })
+})
+
 export const PlaceController = {
   createPlace,
   getAllPlaces,
   getPlaceById,
   updatePlace,
   deletePlace,
+  extractCoordinates,
 }

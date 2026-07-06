@@ -11,6 +11,7 @@ const place_service_1 = require("./place.service");
 const mapAccessHelper_1 = require("../../helpers/mapAccessHelper");
 const map_model_1 = require("../map/map.model");
 const ApiError_1 = __importDefault(require("../../errors/ApiError"));
+const mapHelper_1 = require("../../utils/mapHelper");
 const createPlace = (0, catchAsync_1.default)(async (req, res) => {
     if (req.body.images) {
         req.body.media = req.body.images;
@@ -91,10 +92,27 @@ const deletePlace = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const extractCoordinates = (0, catchAsync_1.default)(async (req, res) => {
+    const { url } = req.body;
+    if (!url) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Google Maps URL is required');
+    }
+    const coordinates = await (0, mapHelper_1.getCoordinatesFromUrl)(url);
+    if (!coordinates) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Could not extract coordinates. Try using the full URL from your browser address bar.');
+    }
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Coordinates extracted successfully',
+        data: coordinates,
+    });
+});
 exports.PlaceController = {
     createPlace,
     getAllPlaces,
     getPlaceById,
     updatePlace,
     deletePlace,
+    extractCoordinates,
 };

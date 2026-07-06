@@ -31,6 +31,7 @@ exports.updateUserSchema = zod_1.z.object({
     body: zod_1.z.object({
         name: zod_1.z.string().optional(),
         profile: zod_1.z.string().optional(),
+        images: zod_1.z.union([zod_1.z.string(), zod_1.z.array(zod_1.z.string())]).optional(),
         phone: zod_1.z.string().optional(),
         description: zod_1.z.string().optional(),
         specialty: zod_1.z.string().optional(),

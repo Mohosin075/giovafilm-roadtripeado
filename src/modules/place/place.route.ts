@@ -21,6 +21,12 @@ router
   )
   .get(PlaceController.getAllPlaces)
 
+router.post(
+  '/extract-coordinates',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.MAP_EDITOR),
+  PlaceController.extractCoordinates,
+)
+
 router
   .route('/:id')
   .get(PlaceController.getPlaceById)

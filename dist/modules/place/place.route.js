@@ -16,6 +16,7 @@ router
     .route('/')
     .post((0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.MAP_EDITOR), (0, processReqBody_1.fileAndBodyProcessorUsingDiskStorage)(), (0, validateRequest_1.default)(place_validation_1.createPlaceZodSchema), place_controller_1.PlaceController.createPlace)
     .get(place_controller_1.PlaceController.getAllPlaces);
+router.post('/extract-coordinates', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.MAP_EDITOR), place_controller_1.PlaceController.extractCoordinates);
 router
     .route('/:id')
     .get(place_controller_1.PlaceController.getPlaceById)

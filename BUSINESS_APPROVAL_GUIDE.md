@@ -1,6 +1,6 @@
 # Business Approval (Status Update) Guide
 
-অ্যাডমিন প্যানেল থেকে কোনো বিজনেস Approve বা Reject করার জন্য শুধুমাত্র এই API এন্ডপয়েন্টটি ব্যবহার করতে হবে।
+Use this single API endpoint to Approve or Reject any business from the Admin Panel.
 
 **Base API URL:** `/api/v1/business/:id/status`
 
@@ -16,7 +16,7 @@
   Content-Type: application/json
   ```
 * **Path Parameters:**
-  * `id` - যে বিজনেসের স্ট্যাটাস আপডেট করতে চান তার আইডি (e.g. `6674b834fc12ba001af1b5e2`).
+  * `id` - The ID of the business whose status you want to update (e.g. `6674b834fc12ba001af1b5e2`).
 
 * **Request Body:**
   ```json

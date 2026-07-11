@@ -1,76 +1,76 @@
-# Offer Update Integration Guide (অফার আপডেট ইন্টিগ্রেশন গাইড)
+# Offer Update Integration Guide
 
-এই গাইডটি মূলত Frontend Team এবং Backend Developers দের জন্য তৈরি করা হয়েছে, যাতে তারা অ্যাপ্লিকেশনে খুব সহজেই **Offer (অফার) আপডেট** করার API এন্ডপয়েন্টটি ব্যবহার ও ইন্টিগ্রেট করতে পারে।
+This guide is primarily intended for the Frontend Team and Backend Developers to help them easily use and integrate the **Offer Update** API endpoint into the application.
 
 ---
 
-## 1. Overview (সংক্ষিপ্ত বিবরণ)
-কোনো এক্সিস্টিং অফারের তথ্য (যেমন: শিরোনাম, বিবরণ, ডিসকাউন্ট টাইপ, ভ্যালিডিটি, স্ট্যাটাস ইত্যাদি) পরিবর্তন বা আপডেট করার জন্য Backend-এ একটি `PATCH` API তৈরি করা আছে। এই API টিতে অফারের আইডি প্যারামিটার হিসেবে পাঠাতে হবে এবং নতুন তথ্যগুলো রিকোয়েস্ট বডিতে পাঠাতে হবে।
+## 1. Overview
+A `PATCH` API is available in the Backend to modify or update the details of an existing offer (such as: title, description, discount type, validity, status, etc.). The offer's ID must be sent as a parameter, and the new details must be sent in the request body.
 
 **Base API URL:** `/api/v1/offer/:id`
 
 ---
 
-## 2. API Endpoint & Authentication (API এন্ডপয়েন্ট ও অথেন্টিকেশন)
+## 2. API Endpoint & Authentication
 
-- **Endpoint:** `PATCH /api/v1/offer/:id` (এখানে `:id` হলো অফারের MongoDB ObjectId)
-- **Headers:** 
+- **Endpoint:** `PATCH /api/v1/offer/:id` (where `:id` is the offer's MongoDB ObjectId)
+- **Headers:**
   - `Authorization: Bearer <your_access_token>`
-  - `Content-Type: application/json` অথবা `multipart/form-data` (যদি ইমেজ আপলোড করা হয়)
-- **Allowed Roles (অনুমোদিত রোলস):** 
+  - `Content-Type: application/json` or `multipart/form-data` (if uploading an image)
+- **Allowed Roles:**
   - `ADMIN`
   - `SUPER_ADMIN`
   - `MAP_EDITOR`
-  
+
 > [!IMPORTANT]
-> শুধুমাত্র এই তিনটি রোলের ইউজাররাই অফার আপডেট করতে পারবেন। সাধারণ ইউজার (`USER`) এই API কল করলে `403 Forbidden` এরর পাবেন।
+> Only users with these three roles can update an offer. A regular `USER` calling this API will receive a `403 Forbidden` error.
 
 ---
 
-## 3. Payload (Request Body) Fields - (রিকোয়েস্ট বডির তথ্যাদি)
+## 3. Payload (Request Body) Fields
 
-যেহেতু এটি একটি `PATCH` রিকোয়েস্ট, তাই বডির সবগুলো ফিল্ডই **ঐচ্ছিক (Optional)**। আপনি শুধুমাত্র যে ফিল্ডগুলো পরিবর্তন করতে চান, সেগুলো বডিতে পাঠাবেন।
+Since this is a `PATCH` request, all fields in the body are **Optional**. You only need to send the fields you want to change.
 
-| ফিল্ডের নাম (Field) | ডাটা টাইপ (Type) | বিবরণ (Description) | ভ্যালিডেশন / ডিফল্ট ভ্যালু |
+| Field | Type | Description | Validation / Default Value |
 | :--- | :--- | :--- | :--- |
-| `title` | `String` | অফারের মূল শিরোনাম বা নাম। | ঐচ্ছিক (Optional) |
-| `description` | `String` | অফারের বিস্তারিত বিবরণ। | ঐচ্ছিক (Optional) |
-| `images` | `File / Array` | অফারের নতুন ছবি। আপলোড করার সময় ফর্মে কি (key) হবে `images`। | এটি প্রথম ইমেজটিকে `photo` হিসেবে সেভ করবে। |
-| `place` | `String (ObjectId)` | অফারটি কোন নির্দিষ্ট প্লেসের জন্য প্রযোজ্য তার ID। | ঐচ্ছিক (Optional) |
-| `business` | `String (ObjectId)` | অফারটি কোন নির্দিষ্ট বিজনেসের জন্য প্রযোজ্য তার ID। | ঐচ্ছিক (Optional) |
-| `discountType` | `String (Enum)` | ডিসকাউন্টের ধরণ। | অবশ্যই নিচের যেকোনো একটি হতে হবে:<br>`Percentage`<br>`Flat`<br>`Free item`<br>`BOGO` |
-| `discountValue` | `String / Number` | ডিসকাউন্টের পরিমাণ বা মান। | - `Percentage` হলে: **১ থেকে ১০০** এর মধ্যে হতে হবে।<br>- `Flat` হলে: **পজিটিভ সংখ্যা** হতে হবে। |
-| `validFrom` | `String (ISO Date)` | অফারটি কবে থেকে কার্যকর হবে। | ISO 8601 ফরম্যাট (e.g., `2026-06-20T22:54:02.000Z`) |
-| `validUntil` | `String (ISO Date)` | অফারের মেয়াদ শেষ হওয়ার তারিখ। | ISO 8601 ফরম্যাট বা `null` |
-| `noExpiration` | `Boolean` | অফারের কোনো মেয়াদ শেষ হওয়ার ডেট না থাকলে এটি `true` হবে। | ডিফল্ট: `false` |
-| `maxRedemptions` | `Number` | এই অফারটি সর্বোচ্চ মোট কতবার রিডিম করা যাবে। | ঐচ্ছিক (Optional) |
-| `redemptionRules` | `Array of Strings` | অফার ব্যবহারের নিয়মাবলী। | যেমন: `["একবার ব্যবহারযোগ্য", "শুধুমাত্র রবিবারে প্রযোজ্য"]` |
-| `buttonLabel` | `String` | রিডিম বাটনের টেক্সট। | ডিফল্ট: `"Redeem Offer"` |
-| `redemptionDuration`| `Number` | রিডিম করার পর কুপনটি কত মিনিট ভ্যালিড থাকবে। | মিনিট ইউনিটে (ডিফল্ট: `5` মিনিট) |
-| `status` | `String (Enum)` | অফারের বর্তমান অবস্থা বা স্ট্যাটাস। | অবশ্যই নিচের যেকোনো একটি হতে হবে:<br>`Active`<br>`Expired`<br>`Paused` |
-| `redemptionsCount` | `Number` | অফারটি এ পর্যন্ত কতবার রিডিম করা হয়েছে। | অবশ্যই নন-নেগেটিভ সংখ্যা হতে হবে। |
+| `title` | `String` | The main title or name of the offer. | Optional |
+| `description` | `String` | A detailed description of the offer. | Optional |
+| `images` | `File / Array` | New image(s) for the offer. The form key must be `images`. | Saves the first image as `photo`. |
+| `place` | `String (ObjectId)` | The ID of the specific place this offer applies to. | Optional |
+| `business` | `String (ObjectId)` | The ID of the specific business this offer applies to. | Optional |
+| `discountType` | `String (Enum)` | The type of discount. | Must be one of:<br>`Percentage`<br>`Flat`<br>`Free item`<br>`BOGO` |
+| `discountValue` | `String / Number` | The amount or value of the discount. | - For `Percentage`: must be between **1 and 100**.<br>- For `Flat`: must be a **positive number**. |
+| `validFrom` | `String (ISO Date)` | The date from which the offer becomes active. | ISO 8601 format (e.g., `2026-06-20T22:54:02.000Z`) |
+| `validUntil` | `String (ISO Date)` | The expiry date of the offer. | ISO 8601 format or `null` |
+| `noExpiration` | `Boolean` | Set to `true` if the offer has no expiry date. | Default: `false` |
+| `maxRedemptions` | `Number` | The maximum total number of times this offer can be redeemed. | Optional |
+| `redemptionRules` | `Array of Strings` | Rules for using the offer. | e.g., `["Single use only", "Valid on Sundays only"]` |
+| `buttonLabel` | `String` | The text for the redeem button. | Default: `"Redeem Offer"` |
+| `redemptionDuration` | `Number` | How many minutes the coupon remains valid after redemption. | In minutes (Default: `5` minutes) |
+| `status` | `String (Enum)` | The current status of the offer. | Must be one of:<br>`Active`<br>`Expired`<br>`Paused` |
+| `redemptionsCount` | `Number` | How many times the offer has been redeemed so far. | Must be a non-negative number. |
 
 ---
 
-## 4. Business Logic & Validation Rules (বিজনেস লজিক ও ভ্যালিডেশন)
+## 4. Business Logic & Validation Rules
 
-আপডেট করার সময় নিচের বিজনেস লজিকগুলো কঠোরভাবে চেক করা হয়:
+The following business logic is strictly checked during updates:
 
-### ক. একই প্লেস বা বিজনেসে একাধিক অ্যাক্টিভ অফার না থাকা
-একটি নির্দিষ্ট `Place` অথবা `Business`-এর জন্য একই সময়ে শুধুমাত্র **একটিই অ্যাক্টিভ (`Active`) অফার** থাকতে পারবে।
-- যদি কোনো অফারের স্ট্যাটাস `Active` করা হয় এবং ঐ অফারের সাথে যুক্ত প্লেস/বিজনেসে ইতিমধ্যেই অন্য কোনো অ্যাক্টিভ অফার থাকে, তবে সার্ভার থেকে এরর থ্রো করবে:
+### a. No Multiple Active Offers for the Same Place or Business
+Only **one active (`Active`) offer** can exist at a time for a specific `Place` or `Business`.
+- If an offer's status is set to `Active` and there is already another active offer for the associated place/business, the server will throw an error:
   > **Error Message:** `An active offer already exists for this place or business` (Status Code: `400 Bad Request`)
 
-### খ. ডিসকাউন্ট ভ্যালু ভ্যালিডেশন (Zod)
-রিকোয়েস্ট বডিতে যদি `discountType` এবং `discountValue` আপডেট করা হয়, তবে নিচের নিয়মগুলো প্রযোজ্য হবে:
-- **Percentage (শতকরা হারে ডিসকাউন্ট):** `discountValue` অবশ্যই `1` থেকে `100` এর মধ্যে হতে হবে। (যেমন: `20` মানে ২০% ডিসকাউন্ট)।
-- **Flat (নির্দিষ্ট অংকের ছাড়):** `discountValue` অবশ্যই একটি পজিটিভ সংখ্যা (`> 0`) হতে হবে। (যেমন: `15` মানে ১৫ টাকা/ডলার ছাড়)।
+### b. Discount Value Validation (Zod)
+If `discountType` and `discountValue` are updated in the request body, the following rules apply:
+- **Percentage:** `discountValue` must be between `1` and `100` (e.g., `20` means a 20% discount).
+- **Flat:** `discountValue` must be a positive number (`> 0`) (e.g., `15` means a $15 discount).
 
 ---
 
-## 5. Example API Requests & Responses (উদাহরণসমূহ)
+## 5. Example API Requests & Responses
 
-### রিকোয়েস্টের উদাহরণ (JSON Payload)
+### Example Request (JSON Payload)
 ```http
 PATCH /api/v1/offer/66743b2a2b0c950a48b56f89
 Authorization: Bearer <your_access_token>
@@ -85,7 +85,7 @@ Content-Type: application/json
 }
 ```
 
-### সফল রেসপন্সের উদাহরণ (Success Response)
+### Example Success Response
 ```json
 {
   "success": true,
@@ -117,9 +117,9 @@ Content-Type: application/json
 }
 ```
 
-### ভুল বা অবৈধ ডাটা সাবমিট করলে এরর রেসপন্স (Validation/Conflict Errors)
+### Error Responses for Invalid or Bad Data (Validation/Conflict Errors)
 
-#### ১. যদি একই প্লেসে অলরেডি একটি অ্যাক্টিভ অফার থাকে:
+#### 1. If an active offer already exists for the same place:
 ```json
 {
   "success": false,
@@ -134,7 +134,7 @@ Content-Type: application/json
 }
 ```
 
-#### ২. পার্সেন্টেজ ডিসকাউন্টে ১০০-এর বেশি ভ্যালু দিলে (Zod Validation Failure):
+#### 2. If a percentage discount value exceeds 100 (Zod Validation Failure):
 ```json
 {
   "success": false,
@@ -149,7 +149,7 @@ Content-Type: application/json
 }
 ```
 
-#### ৩. যদি ভুল বা অস্তিত্বহীন অফার আইডি (Offer ID) দিয়ে রিকোয়েস্ট করা হয়:
+#### 3. If a request is made with an incorrect or non-existent Offer ID:
 ```json
 {
   "success": false,
@@ -166,58 +166,58 @@ Content-Type: application/json
 
 ---
 
-## 6. Frontend Integration Notes (ফ্রন্টএন্ড টিমদের জন্য বিশেষ টিপস)
+## 6. Frontend Integration Notes
 
-ইমেজ (ছবি) সহ অফার আপডেট করার সময় অনেকেই শুধু ইমেজটি আপডেট করতে সমস্যায় পড়েন অথবা অন্যান্য টাইপ-ভিত্তিক ডাটা ফিল্ডগুলোতে (যেমন: `Number`, `Boolean`, `Array`) ভ্যালিডেশন এরর পেয়ে থাকেন। এর মূল কারণ হলো `multipart/form-data` দিয়ে সাধারণ টেক্সট ফিল্ড পাঠালে ব্যাকএন্ড সেগুলো সরাসরি `String` হিসেবে পায়।
+Many developers run into issues when updating an offer with an image — either having trouble updating just the image, or receiving validation errors on type-based data fields (such as `Number`, `Boolean`, `Array`). The root cause is that when sending plain text fields via `multipart/form-data`, the backend receives them as `String`.
 
-এই সমস্যা এড়াতে এবং সঠিকভাবে ইমেজ ও ডাটা আপডেট করতে নিচের নিয়মটি অনুসরণ করুন:
+To avoid this issue and correctly update images and data, follow the rules below:
 
-### ১. FormData ফরম্যাট (Structure)
-রিকোয়েস্ট পাঠানোর সময় অবশ্যই **`multipart/form-data`** ব্যবহার করতে হবে এবং ডাটা স্ট্রাকচারটি হতে হবে নিম্নরূপ:
-- **`data` (Key):** অফারের সমস্ত টেক্সট, নাম্বার, বুলিয়ান বা অ্যারে ফিল্ডগুলোকে একটি JSON অবজেক্ট হিসেবে সাজিয়ে, সেটিকে `JSON.stringify()` করে এই কি-তে যুক্ত করতে হবে। (এর ফলে ব্যাকএন্ড সব ডাটার সঠিক টাইপ যেমন- `Number`, `Boolean` ধরে রাখতে পারে)।
-- **`images` (Key):** নতুন অফার ইমেজ/ফাইলটি এই কি-তে যুক্ত করতে হবে।
+### 1. FormData Format (Structure)
+When sending the request, you must use **`multipart/form-data`** and the data structure must be as follows:
+- **`data` (Key):** Organize all text, number, boolean, or array fields of the offer as a single JSON object, then `JSON.stringify()` it and attach it to this key. (This allows the backend to preserve the correct types like `Number` and `Boolean` for all data.)
+- **`images` (Key):** Attach the new offer image/file to this key.
 
 > [!CAUTION]
-> ফর্ম ডাটায় ছবির কি (Key) অবশ্যই **`images`** হতে হবে। অন্য কোনো কি (যেমন- `photo`, `image`) ব্যবহার করলে ব্যাকএন্ডের ফাইল প্রসেসর ইমেজটি ধরতে পারবে না এবং ইমেজ আপডেট হবে না।
+> The key for the image in the form data MUST be **`images`**. Using any other key (such as `photo` or `image`) will prevent the backend's file processor from detecting the image, and the image will not be updated.
 
 ---
 
-### ২. JavaScript / React / Next.js কোড এক্সাম্পল (Fetch API)
+### 2. JavaScript / React / Next.js Code Example (Fetch API)
 
-নিচের কোডটি দেখে আপনার ফ্রন্টএন্ড ইন্টিগ্রেশন সাজিয়ে নিন:
+Use the code below to structure your frontend integration:
 
 ```javascript
 const updateOfferWithImage = async (offerId, updatedFields, imageFile) => {
   try {
     const formData = new FormData();
 
-    // ১. টেক্সট, নাম্বার, বুলিয়ান ও অ্যারে ফিল্ডগুলোকে 'data' কী-তে JSON stringify করে যুক্ত করুন
+    // 1. Add text, number, boolean, and array fields to the 'data' key as a JSON string
     const offerData = {
       title: updatedFields.title,
       description: updatedFields.description,
       discountType: updatedFields.discountType,
-      discountValue: Number(updatedFields.discountValue), // Number টাইপ নিশ্চিত করুন
-      noExpiration: Boolean(updatedFields.noExpiration),  // Boolean টাইপ নিশ্চিত করুন
+      discountValue: Number(updatedFields.discountValue), // Ensure Number type
+      noExpiration: Boolean(updatedFields.noExpiration),  // Ensure Boolean type
       redemptionDuration: Number(updatedFields.redemptionDuration), // Number
       status: updatedFields.status, // "Active" / "Expired" / "Paused"
-      // ... অন্য যেকোনো প্রয়োজনীয় ফিল্ড
+      // ... any other required fields
     };
     
     formData.append('data', JSON.stringify(offerData));
 
-    // ২. যদি নতুন ইমেজ থাকে, তাহলে সেটি 'images' কী-তে যুক্ত করুন
+    // 2. If there is a new image, add it to the 'images' key
     if (imageFile) {
       formData.append('images', imageFile);
     }
 
-    // ৩. API রিকোয়েস্ট পাঠানো
+    // 3. Send the API request
     const response = await fetch(`/api/v1/offer/${offerId}`, {
       method: 'PATCH',
       headers: {
-        // টোকেন যুক্ত করুন
+        // Add your token
         'Authorization': `Bearer ${accessToken}`,
-        // সতর্কতা: Fetch ব্যবহার করার সময় 'Content-Type' হেডার ম্যানুয়ালি সেট করবেন না! 
-        // ব্রাউজার নিজেই বাউন্ডারিসহ সঠিক Content-Type সেট করে নিবে।
+        // Warning: Do NOT manually set the 'Content-Type' header when using Fetch!
+        // The browser will automatically set the correct Content-Type with boundary.
       },
       body: formData,
     });
@@ -226,7 +226,7 @@ const updateOfferWithImage = async (offerId, updatedFields, imageFile) => {
 
     if (result.success) {
       console.log('Offer updated successfully:', result.data);
-      // সফল আপডেটের পরবর্তী কাজ করুন
+      // Perform post-update actions
     } else {
       console.error('Update failed:', result.message, result.errorMessages);
     }
@@ -236,8 +236,8 @@ const updateOfferWithImage = async (offerId, updatedFields, imageFile) => {
 };
 ```
 
-### ৩. Axios ব্যবহার করে রিকোয়েস্ট পাঠানোর উদাহরণ
-আপনি যদি Axios ব্যবহার করেন, তবে রিকোয়েস্টটি এভাবে পাঠাবেন:
+### 3. Example Request Using Axios
+If you are using Axios, send the request as follows:
 
 ```javascript
 import axios from 'axios';
@@ -253,7 +253,7 @@ const updateOfferWithAxios = async (offerId, offerData, imageFile) => {
   const response = await axios.patch(`/api/v1/offer/${offerId}`, formData, {
     headers: {
       'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'multipart/form-data', // Axios এর ক্ষেত্রে এটি দেওয়া নিরাপদ
+      'Content-Type': 'multipart/form-data', // Safe to include with Axios
     },
   });
   return response.data;
@@ -262,11 +262,11 @@ const updateOfferWithAxios = async (offerId, offerData, imageFile) => {
 
 ---
 
-### ৪. Redux Toolkit (RTK Query) দিয়ে রিকোয়েস্ট পাঠানোর উদাহরণ
+### 4. Example Request Using Redux Toolkit (RTK Query)
 
-আপনার Next.js + Redux অ্যাপে যদি **RTK Query** সেটআপ করা থাকে, তবে নিচে দেওয়া নিয়মে API Slice এবং Component-এ রিকোয়েস্ট হ্যান্ডেল করুন:
+If your Next.js + Redux app has **RTK Query** set up, handle the request in your API Slice and Component as shown below:
 
-#### ক. RTK Query API Slice তৈরি করা:
+#### a. Create the RTK Query API Slice:
 ```typescript
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
@@ -275,12 +275,12 @@ export const offerApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: '/api/v1',
     prepareHeaders: (headers) => {
-      const token = localStorage.getItem('token'); // অথবা আপনার রেডক্স স্টেট থেকে টোকেন নিন
+      const token = localStorage.getItem('token'); // Or get token from your Redux state
       if (token) {
         headers.set('Authorization', `Bearer ${token}`);
       }
-      // সতর্কতা: এখানে 'Content-Type' হেডার সেট করবেন না। 
-      // RTK Query বডিতে FormData অবজেক্ট দেখলে অটোমেটিক সঠিক multipart boundary সেট করে নেয়।
+      // Warning: Do NOT set the 'Content-Type' header here.
+      // RTK Query automatically sets the correct multipart boundary when it sees a FormData object in the body.
       return headers;
     },
   }),
@@ -289,7 +289,7 @@ export const offerApi = createApi({
       query: ({ id, formData }) => ({
         url: `/offer/${id}`,
         method: 'PATCH',
-        body: formData, // FormData সরাসরি বডিতে পাস করতে হবে
+        body: formData, // Pass FormData directly in the body
       }),
     }),
   }),
@@ -298,7 +298,7 @@ export const offerApi = createApi({
 export const { useUpdateOfferMutation } = offerApi;
 ```
 
-#### খ. React / Next.js Component থেকে কল করার উদাহরণ:
+#### b. Example call from a React / Next.js Component:
 ```tsx
 import React, { useState } from 'react';
 import { useUpdateOfferMutation } from '@/redux/api/offerApi';
@@ -313,28 +313,28 @@ const EditOfferComponent = ({ offerId }) => {
 
     const formData = new FormData();
 
-    // ১. টেক্সট ও নাম্বার ফিল্ডগুলোকে 'data' কী-তে JSON stringify করুন
+    // 1. JSON stringify text and number fields into the 'data' key
     const offerData = {
       title: title,
-      // অন্যান্য ডাটা ফিল্ড
+      // Other data fields
     };
     formData.append('data', JSON.stringify(offerData));
 
-    // ২. ইমেজ ফাইলটি 'images' কী-তে ফর্ম ডাটায় অ্যাপেন্ড করুন
+    // 2. Append the image file to the 'images' key in form data
     if (imageFile) {
       formData.append('images', imageFile);
     }
 
     try {
-      // ৩. RTK Mutation কল করুন
+      // 3. Call the RTK Mutation
       const response = await updateOffer({ id: offerId, formData }).unwrap();
       
       if (response.success) {
-        alert('অফার সফলভাবে আপডেট হয়েছে!');
+        alert('Offer updated successfully!');
       }
     } catch (error) {
-      console.error('আপডেট করতে ব্যর্থ হয়েছে:', error);
-      alert('এরর: ' + (error?.data?.message || 'কিছু ভুল হয়েছে'));
+      console.error('Failed to update:', error);
+      alert('Error: ' + (error?.data?.message || 'Something went wrong'));
     }
   };
 
@@ -362,34 +362,33 @@ export default EditOfferComponent;
 
 ---
 
-## 7. Troubleshooting: ইমেজ আপডেট না হওয়ার কারণ ও সমাধান (Backend Zod Schema Bug)
+## 7. Troubleshooting: Image Not Updating (Backend Zod Schema Bug)
 
-যদি আপনার ফ্রন্টএন্ডে সবকিছু সঠিক সেটআপ করা থাকা সত্ত্বেও ইমেজ (ছবি) আপডেট না হয় এবং ডাটাবেজে পুরনো ইমেজটিই থেকে যায়, তবে এর প্রধান কারণ হলো **Backend-এর Zod Validation Schema-র একটি বাগ**।
+If your frontend is set up correctly but the image (photo) still doesn't update and the old image remains in the database, the primary cause is **a bug in the Backend's Zod Validation Schema**.
 
-### সমস্যার মূল কারণ (The Root Cause):
-১. রিকোয়েস্টটি প্রথমে ফাইল প্রসেসর মিডলওয়্যার (`fileAndBodyProcessorUsingDiskStorage`) দিয়ে যায়, যা ইমেজ ফাইলটি প্রসেস করে `req.body.images` হিসেবে যুক্ত করে।
-২. এরপর রিকোয়েস্টটি Zod ভ্যালিডেশন মিডলওয়্যার (`validateRequest`) দিয়ে যায়।
-৩. প্রজেক্টের Zod ভ্যালিডেশন স্কিমাতে (`updateOfferZodSchema`) ছবির কি **`images`** ফিল্ডটি ডিফাইন করা নেই।
-৪. Zod ডিফল্ট আচরণ অনুযায়ী স্কিমাতে ডিফাইন না করা যেকোনো অতিরিক্ত ফিল্ড (যেমন- `images`) রিকোয়েস্ট বডি থেকে **ছেঁটে ফেলে (Strips out)**।
-৫. এর ফলে কন্ট্রোলারে পৌঁছানোর আগেই `req.body.images` সম্পূর্ণ ভ্যানিশ বা `undefined` হয়ে যায়। তাই কন্ট্রোলারের `if (images)` কন্ডিশনটি সত্য হয় না এবং ইমেজ আপডেট হয় না।
+### The Root Cause:
+1. The request first goes through the file processor middleware (`fileAndBodyProcessorUsingDiskStorage`), which processes the image file and attaches it as `req.body.images`.
+2. The request then goes through the Zod validation middleware (`validateRequest`).
+3. The `images` field/key is not defined in the project's Zod validation schema (`updateOfferZodSchema`).
+4. By default Zod behavior, any extra fields not defined in the schema (such as `images`) are **stripped out** from the request body.
+5. As a result, `req.body.images` becomes completely vanished or `undefined` before reaching the controller. So the `if (images)` condition in the controller is never true and the image is not updated.
 
 ---
 
-### সমাধানের উপায় (How to Fix):
+### How to Fix:
+You need to add the `images` field to the Zod schemas in the `src/modules/offer/offer.validation.ts` file of your backend code.
 
-আপনার ব্যাকএন্ড কোডের `src/modules/offer/offer.validation.ts` ফাইলে Zod স্কিমাগুলোতে `images` ফিল্ডটি যুক্ত করে দিতে হবে।
+#### [MODIFY] Changes to `src/modules/offer/offer.validation.ts`:
 
-#### [MODIFY] `src/modules/offer/offer.validation.ts` ফাইলে পরিবর্তনসমূহ:
-
-`createOfferZodSchema` এবং `updateOfferZodSchema` উভয় স্কিমাতেই `images` ফিল্ডটি নিম্নরূপভাবে যুক্ত করুন:
+Add the `images` field to both `createOfferZodSchema` and `updateOfferZodSchema` as follows:
 
 ```diff
-// createOfferZodSchema এর ভেতর:
+// Inside createOfferZodSchema:
 export const createOfferZodSchema = z.object({
   body: z.object({
     title: z.string({ required_error: 'Title is required' }),
     photo: z.string().optional(),
-+   images: z.any().optional(), // এই লাইনটি যোগ করুন যাতে Zod ইমেজ ফাইলটিকে রিকোয়েস্ট বডি থেকে মুছে না ফেলে
++   images: z.any().optional(), // Add this line so Zod doesn't strip the image file from the request body
     place: z.string().optional(),
     business: z.string().optional(),
     description: z.string({ required_error: 'Description is required' }),
@@ -397,7 +396,7 @@ export const createOfferZodSchema = z.object({
 ```
 
 ```diff
-// updateOfferZodSchema এর ভেতর:
+// Inside updateOfferZodSchema:
 export const updateOfferZodSchema = z.object({
   params: z.object({
     id: z.string({ required_error: 'Offer ID is required' }),
@@ -405,14 +404,11 @@ export const updateOfferZodSchema = z.object({
   body: z.object({
     title: z.string().optional(),
     photo: z.string().optional(),
-+   images: z.any().optional(), // এই লাইনটি যোগ করুন
++   images: z.any().optional(), // Add this line
     place: z.string().optional(),
     business: z.string().optional(),
     description: z.string().optional(),
 ...
 ```
 
-এই পরিবর্তনটি করার পর ব্যাকএন্ড পুনরায় চালু (Restart) করলে ইমেজ আপলোড ও আপডেট হওয়া শতভাগ কাজ করা শুরু করবে।
-
-
-
+After making this change, restarting the backend will make image uploading and updating work 100%.

@@ -1,10 +1,10 @@
 # Invited User Verification & Password Setup Flow
 
-এই ডকুমেন্টেশনটি ব্যাখ্যা করে কীভাবে কোনো ইউজারকে ইনভাইট করার পর তার OTP ভেরিফিকেশন এবং পাসওয়ার্ড সেটআপ সম্পন্ন করতে হবে।
+This documentation explains how to complete OTP verification and password setup after a user has been invited.
 
 ---
 
-## ১. পুরো প্রক্রিয়াটির সংক্ষিপ্ত রূপ (Flow Diagram)
+## 1. Flow Overview (Flow Diagram)
 
 ```mermaid
 sequenceDiagram
@@ -16,33 +16,33 @@ sequenceDiagram
     participant DB as MongoDB
 
     Admin->>Backend: POST /api/v1/user/invite {email, role}
-    Backend->>DB: User তৈরি (verified: false, password: NULL)
-    Backend->>InvitedUser: ইমেইলে OTP কোড পাঠানো
-    InvitedUser->>Frontend: লিংকে ক্লিক (/otp-verify?email=...)
-    Note over Frontend, InvitedUser: ২ উপায়ে ভেরিফাই করা সম্ভব
+    Backend->>DB: Create User (verified: false, password: NULL)
+    Backend->>InvitedUser: Send OTP code via email
+    InvitedUser->>Frontend: Click link (/otp-verify?email=...)
+    Note over Frontend, InvitedUser: 2 ways to verify
 
-    alt Option A: Single-step (একসাথে OTP + Password পাঠানো)
-        InvitedUser->>Frontend: OTP ও Password ইনপুট দেন
+    alt Option A: Single-step (Send OTP + Password together)
+        InvitedUser->>Frontend: Enter OTP and Password
         Frontend->>Backend: POST /api/v1/auth/verify-account {email, oneTimeCode, password}
-        Backend->>DB: Password হ্যাশ ও সংরক্ষণ এবং verified = true
+        Backend->>DB: Hash & save password, set verified = true
         Backend-->>Frontend: JWT Tokens (Login successful)
-    else Option B: Multi-step (প্রথমে OTP ভেরিফিকেশন, তারপর Password)
-        InvitedUser->>Frontend: শুধুমাত্র OTP ইনপুট দেন
+    else Option B: Multi-step (OTP verification first, then Password)
+        InvitedUser->>Frontend: Enter OTP only
         Frontend->>Backend: POST /api/v1/auth/verify-account {email, oneTimeCode}
-        Backend->>DB: OTP কোড মুছে দেয় এবং resetPassword = true করে
+        Backend->>DB: Clear OTP code and set resetPassword = true
         Backend-->>Frontend: { needPassword: true, token: "JWT_TEMP_TOKEN" }
-        InvitedUser->>Frontend: পাসওয়ার্ড ইনপুট দেন
+        InvitedUser->>Frontend: Enter Password
         Frontend->>Backend: POST /api/v1/auth/reset-password {newPassword, confirmPassword} (Headers.Authorization = token)
-        Backend->>DB: Password হ্যাশ ও সংরক্ষণ এবং verified = true
+        Backend->>DB: Hash & save password, set verified = true
         Backend-->>Frontend: Success Message (Password set successfully)
     end
 ```
 
 ---
 
-## ২. এপিআই এর বিবরণ (API Reference)
+## 2. API Reference
 
-### ১. User Invitation (Admin বা Super Admin দ্বারা)
+### 1. User Invitation (By Admin or Super Admin)
 * **Endpoint:** `POST /api/v1/user/invite`
 * **Headers:** `Authorization: Bearer <ADMIN_ACCESS_TOKEN>`
 * **Request Body:**
@@ -52,20 +52,20 @@ sequenceDiagram
     "role": "user" 
   }
   ```
-* **কাজ:** এটি ডাটাবেজে ইউজারটিকে `verified: false` এবং কোনো `password` ছাড়াই তৈরি করবে। এরপর ইউজারের ইমেইলে একটি OTP পাঠানো হবে এবং ফ্রন্টএন্ড লিংক (`/otp-verify?email=mofit85267@hotkev.com`) পাঠানো হবে।
+* **What it does:** Creates the user in the database with `verified: false` and no `password`. An OTP is then sent to the user's email along with a frontend link (`/otp-verify?email=mofit85267@hotkev.com`).
 
 ---
 
-### ২. Account Verification (ইউজার দ্বারা OTP ভেরিফিকেশন)
+### 2. Account Verification (OTP Verification by User)
 * **Endpoint:** `POST /api/v1/auth/verify-account`
-* **Request Body (পাসওয়ার্ড ছাড়া - Multi-step):**
+* **Request Body (Without password - Multi-step):**
   ```json
   {
     "email": "mofit85267@hotkev.com",
     "oneTimeCode": "123456"
   }
   ```
-* **Response (পাসওয়ার্ড ছাড়া - Multi-step):**
+* **Response (Without password - Multi-step):**
   ```json
   {
     "statusCode": 200,
@@ -78,10 +78,10 @@ sequenceDiagram
   }
   ```
   > [!IMPORTANT]
-  > এখানে `needPassword: true` রেসপন্স দেখে ফ্রন্টএন্ড বুঝতে পারবে যে ইউজারটির পাসওয়ার্ড সেট করা আবশ্যক এবং তাকে পাসওয়ার্ড ইনপুট নেওয়ার পেজে রিডাইরেক্ট করতে হবে। এই ধাপে ডাটাবেজে `verified` স্ট্যাটাসটি এখনও `false` থাকে।
+  > When the frontend sees `needPassword: true` in the response, it knows the user must set a password and should redirect them to a password input page. At this stage, the `verified` status in the database is still `false`.
 
-* **Request Body (একসাথে পাসওয়ার্ড সহ - Single-step):**
-  যদি ফ্রন্টএন্ডে একই স্ক্রিনে OTP এবং পাসওয়ার্ড উভয়ই ইনপুট নেওয়া হয়:
+* **Request Body (With password - Single-step):**
+  If both OTP and password are collected on the same screen in the frontend:
   ```json
   {
     "email": "mofit85267@hotkev.com",
@@ -89,7 +89,7 @@ sequenceDiagram
     "password": "mySecurePassword123"
   }
   ```
-* **Response (পাসওয়ার্ড সহ - Single-step):**
+* **Response (With password - Single-step):**
   ```json
   {
     "statusCode": 200,
@@ -103,13 +103,13 @@ sequenceDiagram
   }
   ```
   > [!TIP]
-  > পাসওয়ার্ড সহ রিকোয়েস্ট পাঠালে ডাটাবেজে সরাসরি `verified` ফিল্ডটি `true` হয়ে যায় এবং ইউজার সরাসরি লগইন হয়ে টোকেন পেয়ে যায়।
+  > When a request is sent with a password, the `verified` field in the database is set directly to `true` and the user receives tokens immediately after being logged in.
 
 ---
 
-### ৩. Password Setup (যদি ভেরিফিকেশনের সময় পাসওয়ার্ড না পাঠানো হয়)
+### 3. Password Setup (If password was not sent during verification)
 * **Endpoint:** `POST /api/v1/auth/reset-password`
-* **Headers:** `Authorization: <verify-account এপিআই থেকে প্রাপ্ত token>`
+* **Headers:** `Authorization: <token received from the verify-account API>`
 * **Request Body:**
   ```json
   {
@@ -129,4 +129,4 @@ sequenceDiagram
   }
   ```
   > [!NOTE]
-  > এই রিকোয়েস্টটি সফল হওয়ার সাথে সাথে ডাটাবেজে ইউজারের `password` সেভ হয়ে যাবে এবং `verified` স্ট্যাটাসটি `true` হবে। এরপর ইউজার ইমেইল ও নতুন পাসওয়ার্ড দিয়ে সাধারণ লগইন করতে পারবেন।
+  > Once this request succeeds, the user's `password` is saved in the database and the `verified` status becomes `true`. The user can then log in normally using their email and new password.

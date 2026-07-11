@@ -72,7 +72,10 @@ const getAllPlaces = async (
   }
 
   const placeQuery = new QueryBuilder(
-    baseQuery.populate('category').populate('map'),
+    baseQuery
+      .populate('category', 'name color icon status')
+      .populate('map', 'name country status isPaid')
+      .lean(),
     query
   )
     .search(placeSearchableFields)

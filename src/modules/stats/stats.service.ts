@@ -11,34 +11,29 @@ import {
 } from './stats.interface'
 
 const getDashboardData = async (): Promise<IDashboardData> => {
-  const [totalMaps, totalPlaces, activeOffers] = await Promise.all([
+  // Run all DB queries in parallel
+  const [
+    totalMaps,
+    totalPlaces,
+    activeOffers,
+    recentMaps,
+    recentPlaces,
+    recentOffers,
+    recentUsers,
+  ] = await Promise.all([
     Map.countDocuments(),
     Place.countDocuments(),
     Offer.countDocuments({ status: 'ACTIVE' }),
+    Map.find().sort({ createdAt: -1 }).limit(3).select('name createdAt').lean(),
+    Place.find().sort({ updatedAt: -1 }).limit(3).select('name updatedAt').lean(),
+    Offer.find().sort({ createdAt: -1 }).limit(3).select('title createdAt').lean(),
+    User.find().sort({ updatedAt: -1 }).limit(3).select('name role updatedAt').lean(),
   ])
 
-  // Mocking revenue and sales for now as they are not explicitly stored in a Transaction model
-  // In a real production scenario, these would be aggregated from a payments/subscriptions collection
+  // Mocking revenue and sales for now
   const totalSales = 12450
   const thisMonthRevenue = 3280
   const taxesCollected = 820
-
-  const recentMaps = await Map.find()
-    .sort({ createdAt: -1 })
-    .limit(3)
-    .select('name createdAt')
-  const recentPlaces = await Place.find()
-    .sort({ updatedAt: -1 })
-    .limit(3)
-    .select('name updatedAt')
-  const recentOffers = await Offer.find()
-    .sort({ createdAt: -1 })
-    .limit(3)
-    .select('title createdAt')
-  const recentUsers = await User.find()
-    .sort({ updatedAt: -1 })
-    .limit(3)
-    .select('name role updatedAt')
 
   const recentActivity: IRecentActivity[] = []
 

@@ -149,8 +149,6 @@ const getAllUsers = async (
     }
   })
 
-  console.log(result, 'resule')
-
   return {
     meta: {
       page,

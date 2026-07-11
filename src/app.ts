@@ -56,9 +56,11 @@ app.use(
 // Cookie parser
 app.use(cookieParser())
 
-// Logging enabled for troubleshooting
+// Logging — only in development
 import morgan from 'morgan'
-app.use(morgan('dev'))
+if (process.env.NODE_ENV !== 'production') {
+  app.use(morgan('dev'))
+}
 
 // -------------------- Static Files --------------------
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))

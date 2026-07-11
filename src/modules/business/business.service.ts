@@ -32,7 +32,13 @@ const getAllBusinesses = async (query: Record<string, unknown>) => {
     delete query.mapView
   }
 
-  const businessQuery = new QueryBuilder(Business.find().populate('user category'), query)
+  const businessQuery = new QueryBuilder(
+    Business.find()
+      .populate('user', 'name email profile')
+      .populate('category', 'name color icon status')
+      .lean(),
+    query
+  )
     .search(businessSearchableFields)
     .filter()
     .sort()
@@ -55,7 +61,13 @@ const getAllBusinesses = async (query: Record<string, unknown>) => {
  * @returns Paginated list of businesses and metadata
  */
 const getMyBusinesses = async (userId: string, query: Record<string, unknown>) => {
-  const businessQuery = new QueryBuilder(Business.find({ user: userId }).populate('user category'), query)
+  const businessQuery = new QueryBuilder(
+    Business.find({ user: userId })
+      .populate('user', 'name email profile')
+      .populate('category', 'name color icon status')
+      .lean(),
+    query
+  )
     .search(businessSearchableFields)
     .filter()
     .sort()

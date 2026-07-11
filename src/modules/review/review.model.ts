@@ -18,4 +18,8 @@ const reviewSchema = new Schema<IReview, ReviewModel>(
   },
 )
 
+reviewSchema.index({ placeId: 1 })           // get reviews by place
+reviewSchema.index({ reviewer: 1 })          // get my reviews
+reviewSchema.index({ placeId: 1, reviewer: 1 }) // check duplicate review
+
 export const Review = model<IReview, ReviewModel>('Review', reviewSchema)

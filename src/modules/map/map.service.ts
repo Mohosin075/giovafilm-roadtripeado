@@ -49,7 +49,8 @@ const getAllMaps = async (query: Record<string, unknown>) => {
   const mapQuery = new QueryBuilder(
     Map.find().populate({
       path: 'places',
-      populate: { path: 'category' },
+      select: 'name media location category status type difficulty address country',
+      populate: { path: 'category', select: 'name color icon status' },
     }),
     query
   )
@@ -71,7 +72,8 @@ const getAllMaps = async (query: Record<string, unknown>) => {
 const getMapById = async (id: string): Promise<IMap | null> => {
   const result = await Map.findById(id).populate({
     path: 'places',
-    populate: { path: 'category' },
+    select: 'name media location category status type difficulty address country rating totalReview openCount',
+    populate: { path: 'category', select: 'name color icon status' },
   })
   if (!result) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')
@@ -155,10 +157,17 @@ const purchaseMap = async (userId: string, mapId: string) => {
 }
 
 const getPurchasedMaps = async (userId: string) => {
-  const user = await User.findById(userId).populate({
-    path: 'purchasedMaps',
-    populate: { path: 'places', populate: { path: 'category' } },
-  })
+  const user = await User.findById(userId)
+    .select('purchasedMaps')
+    .populate({
+      path: 'purchasedMaps',
+      populate: {
+        path: 'places',
+        select: 'name media location category status type difficulty address country rating totalReview',
+        populate: { path: 'category', select: 'name color icon status' },
+      },
+    })
+    .lean()
 
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
@@ -210,7 +219,9 @@ const getDiscoveryData = async (
 
   // Use QueryBuilder for Places
   const placeQuery = new QueryBuilder(
-    basePlaceQuery.populate('category').lean(),
+    basePlaceQuery
+      .populate('category', 'name color icon status')
+      .lean(),
     placeQueryObj
   )
     .search(placeSearchableFields)
@@ -219,14 +230,16 @@ const getDiscoveryData = async (
 
   // Use QueryBuilder for Businesses
   const businessQuery = new QueryBuilder(
-    Business.find().populate('category').lean(),
+    Business.find()
+      .populate('category', 'name color icon status')
+      .lean(),
     businessQueryObj
   )
     .search(businessSearchableFields)
     .filter()
     .sort()
 
-  // We fetch more items and then combine, sort, and paginate in memory 
+  // We fetch more items and then combine, sort, and paginate in memory
   // to ensure consistent combined results.
   placeQuery.modelQuery.limit(100)
   businessQuery.modelQuery.limit(100)

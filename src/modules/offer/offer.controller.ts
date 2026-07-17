@@ -7,8 +7,33 @@ import ApiError from '../../errors/ApiError'
 
 import { JwtPayload } from 'jsonwebtoken'
 
+import { getUserFromToken, verifyEditorEditAccess } from '../../helpers/mapAccessHelper'
+import { Place } from '../place/place.model'
+import { Business } from '../business/business.model'
+import { USER_ROLES } from '../../enum/user'
+
 const createOffer = catchAsync(async (req: Request, res: Response) => {
   const { images, ...offerData } = req.body
+  const user = await getUserFromToken(req.headers.authorization)
+
+  // Verify access for Map Editors
+  if (user && user.role === USER_ROLES.MAP_EDITOR) {
+    if (offerData.place) {
+      const place = await Place.findById(offerData.place)
+      if (!place) throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
+      const mapId = place.map?._id || place.map
+      if (mapId) {
+        await verifyEditorEditAccess(user, mapId.toString())
+      }
+    } else if (offerData.business) {
+      const business = await Business.findById(offerData.business)
+      if (!business) throw new ApiError(StatusCodes.NOT_FOUND, 'Business not found')
+      const country = business.location?.country
+      if (!user.assignedCountries?.includes(country)) {
+        throw new ApiError(StatusCodes.FORBIDDEN, 'You are not authorized to edit offers for this business.')
+      }
+    }
+  }
 
   // Handle image upload from disk storage
   if (images) {
@@ -49,6 +74,53 @@ const getOfferById = catchAsync(async (req: Request, res: Response) => {
 const updateOffer = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
   const { images, ...offerData } = req.body
+  const user = await getUserFromToken(req.headers.authorization)
+
+  const existingOffer = await OfferService.getOfferById(id)
+  if (!existingOffer) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Offer not found')
+  }
+
+  // Verify access for Map Editors
+  if (user && user.role === USER_ROLES.MAP_EDITOR) {
+    // Check existing offer's place/business
+    if (existingOffer.place) {
+      const place = await Place.findById(existingOffer.place)
+      if (place) {
+        const mapId = place.map?._id || place.map
+        if (mapId) {
+          await verifyEditorEditAccess(user, mapId.toString())
+        }
+      }
+    } else if (existingOffer.business) {
+      const business = await Business.findById(existingOffer.business)
+      if (business) {
+        const country = business.location?.country
+        if (!user.assignedCountries?.includes(country)) {
+          throw new ApiError(StatusCodes.FORBIDDEN, 'You are not authorized to edit offers for this business.')
+        }
+      }
+    }
+
+    // Check new place/business if they are being updated
+    if (offerData.place && offerData.place !== existingOffer.place?.toString()) {
+      const place = await Place.findById(offerData.place)
+      if (place) {
+        const mapId = place.map?._id || place.map
+        if (mapId) {
+          await verifyEditorEditAccess(user, mapId.toString())
+        }
+      }
+    } else if (offerData.business && offerData.business !== existingOffer.business?.toString()) {
+      const business = await Business.findById(offerData.business)
+      if (business) {
+        const country = business.location?.country
+        if (!user.assignedCountries?.includes(country)) {
+          throw new ApiError(StatusCodes.FORBIDDEN, 'You are not authorized to assign offers to this business.')
+        }
+      }
+    }
+  }
 
   // Handle image upload from disk storage
   if (images) {

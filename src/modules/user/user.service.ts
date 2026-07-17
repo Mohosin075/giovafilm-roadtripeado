@@ -266,7 +266,12 @@ const updateUserStatus = async (userId: string, status: USER_STATUS) => {
   return 'User status updated successfully.'
 }
 
-const updateUserRole = async (userId: string, role: USER_ROLES) => {
+const updateUserRole = async (
+  userId: string,
+  role: USER_ROLES,
+  assignedMaps?: string[],
+  assignedCountries?: string[]
+) => {
   if (!Types.ObjectId.isValid(userId)) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid User ID.')
   }
@@ -279,9 +284,16 @@ const updateUserRole = async (userId: string, role: USER_ROLES) => {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
   }
 
+  const updateData: any = { role }
+
+  if (role === USER_ROLES.MAP_EDITOR) {
+    if (assignedMaps !== undefined) updateData.assignedMaps = assignedMaps
+    if (assignedCountries !== undefined) updateData.assignedCountries = assignedCountries
+  }
+
   const updatedUser = await User.findOneAndUpdate(
     { _id: userId, status: { $nin: [USER_STATUS.DELETED] } },
-    { $set: { role } },
+    { $set: updateData },
     { new: true },
   )
 
@@ -292,7 +304,12 @@ const updateUserRole = async (userId: string, role: USER_ROLES) => {
   return 'User role updated successfully.'
 }
 
-const inviteUser = async (payload: { email: string; role: USER_ROLES }) => {
+const inviteUser = async (payload: {
+  email: string
+  role: USER_ROLES
+  assignedMaps?: string[]
+  assignedCountries?: string[]
+}) => {
   const email = payload.email.toLowerCase().trim()
 
   const isUserExist = await User.findOne({ email })
@@ -315,29 +332,31 @@ const inviteUser = async (payload: { email: string; role: USER_ROLES }) => {
     authType: 'createAccount',
   }
 
+  const baseUpdate: any = {
+    role: payload.role,
+    status: USER_STATUS.ACTIVE,
+    verified: false,
+    authentication,
+  }
+
+  if (payload.role === USER_ROLES.MAP_EDITOR) {
+    if (payload.assignedMaps !== undefined) baseUpdate.assignedMaps = payload.assignedMaps
+    if (payload.assignedCountries !== undefined) baseUpdate.assignedCountries = payload.assignedCountries
+  }
+
   let user
   if (isUserExist) {
     // Update existing unverified or deleted user
     user = await User.findOneAndUpdate(
       { email },
-      {
-        $set: {
-          role: payload.role,
-          status: USER_STATUS.ACTIVE,
-          verified: false,
-          authentication,
-        },
-      },
+      { $set: baseUpdate },
       { new: true },
     )
   } else {
     // Create new user
     user = await User.create({
       email,
-      role: payload.role,
-      status: USER_STATUS.ACTIVE,
-      verified: false,
-      authentication,
+      ...baseUpdate
     })
   }
 
@@ -516,6 +535,41 @@ const updatePointsAndLevel = async (userId: string, pointsToAdd: number) => {
   })
 }
 
+const assignEditorAccess = async (
+  userId: string,
+  assignedMaps?: string[],
+  assignedCountries?: string[]
+) => {
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid User ID.')
+  }
+
+  const user = await User.findById(userId)
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
+  }
+
+  if (user.role !== USER_ROLES.MAP_EDITOR) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'User is not a MAP_EDITOR.')
+  }
+
+  const updateData: any = {}
+  if (assignedMaps !== undefined) {
+    updateData.assignedMaps = assignedMaps
+  }
+  if (assignedCountries !== undefined) {
+    updateData.assignedCountries = assignedCountries
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    { $set: updateData },
+    { new: true, runValidators: true }
+  )
+
+  return updatedUser
+}
+
 export const UserServices = {
   updateProfile,
   createAdmin,
@@ -533,4 +587,5 @@ export const UserServices = {
   toggleFavoriteOffer,
   getFavoriteOffers,
   updatePointsAndLevel,
+  assignEditorAccess,
 }

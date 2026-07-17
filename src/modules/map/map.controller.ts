@@ -8,7 +8,7 @@ import { jwtHelper } from '../../helpers/jwtHelper'
 import config from '../../config'
 import { Secret } from 'jsonwebtoken'
 import { USER_ROLES } from '../../enum/user'
-import { getUserFromToken, getAccessibleMapIds } from '../../helpers/mapAccessHelper'
+import { getUserFromToken, getAccessibleMapIds, verifyEditorEditAccess } from '../../helpers/mapAccessHelper'
 import { Map } from './map.model'
 import ApiError from '../../errors/ApiError'
 
@@ -82,7 +82,12 @@ const getMapById = catchAsync(async (req: Request, res: Response) => {
 })
 
 const updateMap = catchAsync(async (req: Request, res: Response) => {
-  const result = await MapService.updateMap(req.params.id, req.body)
+  const user = await getUserFromToken(req.headers.authorization)
+  const mapId = req.params.id
+  
+  await verifyEditorEditAccess(user, mapId)
+
+  const result = await MapService.updateMap(mapId, req.body)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,

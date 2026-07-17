@@ -3,12 +3,19 @@ import { StatusCodes } from 'http-status-codes'
 import catchAsync from '../../shared/catchAsync'
 import sendResponse from '../../shared/sendResponse'
 import { PlaceService } from './place.service'
-import { getUserFromToken, getAccessibleMapIds } from '../../helpers/mapAccessHelper'
+import { getUserFromToken, getAccessibleMapIds, verifyEditorEditAccess } from '../../helpers/mapAccessHelper'
 import { Map } from '../map/map.model'
 import ApiError from '../../errors/ApiError'
 import { getCoordinatesFromUrl } from '../../utils/mapHelper'
 
 const createPlace = catchAsync(async (req: Request, res: Response) => {
+  const user = await getUserFromToken(req.headers.authorization)
+  
+  // A place must belong to a map, verify access
+  if (req.body.map) {
+    await verifyEditorEditAccess(user, req.body.map)
+  }
+
   if (req.body.images) {
     req.body.media = req.body.images
   }
@@ -78,6 +85,24 @@ const getPlaceById = catchAsync(async (req: Request, res: Response) => {
 
 const updatePlace = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
+  const user = await getUserFromToken(req.headers.authorization)
+  
+  const existingPlace = await PlaceService.getPlaceById(id)
+  if (!existingPlace) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
+  }
+
+  // A place must belong to a map, verify access to the existing map
+  const mapId = existingPlace.map?._id || existingPlace.map
+  if (mapId) {
+    await verifyEditorEditAccess(user, mapId.toString())
+  }
+  
+  // If they are moving the place to a new map, verify access to the new map too
+  if (req.body.map && req.body.map !== mapId?.toString()) {
+    await verifyEditorEditAccess(user, req.body.map)
+  }
+
   if (req.body.images) {
     req.body.media = req.body.images
   }

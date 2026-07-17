@@ -96,11 +96,11 @@ const updateUserStatus = catchAsync(async (req: Request, res: Response) => {
 
 const updateUserRole = catchAsync(async (req: Request, res: Response) => {
   const { userId } = req.params
-  const { role } = req.body
+  const { role, assignedMaps, assignedCountries } = req.body
   if (!role) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Role is required')
   }
-  const result = await UserServices.updateUserRole(userId, role)
+  const result = await UserServices.updateUserRole(userId, role, assignedMaps, assignedCountries)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -188,6 +188,20 @@ const getFavoriteOffers = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const assignEditorAccess = catchAsync(async (req: Request, res: Response) => {
+  const { userId } = req.params
+  const { assignedMaps, assignedCountries } = req.body
+
+  const result = await UserServices.assignEditorAccess(userId, assignedMaps, assignedCountries)
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Editor access assigned successfully',
+    data: result,
+  })
+})
+
 export const UserController = {
   updateProfile,
   getAllUsers,
@@ -203,4 +217,5 @@ export const UserController = {
   getFavoriteMaps,
   toggleFavoriteOffer,
   getFavoriteOffers,
+  assignEditorAccess,
 }

@@ -40,3 +40,42 @@ export const getAccessibleMapIds = async (user: any): Promise<string[]> => {
 
   return freeMapIds
 }
+
+import { StatusCodes } from 'http-status-codes'
+import ApiError from '../errors/ApiError'
+
+export const verifyEditorEditAccess = async (user: any, mapId: string): Promise<boolean> => {
+  if (!user) {
+    throw new ApiError(StatusCodes.UNAUTHORIZED, 'You are not authorized.')
+  }
+
+  // Admin and Super Admin have full access
+  if ([USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN].includes(user.role)) {
+    return true
+  }
+
+  // If Map Editor, check assigned maps and countries
+  if (user.role === USER_ROLES.MAP_EDITOR) {
+    const map = await Map.findById(mapId)
+    if (!map) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found.')
+    }
+
+    const mapIdStr = map._id.toString()
+    const mapCountry = map.country
+
+    const isAssignedMap = user.assignedMaps?.some((id: any) => id.toString() === mapIdStr)
+    const isAssignedCountry = mapCountry && user.assignedCountries?.includes(mapCountry)
+
+    if (isAssignedMap || isAssignedCountry) {
+      return true
+    }
+
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      'You are not authorized to edit this map or its places.'
+    )
+  }
+
+  throw new ApiError(StatusCodes.FORBIDDEN, 'You do not have permission to edit this resource.')
+}

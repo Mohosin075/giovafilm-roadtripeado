@@ -92,6 +92,9 @@ export interface IUser {
   trialUsed?: boolean
   subscriptionExpiresAt?: Date
 
+  assignedMaps?: Types.ObjectId[]
+  assignedCountries?: string[]
+
   createdAt: Date
   updatedAt: Date
 }

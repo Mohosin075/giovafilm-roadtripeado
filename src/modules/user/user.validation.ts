@@ -82,6 +82,8 @@ export const inviteUserSchema = z.object({
   body: z.object({
     email: z.string().email({ message: 'Invalid email address' }),
     role: z.nativeEnum(USER_ROLES),
+    assignedMaps: z.array(z.string()).optional(),
+    assignedCountries: z.array(z.string()).optional(),
   }),
 })
 
@@ -93,6 +95,8 @@ export const updateUserRoleSchema = z.object({
   }),
   body: z.object({
     role: z.nativeEnum(USER_ROLES),
+    assignedMaps: z.array(z.string()).optional(),
+    assignedCountries: z.array(z.string()).optional(),
   }),
 })
 
@@ -123,5 +127,17 @@ export const favoriteOfferSchema = z.object({
     offerId: z.string({
       required_error: 'Offer ID is required',
     }),
+  }),
+})
+
+export const assignEditorAccessZodSchema = z.object({
+  params: z.object({
+    userId: z.string({
+      required_error: 'User ID is required',
+    }),
+  }),
+  body: z.object({
+    assignedMaps: z.array(z.string()).optional(),
+    assignedCountries: z.array(z.string()).optional(),
   }),
 })

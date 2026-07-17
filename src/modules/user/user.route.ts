@@ -15,6 +15,7 @@ import {
   updateUserSchema,
   inviteUserSchema,
   updateUserRoleSchema,
+  assignEditorAccessZodSchema,
 } from './user.validation'
 import { fileAndBodyProcessorUsingDiskStorage } from '../../middleware/processReqBody'
 
@@ -111,5 +112,12 @@ router
     // validateRequest(updateUserSchema),
     UserController.updateUserStatus,
   )
+
+router.patch(
+  '/assign-editor-access/:userId',
+  auth(USER_ROLES.SUPER_ADMIN),
+  validateRequest(assignEditorAccessZodSchema),
+  UserController.assignEditorAccess,
+)
 
 export const UserRoutes = router

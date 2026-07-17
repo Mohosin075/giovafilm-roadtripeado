@@ -111,6 +111,14 @@ const UserSchema = new Schema<IUser, UserModel>(
     subscriptionTier: { type: String, default: 'free' },
     trialUsed: { type: Boolean, default: false },
     subscriptionExpiresAt: { type: Date, default: null },
+
+    assignedMaps: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Map',
+      },
+    ],
+    assignedCountries: { type: [String], default: [] },
   },
   {
     timestamps: true,

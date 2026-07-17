@@ -25,4 +25,7 @@ const MapSchema = new mongoose_1.Schema({
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
 });
+MapSchema.index({ status: 1 }); // status filter
+MapSchema.index({ isPaid: 1 }); // free vs paid filter
+MapSchema.index({ status: 1, isActive: 1 }); // active published maps
 exports.Map = (0, mongoose_1.model)('Map', MapSchema);

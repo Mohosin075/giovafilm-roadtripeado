@@ -33,7 +33,9 @@ const createOffer = async (payload) => {
     return result;
 };
 const getAllOffers = async (query) => {
-    const offerQuery = new QueryBuilder_1.default(offer_model_1.Offer.find().populate('business'), query)
+    const offerQuery = new QueryBuilder_1.default(offer_model_1.Offer.find()
+        .populate('business', 'name location media status category')
+        .lean(), query)
         .search(offer_constants_1.offerSearchableFields)
         .filter()
         .sort()

@@ -15,4 +15,7 @@ const reviewSchema = new mongoose_1.Schema({
 }, {
     timestamps: true,
 });
+reviewSchema.index({ placeId: 1 }); // get reviews by place
+reviewSchema.index({ reviewer: 1 }); // get my reviews
+reviewSchema.index({ placeId: 1, reviewer: 1 }); // check duplicate review
 exports.Review = (0, mongoose_1.model)('Review', reviewSchema);

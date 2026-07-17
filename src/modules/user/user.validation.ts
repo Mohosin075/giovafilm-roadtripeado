@@ -34,6 +34,8 @@ export const updateUserSchema = z.object({
     profile: z.string().optional(),
     images: z.union([z.string(), z.array(z.string())]).optional(),
     phone: z.string().optional(),
+    website: z.string().optional().or(z.literal('')),
+    instagram: z.string().optional().or(z.literal('')),
     description: z.string().optional(),
     specialty: z.string().optional(),
 

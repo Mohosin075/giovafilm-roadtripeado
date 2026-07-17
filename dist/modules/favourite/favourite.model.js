@@ -30,4 +30,9 @@ const FavouriteSchema = new mongoose_1.Schema({
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
 });
+FavouriteSchema.index({ user: 1 }); // get user's favourites
+FavouriteSchema.index({ user: 1, type: 1 }); // filter by type
+FavouriteSchema.index({ user: 1, map: 1 }); // check if map is favourited
+FavouriteSchema.index({ user: 1, place: 1 }); // check if place is favourited
+FavouriteSchema.index({ user: 1, offer: 1 }); // check if offer is favourited
 exports.Favourite = (0, mongoose_1.model)('Favourite', FavouriteSchema);

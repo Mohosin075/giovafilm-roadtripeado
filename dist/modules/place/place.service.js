@@ -64,7 +64,10 @@ const getAllPlaces = async (query, lockedMapIds) => {
             ]
         });
     }
-    const placeQuery = new QueryBuilder_1.default(baseQuery.populate('category').populate('map'), query)
+    const placeQuery = new QueryBuilder_1.default(baseQuery
+        .populate('category', 'name color icon status')
+        .populate('map', 'name country status isPaid')
+        .lean(), query)
         .search(place_constants_1.placeSearchableFields)
         .filter()
         .sort()

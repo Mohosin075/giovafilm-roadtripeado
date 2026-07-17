@@ -45,6 +45,8 @@ export interface IUser {
   email?: string
   profile?: string
   phone?: string
+  website?: string
+  instagram?: string
   description?: string
   interest?: InterestCategory[]
 

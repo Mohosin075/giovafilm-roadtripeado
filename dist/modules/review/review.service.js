@@ -33,13 +33,10 @@ const createReview = async (user, payload) => {
         const pointsForReview = 10;
         const pointsForMedia = (((_a = payload.media) === null || _a === void 0 ? void 0 : _a.length) || 0) * 5;
         const totalPointsEarned = pointsForReview + pointsForMedia;
-        // Update user points and level
-        const user = await user_model_1.User.findById(payload.reviewer);
-        if (user) {
-            const newPoints = (user.points || 0) + totalPointsEarned;
-            const newLevel = Math.floor(newPoints / 1000) + 1;
-            await user_model_1.User.findByIdAndUpdate(payload.reviewer, { $set: { points: newPoints, level: newLevel } }, { session });
-        }
+        // Reuse already-fetched user — avoid second DB round-trip
+        const newPoints = (isUserExist.points || 0) + totalPointsEarned;
+        const newLevel = Math.floor(newPoints / 1000) + 1;
+        await user_model_1.User.findByIdAndUpdate(payload.reviewer, { $set: { points: newPoints, level: newLevel } }, { session });
         // update the review count and rating of the place
         await place_model_1.Place.findByIdAndUpdate(payload.placeId, [
             {

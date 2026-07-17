@@ -46,7 +46,8 @@ const getAllMaps = async (query) => {
     }
     const mapQuery = new QueryBuilder_1.default(map_model_1.Map.find().populate({
         path: 'places',
-        populate: { path: 'category' },
+        select: 'name media location category status type difficulty address country',
+        populate: { path: 'category', select: 'name color icon status' },
     }), query)
         .search(map_constants_1.mapSearchableFields)
         .filter()
@@ -63,7 +64,8 @@ const getAllMaps = async (query) => {
 const getMapById = async (id) => {
     const result = await map_model_1.Map.findById(id).populate({
         path: 'places',
-        populate: { path: 'category' },
+        select: 'name media location category status type difficulty address country rating totalReview openCount',
+        populate: { path: 'category', select: 'name color icon status' },
     });
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Map not found');
@@ -126,10 +128,17 @@ const purchaseMap = async (userId, mapId) => {
     return result;
 };
 const getPurchasedMaps = async (userId) => {
-    const user = await user_model_1.User.findById(userId).populate({
+    const user = await user_model_1.User.findById(userId)
+        .select('purchasedMaps')
+        .populate({
         path: 'purchasedMaps',
-        populate: { path: 'places', populate: { path: 'category' } },
-    });
+        populate: {
+            path: 'places',
+            select: 'name media location category status type difficulty address country rating totalReview',
+            populate: { path: 'category', select: 'name color icon status' },
+        },
+    })
+        .lean();
     if (!user) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
     }
@@ -169,16 +178,20 @@ const getDiscoveryData = async (query, lockedMapIds) => {
         });
     }
     // Use QueryBuilder for Places
-    const placeQuery = new QueryBuilder_1.default(basePlaceQuery.populate('category').lean(), placeQueryObj)
+    const placeQuery = new QueryBuilder_1.default(basePlaceQuery
+        .populate('category', 'name color icon status')
+        .lean(), placeQueryObj)
         .search(place_constants_1.placeSearchableFields)
         .filter()
         .sort();
     // Use QueryBuilder for Businesses
-    const businessQuery = new QueryBuilder_1.default(business_model_1.Business.find().populate('category').lean(), businessQueryObj)
+    const businessQuery = new QueryBuilder_1.default(business_model_1.Business.find()
+        .populate('category', 'name color icon status')
+        .lean(), businessQueryObj)
         .search(business_constants_1.businessSearchableFields)
         .filter()
         .sort();
-    // We fetch more items and then combine, sort, and paginate in memory 
+    // We fetch more items and then combine, sort, and paginate in memory
     // to ensure consistent combined results.
     placeQuery.modelQuery.limit(100);
     businessQuery.modelQuery.limit(100);

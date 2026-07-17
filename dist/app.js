@@ -40,9 +40,11 @@ app.use((0, cors_1.default)({
 }));
 // Cookie parser
 app.use((0, cookie_parser_1.default)());
-// Logging enabled for troubleshooting
+// Logging — only in development
 const morgan_1 = __importDefault(require("morgan"));
-app.use((0, morgan_1.default)('dev'));
+if (process.env.NODE_ENV !== 'production') {
+    app.use((0, morgan_1.default)('dev'));
+}
 // -------------------- Static Files --------------------
 app.use('/uploads', express_1.default.static(path_1.default.join(process.cwd(), 'uploads')));
 app.use('/images', express_1.default.static(path_1.default.join(process.cwd(), 'uploads/images')));

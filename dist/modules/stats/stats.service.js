@@ -6,32 +6,20 @@ const place_model_1 = require("../place/place.model");
 const offer_model_1 = require("../offer/offer.model");
 const user_model_1 = require("../user/user.model");
 const getDashboardData = async () => {
-    const [totalMaps, totalPlaces, activeOffers] = await Promise.all([
+    // Run all DB queries in parallel
+    const [totalMaps, totalPlaces, activeOffers, recentMaps, recentPlaces, recentOffers, recentUsers,] = await Promise.all([
         map_model_1.Map.countDocuments(),
         place_model_1.Place.countDocuments(),
         offer_model_1.Offer.countDocuments({ status: 'ACTIVE' }),
+        map_model_1.Map.find().sort({ createdAt: -1 }).limit(3).select('name createdAt').lean(),
+        place_model_1.Place.find().sort({ updatedAt: -1 }).limit(3).select('name updatedAt').lean(),
+        offer_model_1.Offer.find().sort({ createdAt: -1 }).limit(3).select('title createdAt').lean(),
+        user_model_1.User.find().sort({ updatedAt: -1 }).limit(3).select('name role updatedAt').lean(),
     ]);
-    // Mocking revenue and sales for now as they are not explicitly stored in a Transaction model
-    // In a real production scenario, these would be aggregated from a payments/subscriptions collection
+    // Mocking revenue and sales for now
     const totalSales = 12450;
     const thisMonthRevenue = 3280;
     const taxesCollected = 820;
-    const recentMaps = await map_model_1.Map.find()
-        .sort({ createdAt: -1 })
-        .limit(3)
-        .select('name createdAt');
-    const recentPlaces = await place_model_1.Place.find()
-        .sort({ updatedAt: -1 })
-        .limit(3)
-        .select('name updatedAt');
-    const recentOffers = await offer_model_1.Offer.find()
-        .sort({ createdAt: -1 })
-        .limit(3)
-        .select('title createdAt');
-    const recentUsers = await user_model_1.User.find()
-        .sort({ updatedAt: -1 })
-        .limit(3)
-        .select('name role updatedAt');
     const recentActivity = [];
     recentPlaces.forEach((place) => {
         recentActivity.push({

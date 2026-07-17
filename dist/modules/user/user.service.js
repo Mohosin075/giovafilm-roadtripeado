@@ -126,7 +126,6 @@ const getAllUsers = async (paginationOptions, filterables = {}) => {
             ...user,
         };
     });
-    console.log(result, 'resule');
     return {
         meta: {
             page,

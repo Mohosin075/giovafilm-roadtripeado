@@ -33,7 +33,10 @@ const getAllBusinesses = async (query) => {
         query.status = 'Approved';
         delete query.mapView;
     }
-    const businessQuery = new QueryBuilder_1.default(business_model_1.Business.find().populate('user category'), query)
+    const businessQuery = new QueryBuilder_1.default(business_model_1.Business.find()
+        .populate('user', 'name email profile')
+        .populate('category', 'name color icon status')
+        .lean(), query)
         .search(business_constants_1.businessSearchableFields)
         .filter()
         .sort()
@@ -53,7 +56,10 @@ const getAllBusinesses = async (query) => {
  * @returns Paginated list of businesses and metadata
  */
 const getMyBusinesses = async (userId, query) => {
-    const businessQuery = new QueryBuilder_1.default(business_model_1.Business.find({ user: userId }).populate('user category'), query)
+    const businessQuery = new QueryBuilder_1.default(business_model_1.Business.find({ user: userId })
+        .populate('user', 'name email profile')
+        .populate('category', 'name color icon status')
+        .lean(), query)
         .search(business_constants_1.businessSearchableFields)
         .filter()
         .sort()

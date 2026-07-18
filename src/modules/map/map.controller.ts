@@ -38,7 +38,7 @@ const getAllMaps = catchAsync(async (req: Request, res: Response) => {
 
   // Convert mongoose documents to plain objects to filter places for locked maps
   const data = result.data.map((map: any) => {
-    const mapObj = map.toObject()
+    const mapObj = typeof map.toObject === 'function' ? map.toObject() : map
     if (!accessibleMapIds.includes(mapObj._id.toString())) {
       mapObj.places = (mapObj.places || []).filter((place: any) => {
         return place.type === 'Business'
@@ -66,7 +66,7 @@ const getMapById = catchAsync(async (req: Request, res: Response) => {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')
   }
 
-  const mapObj = (result as any).toObject()
+  const mapObj = typeof result.toObject === 'function' ? (result as any).toObject() : result
   if (!accessibleMapIds.includes(mapObj._id.toString())) {
     mapObj.places = (mapObj.places || []).filter((place: any) => {
       return place.type === 'Business'

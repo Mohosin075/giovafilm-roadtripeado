@@ -49,7 +49,7 @@ const getAllMaps = async (query: Record<string, unknown>) => {
   const mapQuery = new QueryBuilder(
     Map.find().populate({
       path: 'places',
-      select: 'name media location category status type difficulty address country',
+      select: 'name media location category status type difficulty address country rating totalReview',
       populate: { path: 'category', select: 'name color icon status' },
     }),
     query
@@ -63,13 +63,34 @@ const getAllMaps = async (query: Record<string, unknown>) => {
   const result = await mapQuery.modelQuery
   const meta = await mapQuery.getPaginationInfo()
 
+  const populatedData = result.map((map: any) => {
+    const mapObj = typeof map.toObject === 'function' ? map.toObject() : map;
+    const places = mapObj.places || [];
+    let totalReview = 0;
+    let totalWeightedRating = 0;
+    let placesWithReviews = 0;
+
+    places.forEach((place: any) => {
+      if (place.totalReview > 0) {
+        totalReview += place.totalReview;
+        totalWeightedRating += place.rating * place.totalReview;
+        placesWithReviews += place.totalReview;
+      }
+    });
+
+    const averageRating = placesWithReviews > 0 ? (totalWeightedRating / placesWithReviews) : 0;
+    mapObj.rating = Number(averageRating.toFixed(1)) || 0;
+    mapObj.totalReview = totalReview;
+    return mapObj;
+  });
+
   return {
     meta,
-    data: result,
+    data: populatedData,
   }
 }
 
-const getMapById = async (id: string): Promise<IMap | null> => {
+const getMapById = async (id: string): Promise<any | null> => {
   const result = await Map.findById(id).populate({
     path: 'places',
     select: 'name media location category status type difficulty address country rating totalReview openCount',
@@ -78,7 +99,26 @@ const getMapById = async (id: string): Promise<IMap | null> => {
   if (!result) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')
   }
-  return result
+
+  const mapObj = typeof result.toObject === 'function' ? result.toObject() : result;
+  const places = mapObj.places || [];
+  let totalReview = 0;
+  let totalWeightedRating = 0;
+  let placesWithReviews = 0;
+
+  places.forEach((place: any) => {
+    if (place.totalReview > 0) {
+      totalReview += place.totalReview;
+      totalWeightedRating += place.rating * place.totalReview;
+      placesWithReviews += place.totalReview;
+    }
+  });
+
+  const averageRating = placesWithReviews > 0 ? (totalWeightedRating / placesWithReviews) : 0;
+  mapObj.rating = Number(averageRating.toFixed(1)) || 0;
+  mapObj.totalReview = totalReview;
+
+  return mapObj;
 }
 
 const updateMap = async (id: string, payload: Partial<IMap>): Promise<IMap | null> => {

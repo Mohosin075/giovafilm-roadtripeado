@@ -10,12 +10,8 @@ export const createContactSchema = z.object({
         required_error: 'Email is required',
       })
       .email('Invalid email address'),
-    phone: z.string({
-      required_error: 'Phone is required',
-    }),
-    country: z.string({
-      required_error: 'Country is required',
-    }),
+    phone: z.string().optional(),
+    country: z.string().optional(),
     subject: z.string({
       required_error: 'Subject is required',
     }),

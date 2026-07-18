@@ -5,8 +5,8 @@ const contactSchema = new Schema<IContact, ContactModel>(
   {
     name: { type: String, required: true },
     email: { type: String, required: true },
-    phone: { type: String, required: true },
-    country: { type: String, required: true },
+    phone: { type: String, required: false },
+    country: { type: String, required: false },
     subject: { type: String, required: true },
     message: { type: String, required: true },
   },

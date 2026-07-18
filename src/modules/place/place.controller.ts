@@ -40,6 +40,8 @@ const getAllPlaces = catchAsync(async (req: Request, res: Response) => {
   // Compute locked maps
   const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id))
 
+  console.log('--- getAllPlaces req.query ---', req.query)
+
   const result = await PlaceService.getAllPlaces(req.query, lockedMapIds)
 
   sendResponse(res, {

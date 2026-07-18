@@ -81,20 +81,25 @@ const createCheckoutSession = async (
 const verifyCheckoutSession = async (sessionId: string): Promise<IPayment> => {
   try {
     // Retrieve session from Stripe
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+    const stripeSession = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ['payment_intent'],
     })
 
-    console.log('🔍 Verifying Checkout Session:', session.id)
-    console.log('🔍 Payment Intent:', session.payment_intent)
-    console.log('🔍 Metadata:', session.metadata)
+    console.log('🔍 Verifying Checkout Session:', stripeSession.id)
+    console.log('🔍 Payment Intent:', stripeSession.payment_intent)
+    console.log('🔍 Metadata:', stripeSession.metadata)
+
+    const paymentIntentId =
+      stripeSession.payment_intent && typeof stripeSession.payment_intent === 'object'
+        ? (stripeSession.payment_intent as any).id
+        : (stripeSession.payment_intent as string)
 
     // Find payment record using either paymentIntentId (legacy/direct) or metadata.checkoutSessionId (correct for checkout)
     const payment = await Payment.findOne({
       $or: [
         { paymentIntentId: sessionId },
         { 'metadata.checkoutSessionId': sessionId },
-        { paymentIntentId: session.payment_intent as string }
+        ...(paymentIntentId ? [{ paymentIntentId }] : [])
       ]
     })
       .populate('userId', 'name email')
@@ -104,15 +109,26 @@ const verifyCheckoutSession = async (sessionId: string): Promise<IPayment> => {
     }
 
     // Update payment status based on session
-    if (session.payment_status === 'paid' && payment.status !== 'succeeded') {
-      const session = await Payment.startSession()
-      session.startTransaction()
+    if (stripeSession.payment_status === 'paid' && payment.status !== 'succeeded') {
+      const mongooseSession = await Payment.startSession()
+      mongooseSession.startTransaction()
 
       try {
         // Update payment status
         payment.status = 'succeeded'
-        payment.metadata = { ...payment.metadata, session }
-        await payment.save({ session })
+        payment.metadata = { ...payment.metadata, stripeSessionId: stripeSession.id }
+        await payment.save({ session: mongooseSession })
+
+        // Update User purchasedMaps if mapId exists
+        const mapId = payment.mapId
+        if (mapId) {
+          await User.findByIdAndUpdate(
+            payment.userId,
+            { $addToSet: { purchasedMaps: mapId } },
+            { session: mongooseSession }
+          )
+          console.log(`verifyCheckoutSession: User purchasedMaps updated for User ID: ${payment.userId}`)
+        }
 
         // Send confirmation email
         const user = await payment.populate('userId')
@@ -126,15 +142,15 @@ const verifyCheckoutSession = async (sessionId: string): Promise<IPayment> => {
           })
         }
 
-        await session.commitTransaction()
+        await mongooseSession.commitTransaction()
       } catch (error) {
-        await session.abortTransaction()
+        await mongooseSession.abortTransaction()
         throw error
       } finally {
-        session.endSession()
+        mongooseSession.endSession()
       }
     } else if (
-      session.payment_status === 'unpaid' &&
+      stripeSession.payment_status === 'unpaid' &&
       payment.status !== 'failed'
     ) {
       payment.status = 'failed'

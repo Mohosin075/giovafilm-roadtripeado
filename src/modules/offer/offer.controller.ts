@@ -11,6 +11,7 @@ import { getUserFromToken, verifyEditorEditAccess } from '../../helpers/mapAcces
 import { Place } from '../place/place.model'
 import { Business } from '../business/business.model'
 import { USER_ROLES } from '../../enum/user'
+import { OfferRedemption } from './offerRedemption.model'
 
 const createOffer = catchAsync(async (req: Request, res: Response) => {
   const { images, ...offerData } = req.body
@@ -62,7 +63,23 @@ const getAllOffers = catchAsync(async (req: Request, res: Response) => {
 
 const getOfferById = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
-  const result = await OfferService.getOfferById(id)
+  const user = await getUserFromToken(req.headers.authorization)
+  let result: any = await OfferService.getOfferById(id)
+
+  if (result && user) {
+    const activeRedemption = await OfferRedemption.findOne({
+      user: user._id,
+      offer: id,
+      expiresAt: { $gt: new Date() },
+    })
+
+    const offerObj = typeof result.toObject === 'function' ? result.toObject() : result
+    result = {
+      ...offerObj,
+      activeRedemption,
+    }
+  }
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,

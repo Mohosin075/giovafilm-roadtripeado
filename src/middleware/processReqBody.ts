@@ -33,7 +33,7 @@ export const fileAndBodyProcessor = () => {
         images: ['image/jpeg', 'image/png', 'image/jpg'],
         icon: ['image/jpeg', 'image/png', 'image/jpg'],
         media: ['video/mp4', 'audio/mpeg'],
-        documents: ['application/pdf'],
+        documents: ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'],
       }
 
       const fieldType = file.fieldname as IFolderName
@@ -189,7 +189,7 @@ export const fileAndBodyProcessorUsingDiskStorage = () => {
         images: ['image/jpeg', 'image/png', 'image/jpg'],
         icon: ['image/jpeg', 'image/png', 'image/jpg'],
         media: ['video/mp4', 'audio/mpeg'],
-        documents: ['application/pdf'],
+        documents: ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'],
       }
 
       const fieldType = file.fieldname as IFolderName

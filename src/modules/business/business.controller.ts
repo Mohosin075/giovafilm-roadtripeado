@@ -25,6 +25,14 @@ const createBusiness = catchAsync(async (req: Request, res: Response) => {
       : [req.body.images]
   }
 
+  // Handle menu/document upload from disk storage
+  if (req.body.documents) {
+    if (!businessData.media) businessData.media = {}
+    businessData.media.menu = Array.isArray(req.body.documents)
+      ? req.body.documents[0]
+      : req.body.documents
+  }
+
   const result = await BusinessService.createBusiness(businessData)
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
@@ -91,6 +99,14 @@ const updateBusiness = catchAsync(async (req: Request, res: Response) => {
     businessData.media.photos = Array.isArray(req.body.images)
       ? req.body.images
       : [req.body.images]
+  }
+
+  // Handle menu/document upload from disk storage
+  if (req.body.documents) {
+    if (!businessData.media) businessData.media = {}
+    businessData.media.menu = Array.isArray(req.body.documents)
+      ? req.body.documents[0]
+      : req.body.documents
   }
 
   console.log(req.body)

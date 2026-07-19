@@ -281,8 +281,9 @@ const getDiscoveryData = async (
 
   // We fetch more items and then combine, sort, and paginate in memory
   // to ensure consistent combined results.
-  placeQuery.modelQuery.limit(100)
-  businessQuery.modelQuery.limit(100)
+  const fetchLimit = Math.max(limit, 100)
+  placeQuery.modelQuery.limit(fetchLimit)
+  businessQuery.modelQuery.limit(fetchLimit)
 
   const [places, businesses] = await Promise.all([
     placeQuery.modelQuery,

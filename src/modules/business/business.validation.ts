@@ -40,7 +40,9 @@ export const createBusinessZodSchema = z.object({
       ownerPhone: z.string({ required_error: "Owner's Direct Phone is required" }),
       contactEmail: z.string({ required_error: "Contact email is required" }).email('Invalid email address'),
     }),
-    plan: z.string(),
+    plan: z.string().optional(),
+    images: z.array(z.string()).optional().or(z.string().optional()),
+    documents: z.array(z.string()).optional().or(z.string().optional()),
   }),
 })
 
@@ -76,6 +78,8 @@ export const updateBusinessZodSchema = z.object({
       contactEmail: z.string().email().optional(),
     }).optional(),
     plan: z.string().optional(),
+    images: z.array(z.string()).optional().or(z.string().optional()),
+    documents: z.array(z.string()).optional().or(z.string().optional()),
   }),
   isAccuracyVerified: z.boolean().optional(),
 })

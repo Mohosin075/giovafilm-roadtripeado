@@ -246,6 +246,9 @@ const getDiscoveryData = async (
   // 3. Handle "status" default if not provided
   if (!placeQueryObj.status) placeQueryObj.status = 'Published'
   if (!businessQueryObj.status) businessQueryObj.status = 'Approved'
+  
+  // 4. Enforce that businesses must have an active subscription to show on the map
+  businessQueryObj.hasActiveSubscription = true
 
   let basePlaceQuery = Place.find()
   if (lockedMapIds && lockedMapIds.length > 0) {

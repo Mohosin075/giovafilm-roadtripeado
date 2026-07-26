@@ -10,12 +10,16 @@ class QueryBuilder {
         var _a;
         if ((_a = this === null || this === void 0 ? void 0 : this.query) === null || _a === void 0 ? void 0 : _a.searchTerm) {
             this.modelQuery = this.modelQuery.find({
-                $or: searchableFields.map(field => ({
-                    [field]: {
-                        $regex: this.query.searchTerm,
-                        $options: 'i',
-                    },
-                })),
+                $and: [
+                    {
+                        $or: searchableFields.map(field => ({
+                            [field]: {
+                                $regex: this.query.searchTerm,
+                                $options: 'i',
+                            },
+                        })),
+                    }
+                ]
             });
         }
         return this;

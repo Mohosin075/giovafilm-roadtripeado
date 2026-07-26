@@ -58,9 +58,13 @@ const getAllPlaces = async (query, lockedMapIds) => {
     let baseQuery = place_model_1.Place.find();
     if (lockedMapIds && lockedMapIds.length > 0) {
         baseQuery = baseQuery.find({
-            $or: [
-                { map: { $nin: lockedMapIds } },
-                { type: 'Business' }
+            $and: [
+                {
+                    $or: [
+                        { map: { $nin: lockedMapIds } },
+                        { type: 'Business' }
+                    ]
+                }
             ]
         });
     }

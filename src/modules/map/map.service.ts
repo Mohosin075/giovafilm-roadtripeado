@@ -217,8 +217,10 @@ const getPurchasedMaps = async (userId: string) => {
 }
 
 const getAvailableCountries = async (): Promise<string[]> => {
-  const result = await Place.distinct('country', { status: 'Published' })
-  return result.filter((country): country is string => typeof country === 'string' && country !== 'Unknown')
+  const placeCountries = await Place.distinct('country', { status: 'Published' })
+  const mapCountries = await Map.distinct('country')
+  const combined = Array.from(new Set([...placeCountries, ...mapCountries]))
+  return combined.filter((country): country is string => typeof country === 'string' && country !== 'Unknown' && country.trim() !== '')
 }
 
 const getDiscoveryData = async (

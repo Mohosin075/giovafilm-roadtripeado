@@ -72,18 +72,21 @@ const createCheckoutSession = async (user, payload) => {
 const verifyCheckoutSession = async (sessionId) => {
     try {
         // Retrieve session from Stripe
-        const session = await stripe_1.default.checkout.sessions.retrieve(sessionId, {
+        const stripeSession = await stripe_1.default.checkout.sessions.retrieve(sessionId, {
             expand: ['payment_intent'],
         });
-        console.log('🔍 Verifying Checkout Session:', session.id);
-        console.log('🔍 Payment Intent:', session.payment_intent);
-        console.log('🔍 Metadata:', session.metadata);
+        console.log('🔍 Verifying Checkout Session:', stripeSession.id);
+        console.log('🔍 Payment Intent:', stripeSession.payment_intent);
+        console.log('🔍 Metadata:', stripeSession.metadata);
+        const paymentIntentId = stripeSession.payment_intent && typeof stripeSession.payment_intent === 'object'
+            ? stripeSession.payment_intent.id
+            : stripeSession.payment_intent;
         // Find payment record using either paymentIntentId (legacy/direct) or metadata.checkoutSessionId (correct for checkout)
         const payment = await payment_model_1.Payment.findOne({
             $or: [
                 { paymentIntentId: sessionId },
                 { 'metadata.checkoutSessionId': sessionId },
-                { paymentIntentId: session.payment_intent }
+                ...(paymentIntentId ? [{ paymentIntentId }] : [])
             ]
         })
             .populate('userId', 'name email');
@@ -91,14 +94,20 @@ const verifyCheckoutSession = async (sessionId) => {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Payment not found');
         }
         // Update payment status based on session
-        if (session.payment_status === 'paid' && payment.status !== 'succeeded') {
-            const session = await payment_model_1.Payment.startSession();
-            session.startTransaction();
+        if (stripeSession.payment_status === 'paid' && payment.status !== 'succeeded') {
+            const mongooseSession = await payment_model_1.Payment.startSession();
+            mongooseSession.startTransaction();
             try {
                 // Update payment status
                 payment.status = 'succeeded';
-                payment.metadata = { ...payment.metadata, session };
-                await payment.save({ session });
+                payment.metadata = { ...payment.metadata, stripeSessionId: stripeSession.id };
+                await payment.save({ session: mongooseSession });
+                // Update User purchasedMaps if mapId exists
+                const mapId = payment.mapId;
+                if (mapId) {
+                    await user_model_1.User.findByIdAndUpdate(payment.userId, { $addToSet: { purchasedMaps: mapId } }, { session: mongooseSession });
+                    console.log(`verifyCheckoutSession: User purchasedMaps updated for User ID: ${payment.userId}`);
+                }
                 // Send confirmation email
                 const user = await payment.populate('userId');
                 const userData = user.userId;
@@ -109,17 +118,17 @@ const verifyCheckoutSession = async (sessionId) => {
                         html: `<p>Hi ${userData.name}, your payment of ${payment.amount} ${payment.currency} was successful.</p>`
                     });
                 }
-                await session.commitTransaction();
+                await mongooseSession.commitTransaction();
             }
             catch (error) {
-                await session.abortTransaction();
+                await mongooseSession.abortTransaction();
                 throw error;
             }
             finally {
-                session.endSession();
+                mongooseSession.endSession();
             }
         }
-        else if (session.payment_status === 'unpaid' &&
+        else if (stripeSession.payment_status === 'unpaid' &&
             payment.status !== 'failed') {
             payment.status = 'failed';
             await payment.save();

@@ -33,7 +33,7 @@ const getAllMaps = (0, catchAsync_1.default)(async (req, res) => {
     const result = await map_service_1.MapService.getAllMaps(query);
     // Convert mongoose documents to plain objects to filter places for locked maps
     const data = result.data.map((map) => {
-        const mapObj = map.toObject();
+        const mapObj = typeof map.toObject === 'function' ? map.toObject() : map;
         if (!accessibleMapIds.includes(mapObj._id.toString())) {
             mapObj.places = (mapObj.places || []).filter((place) => {
                 return place.type === 'Business';
@@ -57,7 +57,7 @@ const getMapById = (0, catchAsync_1.default)(async (req, res) => {
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Map not found');
     }
-    const mapObj = result.toObject();
+    const mapObj = typeof result.toObject === 'function' ? result.toObject() : result;
     if (!accessibleMapIds.includes(mapObj._id.toString())) {
         mapObj.places = (mapObj.places || []).filter((place) => {
             return place.type === 'Business';
@@ -71,7 +71,10 @@ const getMapById = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 const updateMap = (0, catchAsync_1.default)(async (req, res) => {
-    const result = await map_service_1.MapService.updateMap(req.params.id, req.body);
+    const user = await (0, mapAccessHelper_1.getUserFromToken)(req.headers.authorization);
+    const mapId = req.params.id;
+    await (0, mapAccessHelper_1.verifyEditorEditAccess)(user, mapId);
+    const result = await map_service_1.MapService.updateMap(mapId, req.body);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,

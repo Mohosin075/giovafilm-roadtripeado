@@ -13,6 +13,11 @@ const map_model_1 = require("../map/map.model");
 const ApiError_1 = __importDefault(require("../../errors/ApiError"));
 const mapHelper_1 = require("../../utils/mapHelper");
 const createPlace = (0, catchAsync_1.default)(async (req, res) => {
+    const user = await (0, mapAccessHelper_1.getUserFromToken)(req.headers.authorization);
+    // A place must belong to a map, verify access
+    if (req.body.map) {
+        await (0, mapAccessHelper_1.verifyEditorEditAccess)(user, req.body.map);
+    }
     if (req.body.images) {
         req.body.media = req.body.images;
     }
@@ -33,6 +38,7 @@ const getAllPlaces = (0, catchAsync_1.default)(async (req, res) => {
     const paidMapIds = paidMaps.map(m => m._id.toString());
     // Compute locked maps
     const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id));
+    console.log('--- getAllPlaces req.query ---', req.query);
     const result = await place_service_1.PlaceService.getAllPlaces(req.query, lockedMapIds);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
@@ -69,7 +75,22 @@ const getPlaceById = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 const updatePlace = (0, catchAsync_1.default)(async (req, res) => {
+    var _a;
     const { id } = req.params;
+    const user = await (0, mapAccessHelper_1.getUserFromToken)(req.headers.authorization);
+    const existingPlace = await place_service_1.PlaceService.getPlaceById(id);
+    if (!existingPlace) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Place not found');
+    }
+    // A place must belong to a map, verify access to the existing map
+    const mapId = ((_a = existingPlace.map) === null || _a === void 0 ? void 0 : _a._id) || existingPlace.map;
+    if (mapId) {
+        await (0, mapAccessHelper_1.verifyEditorEditAccess)(user, mapId.toString());
+    }
+    // If they are moving the place to a new map, verify access to the new map too
+    if (req.body.map && req.body.map !== (mapId === null || mapId === void 0 ? void 0 : mapId.toString())) {
+        await (0, mapAccessHelper_1.verifyEditorEditAccess)(user, req.body.map);
+    }
     if (req.body.images) {
         req.body.media = req.body.images;
     }

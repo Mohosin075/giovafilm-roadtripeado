@@ -46,7 +46,7 @@ const getAllMaps = async (query) => {
     }
     const mapQuery = new QueryBuilder_1.default(map_model_1.Map.find().populate({
         path: 'places',
-        select: 'name media location category status type difficulty address country',
+        select: 'name media location category status type difficulty address country rating totalReview',
         populate: { path: 'category', select: 'name color icon status' },
     }), query)
         .search(map_constants_1.mapSearchableFields)
@@ -56,9 +56,27 @@ const getAllMaps = async (query) => {
         .fields();
     const result = await mapQuery.modelQuery;
     const meta = await mapQuery.getPaginationInfo();
+    const populatedData = result.map((map) => {
+        const mapObj = typeof map.toObject === 'function' ? map.toObject() : map;
+        const places = mapObj.places || [];
+        let totalReview = 0;
+        let totalWeightedRating = 0;
+        let placesWithReviews = 0;
+        places.forEach((place) => {
+            if (place.totalReview > 0) {
+                totalReview += place.totalReview;
+                totalWeightedRating += place.rating * place.totalReview;
+                placesWithReviews += place.totalReview;
+            }
+        });
+        const averageRating = placesWithReviews > 0 ? (totalWeightedRating / placesWithReviews) : 0;
+        mapObj.rating = Number(averageRating.toFixed(1)) || 0;
+        mapObj.totalReview = totalReview;
+        return mapObj;
+    });
     return {
         meta,
-        data: result,
+        data: populatedData,
     };
 };
 const getMapById = async (id) => {
@@ -70,7 +88,22 @@ const getMapById = async (id) => {
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Map not found');
     }
-    return result;
+    const mapObj = typeof result.toObject === 'function' ? result.toObject() : result;
+    const places = mapObj.places || [];
+    let totalReview = 0;
+    let totalWeightedRating = 0;
+    let placesWithReviews = 0;
+    places.forEach((place) => {
+        if (place.totalReview > 0) {
+            totalReview += place.totalReview;
+            totalWeightedRating += place.rating * place.totalReview;
+            placesWithReviews += place.totalReview;
+        }
+    });
+    const averageRating = placesWithReviews > 0 ? (totalWeightedRating / placesWithReviews) : 0;
+    mapObj.rating = Number(averageRating.toFixed(1)) || 0;
+    mapObj.totalReview = totalReview;
+    return mapObj;
 };
 const updateMap = async (id, payload) => {
     console.log(payload, id);
@@ -145,8 +178,10 @@ const getPurchasedMaps = async (userId) => {
     return user.purchasedMaps || [];
 };
 const getAvailableCountries = async () => {
-    const result = await place_model_1.Place.distinct('country', { status: 'Published' });
-    return result.filter((country) => typeof country === 'string' && country !== 'Unknown');
+    const placeCountries = await place_model_1.Place.distinct('country', { status: 'Published' });
+    const mapCountries = await map_model_1.Map.distinct('country');
+    const combined = Array.from(new Set([...placeCountries, ...mapCountries]));
+    return combined.filter((country) => typeof country === 'string' && country !== 'Unknown' && country.trim() !== '');
 };
 const getDiscoveryData = async (query, lockedMapIds) => {
     const page = Number(query.page) || 1;
@@ -168,6 +203,8 @@ const getDiscoveryData = async (query, lockedMapIds) => {
         placeQueryObj.status = 'Published';
     if (!businessQueryObj.status)
         businessQueryObj.status = 'Approved';
+    // 4. Enforce that businesses must have an active subscription to show on the map
+    businessQueryObj.hasActiveSubscription = true;
     let basePlaceQuery = place_model_1.Place.find();
     if (lockedMapIds && lockedMapIds.length > 0) {
         basePlaceQuery = basePlaceQuery.find({
@@ -193,8 +230,9 @@ const getDiscoveryData = async (query, lockedMapIds) => {
         .sort();
     // We fetch more items and then combine, sort, and paginate in memory
     // to ensure consistent combined results.
-    placeQuery.modelQuery.limit(100);
-    businessQuery.modelQuery.limit(100);
+    const fetchLimit = Math.max(limit, 100);
+    placeQuery.modelQuery.limit(fetchLimit);
+    businessQuery.modelQuery.limit(fetchLimit);
     const [places, businesses] = await Promise.all([
         placeQuery.modelQuery,
         businessQuery.modelQuery,

@@ -32,4 +32,5 @@ router
     .patch((0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), 
 // validateRequest(updateUserSchema),
 user_controller_1.UserController.updateUserStatus);
+router.patch('/assign-editor-access/:userId', (0, auth_1.default)(user_1.USER_ROLES.SUPER_ADMIN), (0, validateRequest_1.default)(user_validation_1.assignEditorAccessZodSchema), user_controller_1.UserController.assignEditorAccess);
 exports.UserRoutes = router;

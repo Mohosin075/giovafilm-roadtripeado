@@ -204,7 +204,7 @@ const updateUserStatus = async (userId, status) => {
     }
     return 'User status updated successfully.';
 };
-const updateUserRole = async (userId, role) => {
+const updateUserRole = async (userId, role, assignedMaps, assignedCountries) => {
     if (!mongoose_1.Types.ObjectId.isValid(userId)) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid User ID.');
     }
@@ -215,7 +215,14 @@ const updateUserRole = async (userId, role) => {
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
     }
-    const updatedUser = await user_model_1.User.findOneAndUpdate({ _id: userId, status: { $nin: [user_1.USER_STATUS.DELETED] } }, { $set: { role } }, { new: true });
+    const updateData = { role };
+    if (role === user_1.USER_ROLES.MAP_EDITOR) {
+        if (assignedMaps !== undefined)
+            updateData.assignedMaps = assignedMaps;
+        if (assignedCountries !== undefined)
+            updateData.assignedCountries = assignedCountries;
+    }
+    const updatedUser = await user_model_1.User.findOneAndUpdate({ _id: userId, status: { $nin: [user_1.USER_STATUS.DELETED] } }, { $set: updateData }, { new: true });
     if (!updatedUser) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to update user role.');
     }
@@ -236,26 +243,28 @@ const inviteUser = async (payload) => {
         requestCount: 1,
         authType: 'createAccount',
     };
+    const baseUpdate = {
+        role: payload.role,
+        status: user_1.USER_STATUS.ACTIVE,
+        verified: false,
+        authentication,
+    };
+    if (payload.role === user_1.USER_ROLES.MAP_EDITOR) {
+        if (payload.assignedMaps !== undefined)
+            baseUpdate.assignedMaps = payload.assignedMaps;
+        if (payload.assignedCountries !== undefined)
+            baseUpdate.assignedCountries = payload.assignedCountries;
+    }
     let user;
     if (isUserExist) {
         // Update existing unverified or deleted user
-        user = await user_model_1.User.findOneAndUpdate({ email }, {
-            $set: {
-                role: payload.role,
-                status: user_1.USER_STATUS.ACTIVE,
-                verified: false,
-                authentication,
-            },
-        }, { new: true });
+        user = await user_model_1.User.findOneAndUpdate({ email }, { $set: baseUpdate }, { new: true });
     }
     else {
         // Create new user
         user = await user_model_1.User.create({
             email,
-            role: payload.role,
-            status: user_1.USER_STATUS.ACTIVE,
-            verified: false,
-            authentication,
+            ...baseUpdate
         });
     }
     if (!user) {
@@ -388,6 +397,27 @@ const updatePointsAndLevel = async (userId, pointsToAdd) => {
         },
     });
 };
+const assignEditorAccess = async (userId, assignedMaps, assignedCountries) => {
+    if (!mongoose_1.Types.ObjectId.isValid(userId)) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid User ID.');
+    }
+    const user = await user_model_1.User.findById(userId);
+    if (!user) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
+    }
+    if (user.role !== user_1.USER_ROLES.MAP_EDITOR) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'User is not a MAP_EDITOR.');
+    }
+    const updateData = {};
+    if (assignedMaps !== undefined) {
+        updateData.assignedMaps = assignedMaps;
+    }
+    if (assignedCountries !== undefined) {
+        updateData.assignedCountries = assignedCountries;
+    }
+    const updatedUser = await user_model_1.User.findByIdAndUpdate(userId, { $set: updateData }, { new: true, runValidators: true });
+    return updatedUser;
+};
 exports.UserServices = {
     updateProfile,
     createAdmin,
@@ -405,4 +435,5 @@ exports.UserServices = {
     toggleFavoriteOffer,
     getFavoriteOffers,
     updatePointsAndLevel,
+    assignEditorAccess,
 };

@@ -106,6 +106,13 @@ const UserSchema = new mongoose_1.Schema({
     subscriptionTier: { type: String, default: 'free' },
     trialUsed: { type: Boolean, default: false },
     subscriptionExpiresAt: { type: Date, default: null },
+    assignedMaps: [
+        {
+            type: mongoose_1.Schema.Types.ObjectId,
+            ref: 'Map',
+        },
+    ],
+    assignedCountries: { type: [String], default: [] },
 }, {
     timestamps: true,
     toJSON: { virtuals: true },

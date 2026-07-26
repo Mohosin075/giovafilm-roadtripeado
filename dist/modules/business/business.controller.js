@@ -27,6 +27,14 @@ const createBusiness = (0, catchAsync_1.default)(async (req, res) => {
             ? req.body.images
             : [req.body.images];
     }
+    // Handle menu/document upload from disk storage
+    if (req.body.documents) {
+        if (!businessData.media)
+            businessData.media = {};
+        businessData.media.menu = Array.isArray(req.body.documents)
+            ? req.body.documents[0]
+            : req.body.documents;
+    }
     const result = await business_service_1.BusinessService.createBusiness(businessData);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.CREATED,
@@ -89,6 +97,14 @@ const updateBusiness = (0, catchAsync_1.default)(async (req, res) => {
         businessData.media.photos = Array.isArray(req.body.images)
             ? req.body.images
             : [req.body.images];
+    }
+    // Handle menu/document upload from disk storage
+    if (req.body.documents) {
+        if (!businessData.media)
+            businessData.media = {};
+        businessData.media.menu = Array.isArray(req.body.documents)
+            ? req.body.documents[0]
+            : req.body.documents;
     }
     console.log(req.body);
     const result = await business_service_1.BusinessService.updateBusiness(id, businessData);

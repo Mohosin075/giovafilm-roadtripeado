@@ -27,7 +27,7 @@ const fileAndBodyProcessor = () => {
                 images: ['image/jpeg', 'image/png', 'image/jpg'],
                 icon: ['image/jpeg', 'image/png', 'image/jpg'],
                 media: ['video/mp4', 'audio/mpeg'],
-                documents: ['application/pdf'],
+                documents: ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'],
             };
             const fieldType = file.fieldname;
             if (!((_a = allowedTypes[fieldType]) === null || _a === void 0 ? void 0 : _a.includes(file.mimetype))) {
@@ -149,7 +149,7 @@ const fileAndBodyProcessorUsingDiskStorage = () => {
                 images: ['image/jpeg', 'image/png', 'image/jpg'],
                 icon: ['image/jpeg', 'image/png', 'image/jpg'],
                 media: ['video/mp4', 'audio/mpeg'],
-                documents: ['application/pdf'],
+                documents: ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'],
             };
             const fieldType = file.fieldname;
             if (!((_a = allowedTypes[fieldType]) === null || _a === void 0 ? void 0 : _a.includes(file.mimetype))) {

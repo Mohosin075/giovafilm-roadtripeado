@@ -41,7 +41,9 @@ exports.createBusinessZodSchema = zod_1.z.object({
             ownerPhone: zod_1.z.string({ required_error: "Owner's Direct Phone is required" }),
             contactEmail: zod_1.z.string({ required_error: "Contact email is required" }).email('Invalid email address'),
         }),
-        plan: zod_1.z.string(),
+        plan: zod_1.z.string().optional(),
+        images: zod_1.z.array(zod_1.z.string()).optional().or(zod_1.z.string().optional()),
+        documents: zod_1.z.array(zod_1.z.string()).optional().or(zod_1.z.string().optional()),
     }),
 });
 exports.updateBusinessZodSchema = zod_1.z.object({
@@ -76,6 +78,8 @@ exports.updateBusinessZodSchema = zod_1.z.object({
             contactEmail: zod_1.z.string().email().optional(),
         }).optional(),
         plan: zod_1.z.string().optional(),
+        images: zod_1.z.array(zod_1.z.string()).optional().or(zod_1.z.string().optional()),
+        documents: zod_1.z.array(zod_1.z.string()).optional().or(zod_1.z.string().optional()),
     }),
     isAccuracyVerified: zod_1.z.boolean().optional(),
 });

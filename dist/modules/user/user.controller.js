@@ -87,11 +87,11 @@ const updateUserStatus = (0, catchAsync_1.default)(async (req, res) => {
 });
 const updateUserRole = (0, catchAsync_1.default)(async (req, res) => {
     const { userId } = req.params;
-    const { role } = req.body;
+    const { role, assignedMaps, assignedCountries } = req.body;
     if (!role) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Role is required');
     }
-    const result = await user_service_1.UserServices.updateUserRole(userId, role);
+    const result = await user_service_1.UserServices.updateUserRole(userId, role, assignedMaps, assignedCountries);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -169,6 +169,17 @@ const getFavoriteOffers = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const assignEditorAccess = (0, catchAsync_1.default)(async (req, res) => {
+    const { userId } = req.params;
+    const { assignedMaps, assignedCountries } = req.body;
+    const result = await user_service_1.UserServices.assignEditorAccess(userId, assignedMaps, assignedCountries);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Editor access assigned successfully',
+        data: result,
+    });
+});
 exports.UserController = {
     updateProfile,
     getAllUsers,
@@ -184,4 +195,5 @@ exports.UserController = {
     getFavoriteMaps,
     toggleFavoriteOffer,
     getFavoriteOffers,
+    assignEditorAccess,
 };

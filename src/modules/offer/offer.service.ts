@@ -36,7 +36,8 @@ const createOffer = async (payload: IOffer): Promise<IOffer> => {
 const getAllOffers = async (query: Record<string, unknown>) => {
   const offerQuery = new QueryBuilder(
     Offer.find()
-      .populate('business', 'name location media status category')
+      .populate('business', 'name location media status category map country')
+      .populate('place', 'name location media status category map country')
       .lean(),
     query,
   )

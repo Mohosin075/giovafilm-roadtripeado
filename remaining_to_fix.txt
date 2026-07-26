@@ -4,4 +4,7 @@
 Currently, it is malfunctioning it allows enabling/disabling individual locations instead of the
 categories themselves. - solved
 4. When an administrator or editor adds or edits business information, the system does not allow for
-the addition of custom operating hours.
+the addition of custom operating hours. - solved
+5. Regarding offer creation: in the "choose business" section, please remove the option to choose
+between "business" or "place," as I consider it unnecessary- A simple search bar for typing the name
+and making a selection is sufficient.

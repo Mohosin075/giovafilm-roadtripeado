@@ -32,6 +32,11 @@ export const createPlaceZodSchema = z.object({
       .optional(),
     services: z.array(z.string()).optional(),
     schedules: z.string().optional(),
+    operatingHours: z.record(z.object({
+      open: z.string(),
+      close: z.string(),
+      closed: z.boolean(),
+    })).optional(),
     entryCost: z.string().optional(),
     difficulty: z.preprocess(
       (val) => (val === '' || val === null ? undefined : val),
@@ -77,6 +82,11 @@ export const updatePlaceZodSchema = z.object({
       .optional(),
     services: z.array(z.string()).optional(),
     schedules: z.string().optional(),
+    operatingHours: z.record(z.object({
+      open: z.string(),
+      close: z.string(),
+      closed: z.boolean(),
+    })).optional(),
     entryCost: z.string().optional(),
     difficulty: z.preprocess(
       (val) => (val === '' || val === null ? undefined : val),

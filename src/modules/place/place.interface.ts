@@ -24,6 +24,7 @@ export interface IPlace {
   }
   services?: string[]
   schedules?: string
+  operatingHours?: Record<string, { open: string; close: string; closed: boolean }>
   entryCost?: string
   difficulty?: 'Easy' | 'Moderate' | 'Hard'
   hikeTime?: string

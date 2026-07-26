@@ -1,3 +1,7 @@
 1. location type change korle category section a update hosse na
-2. map editor issue - solved
-3. 
+2. map editor role issue - solved
+3. The Dashboard map has a category section intended to allow enabling or disabling categories.
+Currently, it is malfunctioning it allows enabling/disabling individual locations instead of the
+categories themselves. - solved
+4. When an administrator or editor adds or edits business information, the system does not allow for
+the addition of custom operating hours.

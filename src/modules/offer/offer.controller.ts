@@ -51,6 +51,24 @@ const createOffer = catchAsync(async (req: Request, res: Response) => {
 })
 
 const getAllOffers = catchAsync(async (req: Request, res: Response) => {
+  const authorizationHeader = req.headers.authorization
+  const user = await getUserFromToken(authorizationHeader)
+
+  const isPremium = user && (
+    [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any) ||
+    ['active', 'trialing'].includes(user.subscriptionStatus || '')
+  )
+
+  if (!isPremium) {
+    return sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Offers retrieved successfully',
+      meta: { page: 1, limit: 10, total: 0 },
+      data: [],
+    })
+  }
+
   const result = await OfferService.getAllOffers(req.query)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -63,7 +81,21 @@ const getAllOffers = catchAsync(async (req: Request, res: Response) => {
 
 const getOfferById = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
-  const user = await getUserFromToken(req.headers.authorization)
+  const authorizationHeader = req.headers.authorization
+  const user = await getUserFromToken(authorizationHeader)
+
+  const isPremium = user && (
+    [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any) ||
+    ['active', 'trialing'].includes(user.subscriptionStatus || '')
+  )
+
+  if (!isPremium) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      'Offers are reserved for the paid version'
+    )
+  }
+
   let result: any = await OfferService.getOfferById(id)
 
   if (result && user) {
@@ -157,6 +189,23 @@ const updateOffer = catchAsync(async (req: Request, res: Response) => {
 
 const getOffersByPlaceOrBusinessId = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
+  const authorizationHeader = req.headers.authorization
+  const user = await getUserFromToken(authorizationHeader)
+
+  const isPremium = user && (
+    [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any) ||
+    ['active', 'trialing'].includes(user.subscriptionStatus || '')
+  )
+
+  if (!isPremium) {
+    return sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Offers retrieved successfully',
+      data: [],
+    })
+  }
+
   const result = await OfferService.getOffersByPlaceOrBusinessId(id)
   sendResponse(res, {
     statusCode: StatusCodes.OK,

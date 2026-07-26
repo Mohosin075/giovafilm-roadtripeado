@@ -7,6 +7,7 @@ import { getUserFromToken, getAccessibleMapIds, verifyEditorEditAccess } from '.
 import { Map } from '../map/map.model'
 import ApiError from '../../errors/ApiError'
 import { getCoordinatesFromUrl } from '../../utils/mapHelper'
+import { USER_ROLES } from '../../enum/user'
 
 const createPlace = catchAsync(async (req: Request, res: Response) => {
   const user = await getUserFromToken(req.headers.authorization)
@@ -40,9 +41,14 @@ const getAllPlaces = catchAsync(async (req: Request, res: Response) => {
   // Compute locked maps
   const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id))
 
+  const isPremium = user && (
+    [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any) ||
+    ['active', 'trialing'].includes(user.subscriptionStatus || '')
+  )
+
   console.log('--- getAllPlaces req.query ---', req.query)
 
-  const result = await PlaceService.getAllPlaces(req.query, lockedMapIds)
+  const result = await PlaceService.getAllPlaces(req.query, lockedMapIds, !!isPremium)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -62,6 +68,19 @@ const getPlaceById = catchAsync(async (req: Request, res: Response) => {
 
   const authorizationHeader = req.headers.authorization
   const user = await getUserFromToken(authorizationHeader)
+
+  const isPremium = user && (
+    [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any) ||
+    ['active', 'trialing'].includes(user.subscriptionStatus || '')
+  )
+
+  if (!isPremium && result.type === 'Regular') {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      'Standard locations are reserved for the paid version'
+    )
+  }
+
   const accessibleMapIds = await getAccessibleMapIds(user)
 
   const mapId = result.map?._id || result.map

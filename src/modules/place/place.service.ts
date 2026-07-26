@@ -58,9 +58,14 @@ const createPlace = async (payload: IPlace): Promise<IPlace> => {
 
 const getAllPlaces = async (
   query: Record<string, unknown>,
-  lockedMapIds?: string[]
+  lockedMapIds?: string[],
+  isPremium?: boolean
 ) => {
   let baseQuery = Place.find()
+
+  if (!isPremium) {
+    baseQuery = baseQuery.find({ type: 'Business' })
+  }
 
   if (lockedMapIds && lockedMapIds.length > 0) {
     baseQuery = baseQuery.find({

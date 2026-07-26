@@ -37,6 +37,9 @@ export const createPlaceZodSchema = z.object({
       close: z.string(),
       closed: z.boolean(),
     })).optional(),
+    phone: z.string().optional(),
+    website: z.string().optional(),
+    instagram: z.string().optional(),
     entryCost: z.string().optional(),
     difficulty: z.preprocess(
       (val) => (val === '' || val === null ? undefined : val),
@@ -87,6 +90,9 @@ export const updatePlaceZodSchema = z.object({
       close: z.string(),
       closed: z.boolean(),
     })).optional(),
+    phone: z.string().optional(),
+    website: z.string().optional(),
+    instagram: z.string().optional(),
     entryCost: z.string().optional(),
     difficulty: z.preprocess(
       (val) => (val === '' || val === null ? undefined : val),

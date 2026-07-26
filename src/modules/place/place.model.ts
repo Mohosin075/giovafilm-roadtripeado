@@ -39,6 +39,9 @@ const PlaceSchema = new Schema<IPlace, PlaceModel>(
     services: { type: [String], default: [] },
     schedules: { type: String },
     operatingHours: { type: Schema.Types.Mixed, default: null },
+    phone: { type: String, default: "" },
+    website: { type: String, default: "" },
+    instagram: { type: String, default: "" },
     entryCost: { type: String },
     difficulty: {
       type: String,

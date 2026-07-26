@@ -8,6 +8,7 @@ import { User } from '../user/user.model'
 import { Place } from '../place/place.model'
 import { IPaginationOptions } from '../../interfaces/pagination'
 import { paginationHelper } from '../../helpers/paginationHelper'
+import { AwardServices } from '../award/award.service'
 
 const createReview = async (user: JwtPayload, payload: IReview) => {
   payload.reviewer = user.authId as unknown as mongoose.Types.ObjectId
@@ -46,6 +47,9 @@ const createReview = async (user: JwtPayload, payload: IReview) => {
       { $set: { points: newPoints, level: newLevel } },
       { session },
     )
+
+    // Increment Top Reviewer award progress
+    await AwardServices.updateAwardProgress(user.authId, 'Top Reviewer', 1)
 
     // update the review count and rating of the place
     await Place.findByIdAndUpdate(

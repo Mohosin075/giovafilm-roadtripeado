@@ -5,89 +5,72 @@ import { User } from '../user/user.model'
 import ApiError from '../../errors/ApiError'
 import { StatusCodes } from 'http-status-codes'
 
+import { AwardConfig } from './awardConfig.model'
+import { AwardConfigServices } from './awardConfig.service'
+
 const getMyAwards = async (userId: string) => {
   const user = await User.findById(userId)
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
   }
 
+  // Seed default configs if missing
+  await AwardConfigServices.seedAwardConfigs()
+
+  // Fetch configs and existing awards
+  const configs = await AwardConfig.find({}).populate('mapId')
   const existingAwards = await Award.find({ userId })
 
-  const defaultAwards: {
-    type: IAwardType
-    target: number
-    progress: number
-    isUnlocked: boolean
-  }[] = [
-    {
-      type: 'PDF Itinerary',
-      target: 500,
-      progress: user.points || 0,
-      isUnlocked: (user.points || 0) >= 500,
-    },
-    {
-      type: 'Free Map',
-      target: 1000,
-      progress: user.points || 0,
-      isUnlocked: (user.points || 0) >= 1000,
-    },
-    {
-      type: 'Gourmet Guide',
-      target: 2000,
-      progress: 0,
-      isUnlocked: false,
-    },
-    {
-      type: 'Top Reviewer',
-      target: 1000,
-      progress: 0,
-      isUnlocked: false,
-    },
-    {
-      type: 'Trail Master',
-      target: 500,
-      progress: 0,
-      isUnlocked: false,
-    },
-    {
-      type: 'History Buff',
-      target: 1500,
-      progress: 0,
-      isUnlocked: false,
-    },
-    {
-      type: 'Legendary Explorer',
-      target: 100,
-      progress: 0,
-      isUnlocked: false,
-    },
-  ]
+  const awards = []
 
-  // Initialize or update awards
-  for (const defaultAward of defaultAwards) {
-    const found = existingAwards.find(a => a.type === defaultAward.type)
+  for (const config of configs) {
+    const found = existingAwards.find(a => a.type === config.type)
+    
+    let progress = 0
+    let isUnlocked = false
+
+    if (config.type === 'PDF Itinerary' || config.type === 'Free Map' || config.type === 'Gourmet Guide') {
+      progress = user.points || 0
+      isUnlocked = progress >= config.target
+    } else if (found) {
+      progress = found.progress
+      isUnlocked = found.progress >= config.target
+    }
+
     if (!found) {
-      await Award.create({
+      const newAward = await Award.create({
         userId,
-        ...defaultAward,
+        type: config.type,
+        target: config.target,
+        progress,
+        isUnlocked,
       })
+      // Attach config properties for frontend
+      const awardObj = newAward.toObject()
+      ;(awardObj as any).config = config
+      awards.push(awardObj)
     } else {
-      // Update progress for point-based awards
-      if (defaultAward.type === 'PDF Itinerary' || defaultAward.type === 'Free Map') {
-        await Award.updateOne(
-          { _id: found._id },
-          { 
-            $set: { 
-              progress: defaultAward.progress,
-              isUnlocked: defaultAward.isUnlocked
-            } 
-          }
-        )
+      // Update target, progress, isUnlocked if they differ
+      const updates: any = { target: config.target }
+      if (config.type === 'PDF Itinerary' || config.type === 'Free Map' || config.type === 'Gourmet Guide') {
+        updates.progress = progress
+        updates.isUnlocked = isUnlocked
+      } else {
+        updates.isUnlocked = found.progress >= config.target
       }
+
+      const updatedAward = await Award.findByIdAndUpdate(
+        found._id,
+        { $set: updates },
+        { new: true }
+      )
+      const awardObj = updatedAward!.toObject()
+      ;(awardObj as any).config = config
+      awards.push(awardObj)
     }
   }
 
-  return await Award.find({ userId }).sort({ type: 1 })
+  return awards.sort((a, b) => a.type.localeCompare(b.type))
 }
 
 const updateAwardProgress = async (

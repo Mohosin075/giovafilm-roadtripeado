@@ -8,3 +8,34 @@ the addition of custom operating hours. - solved
 5. Regarding offer creation: in the "choose business" section, please remove the option to choose
 between "business" or "place," as I consider it unnecessary- A simple search bar for typing the name
 and making a selection is sufficient.
+6. The rewards page does not yet exist; I need a way to edit the rewards, files, or maps to be given
+away, along with the cover photo for each reward, the written details, etc. - solved
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Award details : 
+
+কিভাবে প্রতিটি অ্যাওয়ার্ড কাজ করে:
+PDF Itinerary (Points-Based): ইউজারের পয়েন্টের ওপর ট্র্যাক হয়। ৫০০ পয়েন্ট (অথবা আপনার ড্যাশবোর্ডে সেট করা পয়েন্ট) হলে আনলক হবে এবং ইউজার পিডিএফ ডাউনলোড করতে পারবেন।
+Free Map (Points-Based): ১০০০ পয়েন্ট (বা আপনার সেট করা পয়েন্ট) হলে আনলক হবে এবং ইউজার ক্যাটালগ থেকে যেকোনো একটি পেইড ম্যাপ ফ্রিতে ক্লেইম করতে পারবেন।
+Gourmet Guide (Points-Based): ২০০০ পয়েন্ট হলে আনলক হবে এবং ইউজার তার রন্ধনশিল্প/খাবারের গাইড ডাউনলোড করতে পারবেন (পিডিএফ আপলোড করা থাকলে)।
+Top Reviewer (Action-Based): আমি এইমাত্র রিভিউ মডিউলের সাথে এটি ইন্টিগ্রেট করে দিয়েছি। এখন কোনো ইউজার যতবার কোনো প্লেসের আন্ডারে নতুন Review পোস্ট করবেন, ততবার এই অ্যাওয়ার্ডের প্রগ্রেস অটোমেটিক ১ পয়েন্ট করে বাড়বে এবং টার্গেট পয়েন্টে পৌঁছালে এটি আনলক হবে।
+Trail Master, History Buff, Legendary Explorer (Action-Based): এগুলো নির্দিষ্ট কাজের ওপর ভিত্তি করে প্রগ্রেস ট্র্যাকিংয়ের জন্য ব্যাকএন্ডে সচল করা আছে, যা ইউজার প্রোফাইলে লাইভ ডাটা লোড করে।

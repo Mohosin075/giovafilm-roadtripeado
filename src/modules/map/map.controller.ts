@@ -36,14 +36,17 @@ const getAllMaps = catchAsync(async (req: Request, res: Response) => {
 
   const result = await MapService.getAllMaps(query)
 
-  // Convert mongoose documents to plain objects to filter places for locked maps
+  // Convert mongoose documents to plain objects to tag places with isLocked for locked maps
   const data = result.data.map((map: any) => {
     const mapObj = typeof map.toObject === 'function' ? map.toObject() : map
-    if (!accessibleMapIds.includes(mapObj._id.toString())) {
-      mapObj.places = (mapObj.places || []).filter((place: any) => {
-        return place.type === 'Business'
-      })
-    }
+    const isLockedMap = !accessibleMapIds.includes(mapObj._id.toString())
+    mapObj.places = (mapObj.places || []).map((place: any) => {
+      const isPlaceLocked = isLockedMap && place.type !== 'Business'
+      return {
+        ...place,
+        isLocked: isPlaceLocked,
+      }
+    })
     return mapObj
   })
 
@@ -67,11 +70,14 @@ const getMapById = catchAsync(async (req: Request, res: Response) => {
   }
 
   const mapObj = typeof result.toObject === 'function' ? (result as any).toObject() : result
-  if (!accessibleMapIds.includes(mapObj._id.toString())) {
-    mapObj.places = (mapObj.places || []).filter((place: any) => {
-      return place.type === 'Business'
-    })
-  }
+  const isLockedMap = !accessibleMapIds.includes(mapObj._id.toString())
+  mapObj.places = (mapObj.places || []).map((place: any) => {
+    const isPlaceLocked = isLockedMap && place.type !== 'Business'
+    return {
+      ...place,
+      isLocked: isPlaceLocked,
+    }
+  })
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,

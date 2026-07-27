@@ -54,20 +54,8 @@ const createPlace = async (payload) => {
         session.endSession();
     }
 };
-const getAllPlaces = async (query, lockedMapIds) => {
+const getAllPlaces = async (query) => {
     let baseQuery = place_model_1.Place.find();
-    if (lockedMapIds && lockedMapIds.length > 0) {
-        baseQuery = baseQuery.find({
-            $and: [
-                {
-                    $or: [
-                        { map: { $nin: lockedMapIds } },
-                        { type: 'Business' }
-                    ]
-                }
-            ]
-        });
-    }
     const placeQuery = new QueryBuilder_1.default(baseQuery
         .populate('category', 'name color icon status')
         .populate('map', 'name country status isPaid')

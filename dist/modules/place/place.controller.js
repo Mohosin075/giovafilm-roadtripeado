@@ -12,6 +12,7 @@ const mapAccessHelper_1 = require("../../helpers/mapAccessHelper");
 const map_model_1 = require("../map/map.model");
 const ApiError_1 = __importDefault(require("../../errors/ApiError"));
 const mapHelper_1 = require("../../utils/mapHelper");
+const user_1 = require("../../enum/user");
 const createPlace = (0, catchAsync_1.default)(async (req, res) => {
     const user = await (0, mapAccessHelper_1.getUserFromToken)(req.headers.authorization);
     // A place must belong to a map, verify access
@@ -38,14 +39,25 @@ const getAllPlaces = (0, catchAsync_1.default)(async (req, res) => {
     const paidMapIds = paidMaps.map(m => m._id.toString());
     // Compute locked maps
     const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id));
+    const isPremium = user && ([user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.MAP_EDITOR].includes(user.role) ||
+        ['active', 'trialing'].includes(user.subscriptionStatus || ''));
     console.log('--- getAllPlaces req.query ---', req.query);
-    const result = await place_service_1.PlaceService.getAllPlaces(req.query, lockedMapIds);
+    const result = await place_service_1.PlaceService.getAllPlaces(req.query);
+    const updatedData = result.data.map((place) => {
+        var _a;
+        const mapId = ((_a = place.map) === null || _a === void 0 ? void 0 : _a._id) || place.map;
+        const isLocked = !isPremium && mapId && lockedMapIds.includes(mapId.toString()) && place.type !== 'Business';
+        return {
+            ...place,
+            isLocked: !!isLocked,
+        };
+    });
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Places retrieved successfully',
         meta: result.meta,
-        data: result.data,
+        data: updatedData,
     });
 });
 const getPlaceById = (0, catchAsync_1.default)(async (req, res) => {
@@ -57,21 +69,26 @@ const getPlaceById = (0, catchAsync_1.default)(async (req, res) => {
     }
     const authorizationHeader = req.headers.authorization;
     const user = await (0, mapAccessHelper_1.getUserFromToken)(authorizationHeader);
+    const isPremium = user && ([user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.MAP_EDITOR].includes(user.role) ||
+        ['active', 'trialing'].includes(user.subscriptionStatus || ''));
     const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
     const mapId = ((_a = result.map) === null || _a === void 0 ? void 0 : _a._id) || result.map;
     if (mapId) {
         const isLocked = !accessibleMapIds.includes(mapId.toString());
-        if (isLocked) {
+        if (!isPremium && isLocked) {
             if (result.type !== 'Business') {
-                throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'You must purchase the map to access this location');
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'This information and these benefits can be unlocked by purchasing your favorite map.');
             }
         }
     }
+    const placeObj = typeof result.toObject === 'function' ? result.toObject() : result;
+    const isLocked = mapId && !accessibleMapIds.includes(mapId.toString()) && result.type !== 'Business';
+    placeObj.isLocked = !isPremium && !!isLocked;
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Place retrieved successfully',
-        data: result,
+        data: placeObj,
     });
 });
 const updatePlace = (0, catchAsync_1.default)(async (req, res) => {

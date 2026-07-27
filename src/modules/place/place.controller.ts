@@ -48,14 +48,23 @@ const getAllPlaces = catchAsync(async (req: Request, res: Response) => {
 
   console.log('--- getAllPlaces req.query ---', req.query)
 
-  const result = await PlaceService.getAllPlaces(req.query, lockedMapIds, !!isPremium)
+  const result = await PlaceService.getAllPlaces(req.query)
+
+  const updatedData = result.data.map((place: any) => {
+    const mapId = place.map?._id || place.map
+    const isLocked = !isPremium && mapId && lockedMapIds.includes(mapId.toString()) && place.type !== 'Business'
+    return {
+      ...place,
+      isLocked: !!isLocked,
+    }
+  })
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Places retrieved successfully',
     meta: result.meta,
-    data: result.data,
+    data: updatedData,
   })
 })
 
@@ -74,27 +83,30 @@ const getPlaceById = catchAsync(async (req: Request, res: Response) => {
     ['active', 'trialing'].includes(user.subscriptionStatus || '')
   )
 
-
   const accessibleMapIds = await getAccessibleMapIds(user)
 
   const mapId = result.map?._id || result.map
   if (mapId) {
     const isLocked = !accessibleMapIds.includes(mapId.toString())
-    if (isLocked) {
+    if (!isPremium && isLocked) {
       if (result.type !== 'Business') {
         throw new ApiError(
           StatusCodes.FORBIDDEN,
-          'You must purchase the map to access this location'
+          'This information and these benefits can be unlocked by purchasing your favorite map.'
         )
       }
     }
   }
 
+  const placeObj = typeof (result as any).toObject === 'function' ? (result as any).toObject() : result
+  const isLocked = mapId && !accessibleMapIds.includes(mapId.toString()) && result.type !== 'Business'
+  placeObj.isLocked = !isPremium && !!isLocked
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Place retrieved successfully',
-    data: result,
+    data: placeObj,
   })
 })
 

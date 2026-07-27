@@ -22,6 +22,12 @@ this should not happen. solved
 this needs to be removed. - solved
 
 
+13. When a user adds a business, the system does not allow them to select the country/map or the
+category for that business. - solved
+14. When a user adds a business, it does not appear on the map or in the Dashboard search function
+because, upon creation, it lacks an assigned country or category. - solved
+
+
 
 
 

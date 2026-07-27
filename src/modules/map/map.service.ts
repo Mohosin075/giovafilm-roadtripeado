@@ -257,14 +257,6 @@ const getDiscoveryData = async (
   businessQueryObj.hasActiveSubscription = true
 
   let basePlaceQuery = Place.find()
-  if (lockedMapIds && lockedMapIds.length > 0) {
-    basePlaceQuery = basePlaceQuery.find({
-      $or: [
-        { map: { $nin: lockedMapIds } },
-        { type: 'Business' }
-      ]
-    })
-  }
 
   // Use QueryBuilder for Places
   const placeQuery = new QueryBuilder(
@@ -299,11 +291,16 @@ const getDiscoveryData = async (
     businessQuery.modelQuery,
   ])
 
-  // Map to include type
-  const formattedPlaces = places.map(place => ({
-    ...(place as any),
-    type: 'place',
-  }))
+  // Map to include type and isLocked
+  const formattedPlaces = places.map(place => {
+    const mapId = place.map?._id || place.map
+    const isLocked = mapId && lockedMapIds && lockedMapIds.includes(mapId.toString()) && place.type !== 'Business'
+    return {
+      ...(place as any),
+      type: 'place',
+      isLocked: !!isLocked,
+    }
+  })
 
   const formattedBusinesses = businesses.map(business => ({
     ...(business as any),

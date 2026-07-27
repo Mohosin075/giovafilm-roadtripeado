@@ -11,6 +11,7 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const user_model_1 = require("../user/user.model");
 const place_model_1 = require("../place/place.model");
 const paginationHelper_1 = require("../../helpers/paginationHelper");
+const award_service_1 = require("../award/award.service");
 const createReview = async (user, payload) => {
     var _a;
     payload.reviewer = user.authId;
@@ -37,6 +38,8 @@ const createReview = async (user, payload) => {
         const newPoints = (isUserExist.points || 0) + totalPointsEarned;
         const newLevel = Math.floor(newPoints / 1000) + 1;
         await user_model_1.User.findByIdAndUpdate(payload.reviewer, { $set: { points: newPoints, level: newLevel } }, { session });
+        // Increment Top Reviewer award progress
+        await award_service_1.AwardServices.updateAwardProgress(user.authId, 'Top Reviewer', 1);
         // update the review count and rating of the place
         await place_model_1.Place.findByIdAndUpdate(payload.placeId, [
             {

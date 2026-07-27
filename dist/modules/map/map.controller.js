@@ -31,14 +31,17 @@ const getAllMaps = (0, catchAsync_1.default)(async (req, res) => {
         query.isActive = 'true';
     }
     const result = await map_service_1.MapService.getAllMaps(query);
-    // Convert mongoose documents to plain objects to filter places for locked maps
+    // Convert mongoose documents to plain objects to tag places with isLocked for locked maps
     const data = result.data.map((map) => {
         const mapObj = typeof map.toObject === 'function' ? map.toObject() : map;
-        if (!accessibleMapIds.includes(mapObj._id.toString())) {
-            mapObj.places = (mapObj.places || []).filter((place) => {
-                return place.type === 'Business';
-            });
-        }
+        const isLockedMap = !accessibleMapIds.includes(mapObj._id.toString());
+        mapObj.places = (mapObj.places || []).map((place) => {
+            const isPlaceLocked = isLockedMap && place.type !== 'Business';
+            return {
+                ...place,
+                isLocked: isPlaceLocked,
+            };
+        });
         return mapObj;
     });
     (0, sendResponse_1.default)(res, {
@@ -58,11 +61,14 @@ const getMapById = (0, catchAsync_1.default)(async (req, res) => {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Map not found');
     }
     const mapObj = typeof result.toObject === 'function' ? result.toObject() : result;
-    if (!accessibleMapIds.includes(mapObj._id.toString())) {
-        mapObj.places = (mapObj.places || []).filter((place) => {
-            return place.type === 'Business';
-        });
-    }
+    const isLockedMap = !accessibleMapIds.includes(mapObj._id.toString());
+    mapObj.places = (mapObj.places || []).map((place) => {
+        const isPlaceLocked = isLockedMap && place.type !== 'Business';
+        return {
+            ...place,
+            isLocked: isPlaceLocked,
+        };
+    });
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,

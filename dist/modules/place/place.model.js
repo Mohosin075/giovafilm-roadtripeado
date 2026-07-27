@@ -38,6 +38,10 @@ const PlaceSchema = new mongoose_1.Schema({
     },
     services: { type: [String], default: [] },
     schedules: { type: String },
+    operatingHours: { type: mongoose_1.Schema.Types.Mixed, default: null },
+    phone: { type: String, default: "" },
+    website: { type: String, default: "" },
+    instagram: { type: String, default: "" },
     entryCost: { type: String },
     difficulty: {
         type: String,

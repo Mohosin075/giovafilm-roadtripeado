@@ -189,8 +189,12 @@ const getDiscoveryData = async (query, lockedMapIds) => {
     // Prepare separate queries because Place and Business have different schemas
     const placeQueryObj = { ...query };
     const businessQueryObj = { ...query };
-    // 1. Handle "map" filter (Only applicable for Places)
+    // 1. Handle "map" filter (Only applicable for Places, map businesses by their country)
     if (businessQueryObj.map) {
+        const mapObj = await map_model_1.Map.findById(businessQueryObj.map);
+        if (mapObj) {
+            businessQueryObj['location.country'] = mapObj.name;
+        }
         delete businessQueryObj.map;
     }
     // 2. Handle "country" filter (Business uses location.country)
@@ -206,14 +210,6 @@ const getDiscoveryData = async (query, lockedMapIds) => {
     // 4. Enforce that businesses must have an active subscription to show on the map
     businessQueryObj.hasActiveSubscription = true;
     let basePlaceQuery = place_model_1.Place.find();
-    if (lockedMapIds && lockedMapIds.length > 0) {
-        basePlaceQuery = basePlaceQuery.find({
-            $or: [
-                { map: { $nin: lockedMapIds } },
-                { type: 'Business' }
-            ]
-        });
-    }
     // Use QueryBuilder for Places
     const placeQuery = new QueryBuilder_1.default(basePlaceQuery
         .populate('category', 'name color icon status')
@@ -237,11 +233,17 @@ const getDiscoveryData = async (query, lockedMapIds) => {
         placeQuery.modelQuery,
         businessQuery.modelQuery,
     ]);
-    // Map to include type
-    const formattedPlaces = places.map(place => ({
-        ...place,
-        type: 'place',
-    }));
+    // Map to include type and isLocked
+    const formattedPlaces = places.map(place => {
+        var _a;
+        const mapId = ((_a = place.map) === null || _a === void 0 ? void 0 : _a._id) || place.map;
+        const isLocked = mapId && lockedMapIds && lockedMapIds.includes(mapId.toString()) && place.type !== 'Business';
+        return {
+            ...place,
+            type: 'place',
+            isLocked: !!isLocked,
+        };
+    });
     const formattedBusinesses = businesses.map(business => ({
         ...business,
         type: 'business',

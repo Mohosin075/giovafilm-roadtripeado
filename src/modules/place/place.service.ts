@@ -57,25 +57,9 @@ const createPlace = async (payload: IPlace): Promise<IPlace> => {
 }
 
 const getAllPlaces = async (
-  query: Record<string, unknown>,
-  lockedMapIds?: string[],
-  isPremium?: boolean
+  query: Record<string, unknown>
 ) => {
   let baseQuery = Place.find()
-
-
-  if (lockedMapIds && lockedMapIds.length > 0) {
-    baseQuery = baseQuery.find({
-      $and: [
-        {
-          $or: [
-            { map: { $nin: lockedMapIds } },
-            { type: 'Business' }
-          ]
-        }
-      ]
-    })
-  }
 
   const placeQuery = new QueryBuilder(
     baseQuery

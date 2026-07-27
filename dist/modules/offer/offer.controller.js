@@ -52,19 +52,42 @@ const createOffer = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 const getAllOffers = (0, catchAsync_1.default)(async (req, res) => {
+    const authorizationHeader = req.headers.authorization;
+    const user = await (0, mapAccessHelper_1.getUserFromToken)(authorizationHeader);
+    const isPremium = user && ([user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.MAP_EDITOR].includes(user.role));
     const result = await offer_service_1.OfferService.getAllOffers(req.query);
+    const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
+    const updatedData = result.data.map((offer) => {
+        var _a, _b, _c, _d, _e, _f;
+        const placeMapId = ((_b = (_a = offer.place) === null || _a === void 0 ? void 0 : _a.map) === null || _b === void 0 ? void 0 : _b._id) || ((_c = offer.place) === null || _c === void 0 ? void 0 : _c.map) || ((_e = (_d = offer.business) === null || _d === void 0 ? void 0 : _d.map) === null || _e === void 0 ? void 0 : _e._id) || ((_f = offer.business) === null || _f === void 0 ? void 0 : _f.map);
+        const isLocked = !isPremium && (!placeMapId || !accessibleMapIds.includes(placeMapId.toString()));
+        return {
+            ...offer,
+            isLocked,
+        };
+    });
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Offers retrieved successfully',
         meta: result.meta,
-        data: result.data,
+        data: updatedData,
     });
 });
 const getOfferById = (0, catchAsync_1.default)(async (req, res) => {
+    var _a, _b, _c, _d, _e, _f;
     const { id } = req.params;
-    const user = await (0, mapAccessHelper_1.getUserFromToken)(req.headers.authorization);
+    const authorizationHeader = req.headers.authorization;
+    const user = await (0, mapAccessHelper_1.getUserFromToken)(authorizationHeader);
+    const isPremium = user && ([user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.MAP_EDITOR].includes(user.role));
     let result = await offer_service_1.OfferService.getOfferById(id);
+    if (!isPremium && result) {
+        const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
+        const placeMapId = ((_b = (_a = result.place) === null || _a === void 0 ? void 0 : _a.map) === null || _b === void 0 ? void 0 : _b._id) || ((_c = result.place) === null || _c === void 0 ? void 0 : _c.map) || ((_e = (_d = result.business) === null || _d === void 0 ? void 0 : _d.map) === null || _e === void 0 ? void 0 : _e._id) || ((_f = result.business) === null || _f === void 0 ? void 0 : _f.map);
+        if (!placeMapId || !accessibleMapIds.includes(placeMapId.toString())) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'This information and these benefits can be unlocked by purchasing your favorite map.');
+        }
+    }
     if (result && user) {
         const activeRedemption = await offerRedemption_model_1.OfferRedemption.findOne({
             user: user._id,
@@ -148,13 +171,24 @@ const updateOffer = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 const getOffersByPlaceOrBusinessId = (0, catchAsync_1.default)(async (req, res) => {
+    var _a, _b, _c, _d, _e, _f;
     const { id } = req.params;
+    const authorizationHeader = req.headers.authorization;
+    const user = await (0, mapAccessHelper_1.getUserFromToken)(authorizationHeader);
+    const isPremium = user && ([user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.MAP_EDITOR].includes(user.role));
     const result = await offer_service_1.OfferService.getOffersByPlaceOrBusinessId(id);
+    let offerObj = null;
+    if (result) {
+        offerObj = typeof result.toObject === 'function' ? result.toObject() : result;
+        const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
+        const placeMapId = ((_b = (_a = offerObj.place) === null || _a === void 0 ? void 0 : _a.map) === null || _b === void 0 ? void 0 : _b._id) || ((_c = offerObj.place) === null || _c === void 0 ? void 0 : _c.map) || ((_e = (_d = offerObj.business) === null || _d === void 0 ? void 0 : _d.map) === null || _e === void 0 ? void 0 : _e._id) || ((_f = offerObj.business) === null || _f === void 0 ? void 0 : _f.map);
+        offerObj.isLocked = !isPremium && (!placeMapId || !accessibleMapIds.includes(placeMapId.toString()));
+    }
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Offers retrieved successfully',
-        data: result,
+        data: offerObj,
     });
 });
 const deleteOffer = (0, catchAsync_1.default)(async (req, res) => {
@@ -168,10 +202,25 @@ const deleteOffer = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 const calculateDiscount = (0, catchAsync_1.default)(async (req, res) => {
+    var _a, _b, _c, _d, _e, _f;
     const { id } = req.params;
     const { price } = req.body;
+    const authorizationHeader = req.headers.authorization;
+    const user = await (0, mapAccessHelper_1.getUserFromToken)(authorizationHeader);
+    const isPremium = user && ([user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.MAP_EDITOR].includes(user.role));
     if (price === undefined || isNaN(Number(price)) || Number(price) < 0) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Valid price must be provided');
+    }
+    const offer = await offer_service_1.OfferService.getOfferById(id);
+    if (!offer) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Offer not found');
+    }
+    if (!isPremium) {
+        const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
+        const placeMapId = ((_b = (_a = offer.place) === null || _a === void 0 ? void 0 : _a.map) === null || _b === void 0 ? void 0 : _b._id) || ((_c = offer.place) === null || _c === void 0 ? void 0 : _c.map) || ((_e = (_d = offer.business) === null || _d === void 0 ? void 0 : _d.map) === null || _e === void 0 ? void 0 : _e._id) || ((_f = offer.business) === null || _f === void 0 ? void 0 : _f.map);
+        if (!placeMapId || !accessibleMapIds.includes(placeMapId.toString())) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'This information and these benefits can be unlocked by purchasing your favorite map.');
+        }
     }
     const result = await offer_service_1.OfferService.calculateDiscount(id, Number(price));
     (0, sendResponse_1.default)(res, {
@@ -182,8 +231,23 @@ const calculateDiscount = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 const redeemOffer = (0, catchAsync_1.default)(async (req, res) => {
+    var _a, _b, _c, _d, _e, _f;
     const { id } = req.params;
     const { authId } = req.user;
+    const authorizationHeader = req.headers.authorization;
+    const user = await (0, mapAccessHelper_1.getUserFromToken)(authorizationHeader);
+    const isPremium = user && ([user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.MAP_EDITOR].includes(user.role));
+    const offer = await offer_service_1.OfferService.getOfferById(id);
+    if (!offer) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Offer not found');
+    }
+    if (!isPremium) {
+        const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
+        const placeMapId = ((_b = (_a = offer.place) === null || _a === void 0 ? void 0 : _a.map) === null || _b === void 0 ? void 0 : _b._id) || ((_c = offer.place) === null || _c === void 0 ? void 0 : _c.map) || ((_e = (_d = offer.business) === null || _d === void 0 ? void 0 : _d.map) === null || _e === void 0 ? void 0 : _e._id) || ((_f = offer.business) === null || _f === void 0 ? void 0 : _f.map);
+        if (!placeMapId || !accessibleMapIds.includes(placeMapId.toString())) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'This information and these benefits can be unlocked by purchasing your favorite map.');
+        }
+    }
     const result = await offer_service_1.OfferService.redeemOffer(id, authId);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,

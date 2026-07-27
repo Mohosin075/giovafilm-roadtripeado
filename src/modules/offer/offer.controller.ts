@@ -59,20 +59,23 @@ const getAllOffers = catchAsync(async (req: Request, res: Response) => {
   )
 
   const result = await OfferService.getAllOffers(req.query)
+  const accessibleMapIds = await getAccessibleMapIds(user)
 
-  if (!isPremium) {
-    const accessibleMapIds = await getAccessibleMapIds(user)
-    result.data = result.data.filter((offer: any) => {
-      const placeMapId = (offer as any).place?.map?._id || (offer as any).place?.map || (offer as any).business?.map?._id || (offer as any).business?.map
-      return placeMapId && accessibleMapIds.includes(placeMapId.toString())
-    })
-  }
+  const updatedData = result.data.map((offer: any) => {
+    const placeMapId = offer.place?.map?._id || offer.place?.map || offer.business?.map?._id || offer.business?.map
+    const isLocked = !isPremium && (!placeMapId || !accessibleMapIds.includes(placeMapId.toString()))
+    return {
+      ...offer,
+      isLocked,
+    }
+  })
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Offers retrieved successfully',
     meta: result.meta,
-    data: result.data,
+    data: updatedData,
   })
 })
 
@@ -93,7 +96,7 @@ const getOfferById = catchAsync(async (req: Request, res: Response) => {
     if (!placeMapId || !accessibleMapIds.includes(placeMapId.toString())) {
       throw new ApiError(
         StatusCodes.FORBIDDEN,
-        'This offer is part of a premium map. Purchase the map to access.'
+        'This information and these benefits can be unlocked by purchasing your favorite map.'
       )
     }
   }
@@ -198,23 +201,19 @@ const getOffersByPlaceOrBusinessId = catchAsync(async (req: Request, res: Respon
 
   const result = await OfferService.getOffersByPlaceOrBusinessId(id)
 
-  if (!isPremium && result) {
+  let offerObj: any = null
+  if (result) {
+    offerObj = typeof result.toObject === 'function' ? (result as any).toObject() : result
     const accessibleMapIds = await getAccessibleMapIds(user)
-    const placeMapId = (result.place as any)?.map?._id || (result.place as any)?.map || (result.business as any)?.map?._id || (result.business as any)?.map
-    if (!placeMapId || !accessibleMapIds.includes(placeMapId.toString())) {
-      return sendResponse(res, {
-        statusCode: StatusCodes.OK,
-        success: true,
-        message: 'Offers retrieved successfully',
-        data: null,
-      })
-    }
+    const placeMapId = offerObj.place?.map?._id || offerObj.place?.map || offerObj.business?.map?._id || offerObj.business?.map
+    offerObj.isLocked = !isPremium && (!placeMapId || !accessibleMapIds.includes(placeMapId.toString()))
   }
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Offers retrieved successfully',
-    data: result,
+    data: offerObj,
   })
 })
 
@@ -232,9 +231,31 @@ const deleteOffer = catchAsync(async (req: Request, res: Response) => {
 const calculateDiscount = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
   const { price } = req.body
+  const authorizationHeader = req.headers.authorization
+  const user = await getUserFromToken(authorizationHeader)
+
+  const isPremium = user && (
+    [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any)
+  )
 
   if (price === undefined || isNaN(Number(price)) || Number(price) < 0) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Valid price must be provided')
+  }
+
+  const offer = await OfferService.getOfferById(id)
+  if (!offer) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Offer not found')
+  }
+
+  if (!isPremium) {
+    const accessibleMapIds = await getAccessibleMapIds(user)
+    const placeMapId = (offer as any).place?.map?._id || (offer as any).place?.map || (offer as any).business?.map?._id || (offer as any).business?.map
+    if (!placeMapId || !accessibleMapIds.includes(placeMapId.toString())) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        'This information and these benefits can be unlocked by purchasing your favorite map.'
+      )
+    }
   }
 
   const result = await OfferService.calculateDiscount(id, Number(price))
@@ -249,6 +270,28 @@ const calculateDiscount = catchAsync(async (req: Request, res: Response) => {
 const redeemOffer = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
   const { authId } = req.user as JwtPayload
+  const authorizationHeader = req.headers.authorization
+  const user = await getUserFromToken(authorizationHeader)
+
+  const isPremium = user && (
+    [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any)
+  )
+
+  const offer = await OfferService.getOfferById(id)
+  if (!offer) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Offer not found')
+  }
+
+  if (!isPremium) {
+    const accessibleMapIds = await getAccessibleMapIds(user)
+    const placeMapId = (offer as any).place?.map?._id || (offer as any).place?.map || (offer as any).business?.map?._id || (offer as any).business?.map
+    if (!placeMapId || !accessibleMapIds.includes(placeMapId.toString())) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        'This information and these benefits can be unlocked by purchasing your favorite map.'
+      )
+    }
+  }
 
   const result = await OfferService.redeemOffer(id, authId)
   sendResponse(res, {

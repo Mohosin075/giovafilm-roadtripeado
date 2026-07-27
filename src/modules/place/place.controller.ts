@@ -74,12 +74,6 @@ const getPlaceById = catchAsync(async (req: Request, res: Response) => {
     ['active', 'trialing'].includes(user.subscriptionStatus || '')
   )
 
-  if (!isPremium && result.type === 'Regular') {
-    throw new ApiError(
-      StatusCodes.FORBIDDEN,
-      'Standard locations are reserved for the paid version'
-    )
-  }
 
   const accessibleMapIds = await getAccessibleMapIds(user)
 

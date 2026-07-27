@@ -7,7 +7,7 @@ import ApiError from '../../errors/ApiError'
 
 import { JwtPayload } from 'jsonwebtoken'
 
-import { getUserFromToken, verifyEditorEditAccess } from '../../helpers/mapAccessHelper'
+import { getUserFromToken, getAccessibleMapIds, verifyEditorEditAccess } from '../../helpers/mapAccessHelper'
 import { Place } from '../place/place.model'
 import { Business } from '../business/business.model'
 import { USER_ROLES } from '../../enum/user'
@@ -55,21 +55,18 @@ const getAllOffers = catchAsync(async (req: Request, res: Response) => {
   const user = await getUserFromToken(authorizationHeader)
 
   const isPremium = user && (
-    [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any) ||
-    ['active', 'trialing'].includes(user.subscriptionStatus || '')
+    [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any)
   )
 
+  const result = await OfferService.getAllOffers(req.query)
+
   if (!isPremium) {
-    return sendResponse(res, {
-      statusCode: StatusCodes.OK,
-      success: true,
-      message: 'Offers retrieved successfully',
-      meta: { page: 1, limit: 10, total: 0 },
-      data: [],
+    const accessibleMapIds = await getAccessibleMapIds(user)
+    result.data = result.data.filter((offer: any) => {
+      const placeMapId = (offer as any).place?.map?._id || (offer as any).place?.map || (offer as any).business?.map?._id || (offer as any).business?.map
+      return placeMapId && accessibleMapIds.includes(placeMapId.toString())
     })
   }
-
-  const result = await OfferService.getAllOffers(req.query)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -85,18 +82,21 @@ const getOfferById = catchAsync(async (req: Request, res: Response) => {
   const user = await getUserFromToken(authorizationHeader)
 
   const isPremium = user && (
-    [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any) ||
-    ['active', 'trialing'].includes(user.subscriptionStatus || '')
+    [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any)
   )
 
-  if (!isPremium) {
-    throw new ApiError(
-      StatusCodes.FORBIDDEN,
-      'Offers are reserved for the paid version'
-    )
-  }
-
   let result: any = await OfferService.getOfferById(id)
+
+  if (!isPremium && result) {
+    const accessibleMapIds = await getAccessibleMapIds(user)
+    const placeMapId = (result as any).place?.map?._id || (result as any).place?.map || (result as any).business?.map?._id || (result as any).business?.map
+    if (!placeMapId || !accessibleMapIds.includes(placeMapId.toString())) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        'This offer is part of a premium map. Purchase the map to access.'
+      )
+    }
+  }
 
   if (result && user) {
     const activeRedemption = await OfferRedemption.findOne({
@@ -193,20 +193,23 @@ const getOffersByPlaceOrBusinessId = catchAsync(async (req: Request, res: Respon
   const user = await getUserFromToken(authorizationHeader)
 
   const isPremium = user && (
-    [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any) ||
-    ['active', 'trialing'].includes(user.subscriptionStatus || '')
+    [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any)
   )
 
-  if (!isPremium) {
-    return sendResponse(res, {
-      statusCode: StatusCodes.OK,
-      success: true,
-      message: 'Offers retrieved successfully',
-      data: [],
-    })
-  }
-
   const result = await OfferService.getOffersByPlaceOrBusinessId(id)
+
+  if (!isPremium && result) {
+    const accessibleMapIds = await getAccessibleMapIds(user)
+    const placeMapId = (result.place as any)?.map?._id || (result.place as any)?.map || (result.business as any)?.map?._id || (result.business as any)?.map
+    if (!placeMapId || !accessibleMapIds.includes(placeMapId.toString())) {
+      return sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Offers retrieved successfully',
+        data: null,
+      })
+    }
+  }
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,

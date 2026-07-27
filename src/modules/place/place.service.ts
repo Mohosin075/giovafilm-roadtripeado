@@ -63,9 +63,6 @@ const getAllPlaces = async (
 ) => {
   let baseQuery = Place.find()
 
-  if (!isPremium) {
-    baseQuery = baseQuery.find({ type: 'Business' })
-  }
 
   if (lockedMapIds && lockedMapIds.length > 0) {
     baseQuery = baseQuery.find({

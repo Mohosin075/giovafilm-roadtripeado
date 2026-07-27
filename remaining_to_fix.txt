@@ -13,8 +13,8 @@ away, along with the cover photo for each reward, the written details, etc. - so
 7. When adding a new location and selecting "business," the information display does not update
 accordingly. - solved
 8. 1- In the free version, standard locations should not appear on the "places- page, and "offers" should
-not be visible, as these features are reserved for the paid version.
-
+not be visible, as these features are reserved for the paid version. - solved
+9. On the "places" page, selecting any location triggers an error and fails to open the details. - solved
 
 
 

@@ -15,6 +15,12 @@ accordingly. - solved
 8. 1- In the free version, standard locations should not appear on the "places- page, and "offers" should
 not be visible, as these features are reserved for the paid version. - solved
 9. On the "places" page, selecting any location triggers an error and fails to open the details. - solved
+10. 3. When a user is logged in, they can view all locations and offers without having purchased the map;
+this should not happen. solved
+11. Users do not receive points when leaving a review. - solved
+12. 5. When viewing location details, the word "Hours" appears permanently in the walking time section;
+this needs to be removed. - solved
+
 
 
 

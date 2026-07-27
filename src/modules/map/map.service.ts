@@ -234,8 +234,12 @@ const getDiscoveryData = async (
   const placeQueryObj = { ...query }
   const businessQueryObj = { ...query }
 
-  // 1. Handle "map" filter (Only applicable for Places)
+  // 1. Handle "map" filter (Only applicable for Places, map businesses by their country)
   if (businessQueryObj.map) {
+    const mapObj = await Map.findById(businessQueryObj.map)
+    if (mapObj) {
+      businessQueryObj['location.country'] = mapObj.name
+    }
     delete businessQueryObj.map
   }
 

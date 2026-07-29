@@ -253,12 +253,26 @@ class SubscriptionService {
             }
             const subscription = await subscription_model_1.Subscription.findOne(query)
                 .sort({ createdAt: -1 })
-                .populate('planId');
+                .populate('planId')
+                .populate('businessId');
             return subscription;
         }
         catch (error) {
             console.error('Error fetching user subscription:', error);
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to fetch subscription');
+        }
+    }
+    async getUserSubscriptions(userId) {
+        try {
+            const subscriptions = await subscription_model_1.Subscription.find({ userId: new mongoose_1.Types.ObjectId(userId) })
+                .sort({ createdAt: -1 })
+                .populate('planId')
+                .populate('businessId');
+            return subscriptions;
+        }
+        catch (error) {
+            console.error('Error fetching user subscriptions:', error);
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to fetch subscriptions');
         }
     }
     // Admin: Get all subscriptions with filters and pagination
@@ -643,11 +657,12 @@ class SubscriptionService {
                     description: updateData.description || plan.description,
                 });
             }
-            // Create new Stripe price if price changed
-            if (updateData.price && updateData.price !== plan.price) {
+            // Create new Stripe price if price or interval changed
+            if ((updateData.price && updateData.price !== plan.price) ||
+                (updateData.interval && updateData.interval !== plan.interval)) {
                 const newStripePrice = await stripe_service_1.stripeService.createPrice({
                     productId: plan.stripeProductId,
-                    unitAmount: updateData.price * 100,
+                    unitAmount: (updateData.price !== undefined ? updateData.price : plan.price) * 100,
                     currency: updateData.currency || plan.currency,
                     interval: updateData.interval || plan.interval,
                     intervalCount: updateData.intervalCount || plan.intervalCount,

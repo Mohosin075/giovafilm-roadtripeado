@@ -296,12 +296,29 @@ class SubscriptionService {
       const subscription = await Subscription.findOne(query)
         .sort({ createdAt: -1 })
         .populate('planId')
+        .populate('businessId')
       return subscription
     } catch (error) {
       console.error('Error fetching user subscription:', error)
       throw new ApiError(
         StatusCodes.INTERNAL_SERVER_ERROR,
         'Failed to fetch subscription',
+      )
+    }
+  }
+
+  async getUserSubscriptions(userId: string): Promise<ISubscription[]> {
+    try {
+      const subscriptions = await Subscription.find({ userId: new Types.ObjectId(userId) })
+        .sort({ createdAt: -1 })
+        .populate('planId')
+        .populate('businessId')
+      return subscriptions
+    } catch (error) {
+      console.error('Error fetching user subscriptions:', error)
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to fetch subscriptions',
       )
     }
   }
@@ -839,11 +856,14 @@ class SubscriptionService {
         })
       }
 
-      // Create new Stripe price if price changed
-      if (updateData.price && updateData.price !== plan.price) {
+      // Create new Stripe price if price or interval changed
+      if (
+        (updateData.price && updateData.price !== plan.price) ||
+        (updateData.interval && updateData.interval !== plan.interval)
+      ) {
         const newStripePrice = await stripeService.createPrice({
           productId: plan.stripeProductId,
-          unitAmount: updateData.price * 100,
+          unitAmount: (updateData.price !== undefined ? updateData.price : plan.price) * 100,
           currency: updateData.currency || plan.currency,
           interval: updateData.interval || plan.interval,
           intervalCount: updateData.intervalCount || plan.intervalCount,

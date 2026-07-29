@@ -47,12 +47,29 @@ export const updateSubscriptionPlanSchema = z.object({
       .min(1, 'Description is required')
       .max(500, 'Description too long')
       .optional(),
+    price: z.number().min(0, 'Price must be non-negative').optional(),
+    currency: z
+      .string()
+      .length(3, 'Currency must be 3 characters')
+      .optional(),
+    interval: z.enum(['month', 'year'], {
+      errorMap: () => ({ message: 'Interval must be month or year' }),
+    }).optional(),
+    intervalCount: z
+      .number()
+      .min(1, 'Interval count must be at least 1')
+      .optional(),
+    trialPeriodDays: z
+      .number()
+      .min(0, 'Trial period must be non-negative')
+      .optional(),
     features: z
       .array(z.string().min(1, 'Feature cannot be empty'))
       .min(1, 'At least one feature is required')
       .optional(),
     isActive: z.boolean().optional(),
     priority: z.number().optional(),
+    maxPhotos: z.number().min(1, 'Max photos must be at least 1').optional(),
   }),
 })
 

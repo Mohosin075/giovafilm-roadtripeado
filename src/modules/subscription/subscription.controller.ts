@@ -65,22 +65,33 @@ const createSubscription = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
-// Get user's current subscription
+// Get user's current subscription(s)
 const getUserSubscription = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
   const userId = user.authId!.toString()
   const { businessId } = req.query
 
-  const subscription = await subscriptionService.getUserSubscription(userId, businessId as string)
-
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: subscription
-      ? 'Subscription retrieved successfully'
-      : 'No active subscription found',
-    data: subscription || {},
-  })
+  if (businessId) {
+    const subscription = await subscriptionService.getUserSubscription(userId, businessId as string)
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: subscription
+        ? 'Subscription retrieved successfully'
+        : 'No active subscription found',
+      data: subscription || {},
+    })
+  } else {
+    const subscriptions = await subscriptionService.getUserSubscriptions(userId)
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: subscriptions.length > 0
+        ? 'Subscriptions retrieved successfully'
+        : 'No active subscription found',
+      data: subscriptions,
+    })
+  }
 })
 
 // Update subscription

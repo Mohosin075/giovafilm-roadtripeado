@@ -48,12 +48,29 @@ exports.updateSubscriptionPlanSchema = zod_1.z.object({
             .min(1, 'Description is required')
             .max(500, 'Description too long')
             .optional(),
+        price: zod_1.z.number().min(0, 'Price must be non-negative').optional(),
+        currency: zod_1.z
+            .string()
+            .length(3, 'Currency must be 3 characters')
+            .optional(),
+        interval: zod_1.z.enum(['month', 'year'], {
+            errorMap: () => ({ message: 'Interval must be month or year' }),
+        }).optional(),
+        intervalCount: zod_1.z
+            .number()
+            .min(1, 'Interval count must be at least 1')
+            .optional(),
+        trialPeriodDays: zod_1.z
+            .number()
+            .min(0, 'Trial period must be non-negative')
+            .optional(),
         features: zod_1.z
             .array(zod_1.z.string().min(1, 'Feature cannot be empty'))
             .min(1, 'At least one feature is required')
             .optional(),
         isActive: zod_1.z.boolean().optional(),
         priority: zod_1.z.number().optional(),
+        maxPhotos: zod_1.z.number().min(1, 'Max photos must be at least 1').optional(),
     }),
 });
 // Subscription Validation

@@ -39,8 +39,7 @@ const getAllPlaces = (0, catchAsync_1.default)(async (req, res) => {
     const paidMapIds = paidMaps.map(m => m._id.toString());
     // Compute locked maps
     const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id));
-    const isPremium = user && ([user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.MAP_EDITOR].includes(user.role) ||
-        ['active', 'trialing'].includes(user.subscriptionStatus || ''));
+    const isPremium = user && [user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.MAP_EDITOR].includes(user.role);
     console.log('--- getAllPlaces req.query ---', req.query);
     const result = await place_service_1.PlaceService.getAllPlaces(req.query);
     const updatedData = result.data.map((place) => {
@@ -69,8 +68,7 @@ const getPlaceById = (0, catchAsync_1.default)(async (req, res) => {
     }
     const authorizationHeader = req.headers.authorization;
     const user = await (0, mapAccessHelper_1.getUserFromToken)(authorizationHeader);
-    const isPremium = user && ([user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.MAP_EDITOR].includes(user.role) ||
-        ['active', 'trialing'].includes(user.subscriptionStatus || ''));
+    const isPremium = user && [user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.MAP_EDITOR].includes(user.role);
     const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
     const mapId = ((_a = result.map) === null || _a === void 0 ? void 0 : _a._id) || result.map;
     if (mapId) {

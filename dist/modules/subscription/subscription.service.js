@@ -187,15 +187,10 @@ class SubscriptionService {
                 metadata: new Map(Object.entries(stripeSubscription.metadata || {})),
             });
             await subscription.save();
-            // Update user profile with subscription info
+            // Update user profile with customer info only
             await user_model_1.User.findByIdAndUpdate(userId, {
                 stripeCustomerId,
-                subscriptionStatus: stripeSubscription.status,
-                subscriptionTier: this.getSubscriptionTier(plan.name),
                 trialUsed: trialInfo.isEligible,
-                subscriptionExpiresAt: currentPeriodEnd
-                    ? new Date(currentPeriodEnd * 1000)
-                    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
             });
             // Update business hasActiveSubscription
             const isActive = ['active', 'trialing'].includes(stripeSubscription.status);
@@ -414,10 +409,6 @@ class SubscriptionService {
             if (!cancelAtPeriodEnd) {
                 updateData.status = 'canceled';
                 updateData.endedAt = new Date();
-                // Update user profile status
-                await user_model_1.User.findByIdAndUpdate(userId, {
-                    subscriptionStatus: 'canceled',
-                });
                 // Update business hasActiveSubscription
                 if (subscription.businessId) {
                     await business_model_1.Business.findByIdAndUpdate(subscription.businessId, { hasActiveSubscription: false });

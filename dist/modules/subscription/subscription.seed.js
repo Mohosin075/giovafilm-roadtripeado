@@ -8,33 +8,41 @@ const stripe_service_1 = require("./stripe.service");
 // Default subscription plans
 const defaultPlans = [
     {
-        name: 'Business Listing (Monthly)',
-        description: 'Add your business to the map and track your offers and views.',
+        name: 'Monthly Business Plan',
+        description: 'Perfect for growing your business visibility. Billed monthly, cancel anytime.',
         price: 6,
         currency: 'usd',
         interval: 'month',
         intervalCount: 1,
         trialPeriodDays: 0,
         features: [
-            'Add your business to the map',
-            'See how many times your offers have been used',
-            'See how many views your business has received',
+            'Add 1 business to the selected country\'s map',
+            'Complete business information',
+            'Edit your own registered business details',
+            'Add photos, descriptions, operating hours & contact info',
+            'Configure exclusive discounts & offers',
+            'Track business profile visits & views',
+            'Monitor exclusive discount redemptions',
         ],
         maxPhotos: 10,
         priority: 1,
     },
     {
-        name: 'Business Listing (Annual)',
-        description: 'Save 16.67% off the monthly price and add your business to the map.',
+        name: 'Yearly Business Plan',
+        description: 'Best value for long-term growth. Save 16.67% compared to the monthly plan.',
         price: 60,
         currency: 'usd',
         interval: 'year',
         intervalCount: 1,
         trialPeriodDays: 0,
         features: [
-            'Add your business to the map',
-            'See how many times your offers have been used',
-            'See how many views your business has received',
+            'Add 1 business to the selected country\'s map',
+            'Complete business information',
+            'Edit your own registered business details',
+            'Add photos, descriptions, operating hours & contact info',
+            'Configure exclusive discounts & offers',
+            'Track business profile visits & views',
+            'Monitor exclusive discount redemptions',
         ],
         maxPhotos: 10,
         priority: 2,
@@ -43,6 +51,9 @@ const defaultPlans = [
 async function seedSubscriptionPlans() {
     try {
         console.log('Starting subscription plans seeding...');
+        // Clear old/existing plans to avoid duplication/unprofessional names
+        console.log('Clearing existing subscription plans from database...');
+        await subscription_plan_model_1.SubscriptionPlan.deleteMany({});
         // Create plans in Stripe and database
         for (const planData of defaultPlans) {
             try {
@@ -51,7 +62,10 @@ async function seedSubscriptionPlans() {
                     name: planData.name,
                 });
                 if (existingPlan) {
-                    console.log(`Subscription plan ${planData.name} already exists. Skipping.`);
+                    existingPlan.description = planData.description;
+                    existingPlan.features = planData.features;
+                    await existingPlan.save();
+                    console.log(`Subscription plan ${planData.name} already exists. Updated features and description.`);
                     continue;
                 }
                 // Create Stripe product

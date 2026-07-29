@@ -281,15 +281,10 @@ class WebhookService {
 
       await subscription.save()
 
-      // Update user profile with subscription info
+      // Update user profile with customer and trial info
       await User.findByIdAndUpdate(userId, {
         stripeCustomerId: stripeSubscription.customer as string,
-        subscriptionStatus: stripeSubscription.status,
-        subscriptionTier: this.getSubscriptionTier(plan.name),
         trialUsed: !!stripeSubscription.trial_start,
-        subscriptionExpiresAt: currentPeriodEnd
-          ? new Date(currentPeriodEnd * 1000)
-          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       })
 
       // Update business hasActiveSubscription
@@ -398,20 +393,10 @@ class WebhookService {
 
       await Subscription.findByIdAndUpdate(subscription._id, updateData)
 
-      // Update user profile with new subscription info
-      const userUpdate: any = {
-        subscriptionStatus: stripeSubscription.status,
-        subscriptionExpiresAt: currentPeriodEnd
-          ? new Date(currentPeriodEnd * 1000)
-          : new Date((stripeSubscription as any).current_period_end * 1000),
+      // Update user profile with trial usage info
+      await User.findByIdAndUpdate(subscription.userId, {
         trialUsed: !!stripeSubscription.trial_start,
-      }
-
-      if (newTier) {
-        userUpdate.subscriptionTier = newTier
-      }
-
-      await User.findByIdAndUpdate(subscription.userId, userUpdate)
+      })
 
       // Update business hasActiveSubscription
       const isActive = ['active', 'trialing'].includes(stripeSubscription.status)
@@ -451,11 +436,7 @@ class WebhookService {
         lastWebhookEventId: eventId,
       })
 
-      // Update user profile status
-      await User.findByIdAndUpdate(subscription.userId, {
-        subscriptionStatus: 'canceled',
-        subscriptionTier: 'free',
-      })
+      // No user-level subscription status updates are needed
 
       // Update business hasActiveSubscription
       const businessId = subscription.businessId || stripeSubscription.metadata?.businessId
@@ -565,10 +546,7 @@ class WebhookService {
         lastWebhookEventId: eventId,
       })
 
-      // Update user profile status
-      await User.findByIdAndUpdate(subscription.userId, {
-        subscriptionStatus: stripeSubscription.status,
-      })
+      // No user-level status updates needed on payment success
 
       // Update business hasActiveSubscription
       const businessId = subscription.businessId || stripeSubscription.metadata?.businessId
@@ -630,10 +608,7 @@ class WebhookService {
         lastWebhookEventId: eventId,
       })
 
-      // Update user profile status
-      await User.findByIdAndUpdate(subscription.userId, {
-        subscriptionStatus: newStatus,
-      })
+      // No user-level status updates needed on payment failure
 
       // Update business hasActiveSubscription
       const businessId = subscription.businessId
@@ -747,7 +722,6 @@ class WebhookService {
         )
 
         await User.findByIdAndUpdate(userId, {
-          subscriptionStatus: stripeSubscription.status,
           stripeCustomerId: session.customer as string,
         })
 
@@ -1184,10 +1158,7 @@ class WebhookService {
           lastWebhookEventId: eventId,
         })
 
-        // Update user profile status
-        await User.findByIdAndUpdate(subscription.userId, {
-          subscriptionStatus: 'paused',
-        })
+        // No user-level status updates needed on pause
 
         // Update business hasActiveSubscription
         const businessId = subscription.businessId || stripeSubscription.metadata?.businessId
@@ -1223,10 +1194,7 @@ class WebhookService {
           lastWebhookEventId: eventId,
         })
 
-        // Update user profile status
-        await User.findByIdAndUpdate(subscription.userId, {
-          subscriptionStatus: stripeSubscription.status,
-        })
+        // No user-level status updates needed on resume
 
         // Update business hasActiveSubscription
         const businessId = subscription.businessId || stripeSubscription.metadata?.businessId

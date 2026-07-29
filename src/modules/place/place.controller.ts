@@ -41,10 +41,7 @@ const getAllPlaces = catchAsync(async (req: Request, res: Response) => {
   // Compute locked maps
   const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id))
 
-  const isPremium = user && (
-    [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any) ||
-    ['active', 'trialing'].includes(user.subscriptionStatus || '')
-  )
+  const isPremium = user && [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any)
 
   console.log('--- getAllPlaces req.query ---', req.query)
 
@@ -78,10 +75,7 @@ const getPlaceById = catchAsync(async (req: Request, res: Response) => {
   const authorizationHeader = req.headers.authorization
   const user = await getUserFromToken(authorizationHeader)
 
-  const isPremium = user && (
-    [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any) ||
-    ['active', 'trialing'].includes(user.subscriptionStatus || '')
-  )
+  const isPremium = user && [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any)
 
   const accessibleMapIds = await getAccessibleMapIds(user)
 

@@ -205,15 +205,10 @@ class WebhookService {
                 metadata: new Map(Object.entries(stripeSubscription.metadata || {})),
             });
             await subscription.save();
-            // Update user profile with subscription info
+            // Update user profile with customer and trial info
             await user_model_1.User.findByIdAndUpdate(userId, {
                 stripeCustomerId: stripeSubscription.customer,
-                subscriptionStatus: stripeSubscription.status,
-                subscriptionTier: this.getSubscriptionTier(plan.name),
                 trialUsed: !!stripeSubscription.trial_start,
-                subscriptionExpiresAt: currentPeriodEnd
-                    ? new Date(currentPeriodEnd * 1000)
-                    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
             });
             // Update business hasActiveSubscription
             const isActive = ['active', 'trialing'].includes(stripeSubscription.status);
@@ -294,18 +289,10 @@ class WebhookService {
                 updateData.businessId = new mongoose_1.Types.ObjectId(businessId);
             }
             await subscription_model_1.Subscription.findByIdAndUpdate(subscription._id, updateData);
-            // Update user profile with new subscription info
-            const userUpdate = {
-                subscriptionStatus: stripeSubscription.status,
-                subscriptionExpiresAt: currentPeriodEnd
-                    ? new Date(currentPeriodEnd * 1000)
-                    : new Date(stripeSubscription.current_period_end * 1000),
+            // Update user profile with trial usage info
+            await user_model_1.User.findByIdAndUpdate(subscription.userId, {
                 trialUsed: !!stripeSubscription.trial_start,
-            };
-            if (newTier) {
-                userUpdate.subscriptionTier = newTier;
-            }
-            await user_model_1.User.findByIdAndUpdate(subscription.userId, userUpdate);
+            });
             // Update business hasActiveSubscription
             const isActive = ['active', 'trialing'].includes(stripeSubscription.status);
             if (businessId) {
@@ -335,11 +322,7 @@ class WebhookService {
                 endedAt: new Date(),
                 lastWebhookEventId: eventId,
             });
-            // Update user profile status
-            await user_model_1.User.findByIdAndUpdate(subscription.userId, {
-                subscriptionStatus: 'canceled',
-                subscriptionTier: 'free',
-            });
+            // No user-level subscription status updates are needed
             // Update business hasActiveSubscription
             const businessId = subscription.businessId || ((_a = stripeSubscription.metadata) === null || _a === void 0 ? void 0 : _a.businessId);
             if (businessId) {
@@ -408,10 +391,7 @@ class WebhookService {
                 paymentFailureCount: 0,
                 lastWebhookEventId: eventId,
             });
-            // Update user profile status
-            await user_model_1.User.findByIdAndUpdate(subscription.userId, {
-                subscriptionStatus: stripeSubscription.status,
-            });
+            // No user-level status updates needed on payment success
             // Update business hasActiveSubscription
             const businessId = subscription.businessId || ((_a = stripeSubscription.metadata) === null || _a === void 0 ? void 0 : _a.businessId);
             const isActive = ['active', 'trialing'].includes(stripeSubscription.status);
@@ -451,10 +431,7 @@ class WebhookService {
                 paymentFailureCount: failureCount,
                 lastWebhookEventId: eventId,
             });
-            // Update user profile status
-            await user_model_1.User.findByIdAndUpdate(subscription.userId, {
-                subscriptionStatus: newStatus,
-            });
+            // No user-level status updates needed on payment failure
             // Update business hasActiveSubscription
             const businessId = subscription.businessId;
             const isActive = ['active', 'trialing'].includes(newStatus);
@@ -527,7 +504,6 @@ class WebhookService {
                     lastWebhookEventId: eventId,
                 });
                 await user_model_1.User.findByIdAndUpdate(userId, {
-                    subscriptionStatus: stripeSubscription.status,
                     stripeCustomerId: session.customer,
                 });
                 // Update business subscription flag right after successful checkout
@@ -854,10 +830,7 @@ class WebhookService {
                     pausedAt: new Date(),
                     lastWebhookEventId: eventId,
                 });
-                // Update user profile status
-                await user_model_1.User.findByIdAndUpdate(subscription.userId, {
-                    subscriptionStatus: 'paused',
-                });
+                // No user-level status updates needed on pause
                 // Update business hasActiveSubscription
                 const businessId = subscription.businessId || ((_a = stripeSubscription.metadata) === null || _a === void 0 ? void 0 : _a.businessId);
                 if (businessId) {
@@ -884,10 +857,7 @@ class WebhookService {
                     resumedAt: new Date(),
                     lastWebhookEventId: eventId,
                 });
-                // Update user profile status
-                await user_model_1.User.findByIdAndUpdate(subscription.userId, {
-                    subscriptionStatus: stripeSubscription.status,
-                });
+                // No user-level status updates needed on resume
                 // Update business hasActiveSubscription
                 const businessId = subscription.businessId || ((_a = stripeSubscription.metadata) === null || _a === void 0 ? void 0 : _a.businessId);
                 const isActive = ['active', 'trialing'].includes(stripeSubscription.status);

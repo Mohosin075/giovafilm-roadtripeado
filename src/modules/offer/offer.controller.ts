@@ -52,13 +52,17 @@ const createOffer = catchAsync(async (req: Request, res: Response) => {
 
 const getAllOffers = catchAsync(async (req: Request, res: Response) => {
   const authorizationHeader = req.headers.authorization
-  const user = await getUserFromToken(authorizationHeader)
+
+  // Run in parallel to avoid sequential DB round-trips
+  const [user, result] = await Promise.all([
+    getUserFromToken(authorizationHeader),
+    OfferService.getAllOffers(req.query),
+  ])
 
   const isPremium = user && (
     [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any)
   )
 
-  const result = await OfferService.getAllOffers(req.query)
   const accessibleMapIds = await getAccessibleMapIds(user)
 
   const updatedData = result.data.map((offer: any) => {

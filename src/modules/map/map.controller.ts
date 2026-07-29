@@ -36,17 +36,11 @@ const getAllMaps = catchAsync(async (req: Request, res: Response) => {
 
   const result = await MapService.getAllMaps(query)
 
-  // Convert mongoose documents to plain objects to tag places with isLocked for locked maps
+  // Tag each map with isLocked (places are NOT populated in list view for performance)
   const data = result.data.map((map: any) => {
     const mapObj = typeof map.toObject === 'function' ? map.toObject() : map
     const isLockedMap = !accessibleMapIds.includes(mapObj._id.toString())
-    mapObj.places = (mapObj.places || []).map((place: any) => {
-      const isPlaceLocked = isLockedMap && place.type !== 'Business'
-      return {
-        ...place,
-        isLocked: isPlaceLocked,
-      }
-    })
+    mapObj.isLocked = isLockedMap
     return mapObj
   })
 
@@ -147,10 +141,13 @@ const getAvailableCountries = catchAsync(async (req: Request, res: Response) => 
 const getDiscoveryData = catchAsync(async (req: Request, res: Response) => {
   const authorizationHeader = req.headers.authorization
   const user = await getUserFromToken(authorizationHeader)
-  const accessibleMapIds = await getAccessibleMapIds(user)
 
-  // Find all paid maps to compute locked maps
-  const paidMaps = await Map.find({ isPaid: true }, '_id')
+  // Run accessible map IDs and paid maps lookup in parallel
+  const [accessibleMapIds, paidMaps] = await Promise.all([
+    getAccessibleMapIds(user),
+    Map.find({ isPaid: true }, '_id'),
+  ])
+
   const paidMapIds = paidMaps.map(m => m._id.toString())
   const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id))
 

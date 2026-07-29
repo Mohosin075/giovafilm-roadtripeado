@@ -46,12 +46,10 @@ const getAllMaps = async (query: Record<string, unknown>) => {
     delete query.category // Remove category from query as it's not a field in Map model
   }
 
+  // Select only the fields needed for the list view — do NOT populate places (it's huge)
+  // rating and totalReview are stored on the Map document itself and updated by review hooks
   const mapQuery = new QueryBuilder(
-    Map.find().populate({
-      path: 'places',
-      select: 'name media location category status type difficulty address country rating totalReview',
-      populate: { path: 'category', select: 'name color icon status' },
-    }),
+    Map.find().select('-places'),
     query
   )
     .search(mapSearchableFields)
@@ -63,26 +61,20 @@ const getAllMaps = async (query: Record<string, unknown>) => {
   const result = await mapQuery.modelQuery
   const meta = await mapQuery.getPaginationInfo()
 
+  // Fetch only the place counts for these maps in a single aggregation (no full populate)
+  const fetchedMapIds = result.map((m: any) => m._id)
+  const placeCounts = await Place.aggregate([
+    { $match: { map: { $in: fetchedMapIds }, status: 'Published' } },
+    { $group: { _id: '$map', count: { $sum: 1 } } },
+  ])
+  const placeCountMap: Record<string, number> = {}
+  placeCounts.forEach((pc: any) => { placeCountMap[pc._id.toString()] = pc.count })
+
   const populatedData = result.map((map: any) => {
-    const mapObj = typeof map.toObject === 'function' ? map.toObject() : map;
-    const places = mapObj.places || [];
-    let totalReview = 0;
-    let totalWeightedRating = 0;
-    let placesWithReviews = 0;
-
-    places.forEach((place: any) => {
-      if (place.totalReview > 0) {
-        totalReview += place.totalReview;
-        totalWeightedRating += place.rating * place.totalReview;
-        placesWithReviews += place.totalReview;
-      }
-    });
-
-    const averageRating = placesWithReviews > 0 ? (totalWeightedRating / placesWithReviews) : 0;
-    mapObj.rating = Number(averageRating.toFixed(1)) || 0;
-    mapObj.totalReview = totalReview;
-    return mapObj;
-  });
+    const mapObj = typeof map.toObject === 'function' ? map.toObject() : map
+    mapObj.placeCount = placeCountMap[mapObj._id.toString()] || 0
+    return mapObj
+  })
 
   return {
     meta,

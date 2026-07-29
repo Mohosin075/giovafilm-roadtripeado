@@ -31,19 +31,18 @@ const createPlace = catchAsync(async (req: Request, res: Response) => {
 
 const getAllPlaces = catchAsync(async (req: Request, res: Response) => {
   const authorizationHeader = req.headers.authorization
-  const user = await getUserFromToken(authorizationHeader)
+
+  // Run auth lookup and paid map IDs in parallel to avoid sequential DB hits
+  const [user, paidMaps] = await Promise.all([
+    getUserFromToken(authorizationHeader),
+    Map.find({ isPaid: true }, '_id'),
+  ])
   const accessibleMapIds = await getAccessibleMapIds(user)
 
-  // Find all paid map IDs
-  const paidMaps = await Map.find({ isPaid: true }, '_id')
   const paidMapIds = paidMaps.map(m => m._id.toString())
-
-  // Compute locked maps
   const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id))
 
   const isPremium = user && [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any)
-
-  console.log('--- getAllPlaces req.query ---', req.query)
 
   const result = await PlaceService.getAllPlaces(req.query)
 

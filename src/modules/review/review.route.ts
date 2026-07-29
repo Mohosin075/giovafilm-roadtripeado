@@ -10,7 +10,7 @@ const router = express.Router()
 router
   .route('/')
   .get(
-    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
     ReviewController.getAllReviews,
   )
   .post(
@@ -47,5 +47,17 @@ router
     auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
     ReviewController.deleteReview,
   )
+
+router.patch(
+  '/approve/:id',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  ReviewController.approveReview,
+)
+
+router.patch(
+  '/reject/:id',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  ReviewController.rejectReview,
+)
 
 export const ReviewRoutes = router

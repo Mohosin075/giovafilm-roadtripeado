@@ -83,6 +83,7 @@ export interface IUser {
   // --- Points & Rewards ---
   points: number
   level: number
+  totalReviewsApproved: number
   redeemedFreeMap?: Types.ObjectId // The map user chose as a prize
 
   // --- Subscription Fields ---

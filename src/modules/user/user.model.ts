@@ -102,7 +102,8 @@ const UserSchema = new Schema<IUser, UserModel>(
     ],
     // --- Points & Rewards ---
     points: { type: Number, default: 0 },
-    level: { type: Number, default: 1 },
+    level: { type: Number, default: 0 }, // starts at level 0: Explorador
+    totalReviewsApproved: { type: Number, default: 0 },
     redeemedFreeMap: { type: Schema.Types.ObjectId, ref: 'Map', default: null },
 
     // --- Subscription Fields ---

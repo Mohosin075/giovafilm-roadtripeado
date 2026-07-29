@@ -12,6 +12,13 @@ const reviewSchema = new Schema<IReview, ReviewModel>(
     rating: { type: Number, required: true, min: 1, max: 5 },
     review: { type: String, required: true },
     media: { type: [String], default: [] },
+    status: {
+      type: String,
+      enum: ['Pending', 'Approved', 'Rejected'],
+      default: 'Pending',
+    },
+    isVerified: { type: Boolean, default: false },
+    pointsEarned: { type: Number, default: 0 },
   },
   {
     timestamps: true,
@@ -21,5 +28,6 @@ const reviewSchema = new Schema<IReview, ReviewModel>(
 reviewSchema.index({ placeId: 1 })           // get reviews by place
 reviewSchema.index({ reviewer: 1 })          // get my reviews
 reviewSchema.index({ placeId: 1, reviewer: 1 }) // check duplicate review
+reviewSchema.index({ status: 1 })            // filter by status
 
 export const Review = model<IReview, ReviewModel>('Review', reviewSchema)

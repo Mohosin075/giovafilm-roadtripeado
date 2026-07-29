@@ -8,6 +8,9 @@ export type IReview = {
   rating: number
   review: string
   media?: string[]
+  status?: 'Pending' | 'Approved' | 'Rejected'
+  isVerified?: boolean
+  pointsEarned?: number
   createdAt: Date
   updatedAt: Date
 }

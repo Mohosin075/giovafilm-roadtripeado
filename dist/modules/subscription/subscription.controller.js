@@ -59,7 +59,8 @@ const createSubscription = (0, catchAsync_1.default)(async (req, res) => {
 const getUserSubscription = (0, catchAsync_1.default)(async (req, res) => {
     const user = req.user;
     const userId = user.authId.toString();
-    const subscription = await subscription_service_1.subscriptionService.getUserSubscription(userId);
+    const { businessId } = req.query;
+    const subscription = await subscription_service_1.subscriptionService.getUserSubscription(userId, businessId);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -100,7 +101,8 @@ const cancelSubscription = (0, catchAsync_1.default)(async (req, res) => {
 const getSubscriptionStatus = (0, catchAsync_1.default)(async (req, res) => {
     const user = req.user;
     const userId = user.authId.toString();
-    const status = await subscription_service_1.subscriptionService.getSubscriptionStatus(userId);
+    const { businessId } = req.query;
+    const status = await subscription_service_1.subscriptionService.getSubscriptionStatus(userId, businessId);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -112,8 +114,8 @@ const getSubscriptionStatus = (0, catchAsync_1.default)(async (req, res) => {
 const createCheckoutSession = (0, catchAsync_1.default)(async (req, res) => {
     const user = req.user;
     const userId = user.authId.toString();
-    const { planId, successUrl, cancelUrl } = req.body;
-    const session = await subscription_service_1.subscriptionService.createCheckoutSession(userId, planId, successUrl, cancelUrl);
+    const { planId, businessId, successUrl, cancelUrl } = req.body;
+    const session = await subscription_service_1.subscriptionService.createCheckoutSession(userId, planId, businessId, successUrl, cancelUrl);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.CREATED,
         success: true,

@@ -95,15 +95,24 @@ class SubscriptionService {
         throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
       }
 
+      // Validate business exists and belongs to the user
+      const business = await Business.findOne({ _id: request.businessId, user: userId })
+      if (!business) {
+        throw new ApiError(StatusCodes.NOT_FOUND, 'Business not found or does not belong to you')
+      }
+
       // Validate plan exists
       const plan = await this.getPlanById(request.planId)
 
-      // Check if user already has an active subscription
-      const existingSubscription = await Subscription.findActiveByUserId(userId)
+      // Check if this business already has an active subscription
+      const existingSubscription = await Subscription.findOne({
+        businessId: new Types.ObjectId(request.businessId),
+        status: { $in: ['active', 'trialing'] },
+      })
       if (existingSubscription) {
         throw new ApiError(
           StatusCodes.CONFLICT,
-          'User already has an active subscription',
+          'This business already has an active subscription',
         )
       }
 
@@ -138,7 +147,7 @@ class SubscriptionService {
           request.paymentMethodId,
         )
       }
-      console.log('Metadata', userId, request.planId)
+      console.log('Metadata', userId, request.planId, request.businessId)
       // Create Stripe subscription
       const stripeSubscription = await stripeService.createSubscription({
         customerId: stripeCustomerId,
@@ -150,6 +159,7 @@ class SubscriptionService {
         metadata: {
           userId: userId.toString(),
           planId: request.planId,
+          businessId: request.businessId,
         },
       })
 
@@ -165,6 +175,7 @@ class SubscriptionService {
 
       const subscription = new Subscription({
         userId: new Types.ObjectId(userId),
+        businessId: new Types.ObjectId(request.businessId),
         planId: new Types.ObjectId(request.planId),
         stripeCustomerId,
         stripeSubscriptionId: stripeSubscription.id,
@@ -201,9 +212,9 @@ class SubscriptionService {
 
       // Update business hasActiveSubscription
       const isActive = ['active', 'trialing'].includes(stripeSubscription.status)
-      await Business.updateMany(
-        { user: userId },
-        { hasActiveSubscription: isActive }
+      await Business.findByIdAndUpdate(
+        request.businessId,
+        { hasActiveSubscription: isActive, plan: plan._id }
       )
 
       // Send welcome email
@@ -281,9 +292,15 @@ class SubscriptionService {
   }
 
   // Get user's current subscription
-  async getUserSubscription(userId: string): Promise<ISubscription | null> {
+  async getUserSubscription(userId: string, businessId?: string): Promise<ISubscription | null> {
     try {
-      const subscription = await Subscription.findActiveByUserId(userId)
+      const query: any = { userId: new Types.ObjectId(userId) }
+      if (businessId) {
+        query.businessId = new Types.ObjectId(businessId)
+      }
+      const subscription = await Subscription.findOne(query)
+        .sort({ createdAt: -1 })
+        .populate('planId')
       return subscription
     } catch (error) {
       console.error('Error fetching user subscription:', error)
@@ -505,10 +522,12 @@ class SubscriptionService {
         })
 
         // Update business hasActiveSubscription
-        await Business.updateMany(
-          { user: userId },
-          { hasActiveSubscription: false }
-        )
+        if (subscription.businessId) {
+          await Business.findByIdAndUpdate(
+            subscription.businessId,
+            { hasActiveSubscription: false }
+          )
+        }
       }
 
       const updatedSubscription = await Subscription.findByIdAndUpdate(
@@ -576,10 +595,12 @@ class SubscriptionService {
 
       // Update business hasActiveSubscription
       const isActive = ['active', 'trialing'].includes(updatedSubscription!.status)
-      await Business.updateMany(
-        { user: userId },
-        { hasActiveSubscription: isActive }
-      )
+      if (updatedSubscription?.businessId) {
+        await Business.findByIdAndUpdate(
+          updatedSubscription.businessId,
+          { hasActiveSubscription: isActive }
+        )
+      }
 
       // Send reactivation email
       const plan = updatedSubscription?.planId as unknown as ISubscriptionPlan
@@ -604,12 +625,16 @@ class SubscriptionService {
   }
 
   // Get subscription status
-  async getSubscriptionStatus(userId: string): Promise<SubscriptionStatus> {
+  async getSubscriptionStatus(userId: string, businessId?: string): Promise<SubscriptionStatus> {
     try {
-      const subscription = await Subscription.findOne({
+      const query: any = {
         userId: new Types.ObjectId(userId),
         status: { $in: ['active', 'trialing'] },
-      }).populate('planId')
+      }
+      if (businessId) {
+        query.businessId = new Types.ObjectId(businessId)
+      }
+      const subscription = await Subscription.findOne(query).populate('planId')
 
       if (!subscription) {
         return {
@@ -664,6 +689,7 @@ class SubscriptionService {
   async createCheckoutSession(
     userId: string,
     planId: string,
+    businessId: string,
     successUrl: string,
     cancelUrl: string,
   ): Promise<{ sessionId: string; url: string }> {
@@ -674,8 +700,26 @@ class SubscriptionService {
         throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
       }
 
+      // Validate business exists and belongs to the user
+      const business = await Business.findOne({ _id: businessId, user: userId })
+      if (!business) {
+        throw new ApiError(StatusCodes.NOT_FOUND, 'Business not found or does not belong to you')
+      }
+
       const plan = await this.getPlanById(planId)
       const trialInfo = await this.checkTrialEligibility(userId)
+
+      // Check if this business already has an active subscription
+      const existingSubscription = await Subscription.findOne({
+        businessId: new Types.ObjectId(businessId),
+        status: { $in: ['active', 'trialing'] },
+      })
+      if (existingSubscription) {
+        throw new ApiError(
+          StatusCodes.CONFLICT,
+          'This business already has an active subscription',
+        )
+      }
 
       // Create or get Stripe customer
       let stripeCustomerId: string
@@ -705,6 +749,7 @@ class SubscriptionService {
         metadata: {
           userId: userId.toString(),
           planId,
+          businessId,
         },
       })
 

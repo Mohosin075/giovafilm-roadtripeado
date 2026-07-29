@@ -213,6 +213,7 @@ class WebhookService {
   ): Promise<void> {
     try {
       const userId = stripeSubscription.metadata?.userId
+      const businessId = stripeSubscription.metadata?.businessId
       if (!userId) {
         console.error('No userId in subscription metadata')
         return
@@ -255,6 +256,7 @@ class WebhookService {
 
       const subscription = new Subscription({
         userId: new Types.ObjectId(userId),
+        businessId: businessId ? new Types.ObjectId(businessId) : undefined,
         planId: plan._id,
         stripeCustomerId: stripeSubscription.customer as string,
         stripeSubscriptionId: stripeSubscription.id,
@@ -292,10 +294,12 @@ class WebhookService {
 
       // Update business hasActiveSubscription
       const isActive = ['active', 'trialing'].includes(stripeSubscription.status)
-      await Business.updateMany(
-        { user: userId },
-        { hasActiveSubscription: isActive }
-      )
+      if (businessId) {
+        await Business.findByIdAndUpdate(
+          businessId,
+          { hasActiveSubscription: isActive, plan: plan._id }
+        )
+      }
 
       // Send welcome email
       const { emailNotificationService } = await import(
@@ -387,6 +391,11 @@ class WebhookService {
         }
       }
 
+      const businessId = subscription.businessId || stripeSubscription.metadata?.businessId
+      if (businessId && !subscription.businessId) {
+        updateData.businessId = new Types.ObjectId(businessId)
+      }
+
       await Subscription.findByIdAndUpdate(subscription._id, updateData)
 
       // Update user profile with new subscription info
@@ -406,10 +415,12 @@ class WebhookService {
 
       // Update business hasActiveSubscription
       const isActive = ['active', 'trialing'].includes(stripeSubscription.status)
-      await Business.updateMany(
-        { user: subscription.userId },
-        { hasActiveSubscription: isActive }
-      )
+      if (businessId) {
+        await Business.findByIdAndUpdate(
+          businessId,
+          { hasActiveSubscription: isActive }
+        )
+      }
 
       console.log(`Subscription updated from webhook: ${subscription._id}`)
       console.log(`User profile updated for user: ${subscription.userId}`)
@@ -447,10 +458,13 @@ class WebhookService {
       })
 
       // Update business hasActiveSubscription
-      await Business.updateMany(
-        { user: subscription.userId },
-        { hasActiveSubscription: false }
-      )
+      const businessId = subscription.businessId || stripeSubscription.metadata?.businessId
+      if (businessId) {
+        await Business.findByIdAndUpdate(
+          businessId,
+          { hasActiveSubscription: false }
+        )
+      }
 
       // Send cancellation email
       const { emailNotificationService } = await import(
@@ -557,11 +571,14 @@ class WebhookService {
       })
 
       // Update business hasActiveSubscription
+      const businessId = subscription.businessId || stripeSubscription.metadata?.businessId
       const isActive = ['active', 'trialing'].includes(stripeSubscription.status)
-      await Business.updateMany(
-        { user: subscription.userId },
-        { hasActiveSubscription: isActive }
-      )
+      if (businessId) {
+        await Business.findByIdAndUpdate(
+          businessId,
+          { hasActiveSubscription: isActive }
+        )
+      }
 
       // Send payment success email
       const { emailNotificationService } = await import(
@@ -619,11 +636,14 @@ class WebhookService {
       })
 
       // Update business hasActiveSubscription
+      const businessId = subscription.businessId
       const isActive = ['active', 'trialing'].includes(newStatus)
-      await Business.updateMany(
-        { user: subscription.userId },
-        { hasActiveSubscription: isActive }
-      )
+      if (businessId) {
+        await Business.findByIdAndUpdate(
+          businessId,
+          { hasActiveSubscription: isActive }
+        )
+      }
 
       // Send payment failed email
       const { emailNotificationService } = await import(
@@ -732,11 +752,18 @@ class WebhookService {
         })
 
         // Update business subscription flag right after successful checkout
+        const businessId = stripeSubscription.metadata?.businessId || session.metadata?.businessId
         const isActive = ['active', 'trialing'].includes(stripeSubscription.status)
-        await Business.updateMany(
-          { user: userId },
-          { hasActiveSubscription: isActive }
-        )
+        if (businessId) {
+          await Business.findByIdAndUpdate(
+            businessId,
+            { hasActiveSubscription: isActive }
+          )
+          await Subscription.findOneAndUpdate(
+            { stripeSubscriptionId: stripeSubscription.id },
+            { businessId: new Types.ObjectId(businessId) }
+          )
+        }
       }
 
       console.log(`Checkout completed for user: ${userId}`)
@@ -1162,6 +1189,15 @@ class WebhookService {
           subscriptionStatus: 'paused',
         })
 
+        // Update business hasActiveSubscription
+        const businessId = subscription.businessId || stripeSubscription.metadata?.businessId
+        if (businessId) {
+          await Business.findByIdAndUpdate(
+            businessId,
+            { hasActiveSubscription: false }
+          )
+        }
+
         console.log(`Subscription paused: ${subscription._id}`)
       }
     } catch (error) {
@@ -1191,6 +1227,16 @@ class WebhookService {
         await User.findByIdAndUpdate(subscription.userId, {
           subscriptionStatus: stripeSubscription.status,
         })
+
+        // Update business hasActiveSubscription
+        const businessId = subscription.businessId || stripeSubscription.metadata?.businessId
+        const isActive = ['active', 'trialing'].includes(stripeSubscription.status)
+        if (businessId) {
+          await Business.findByIdAndUpdate(
+            businessId,
+            { hasActiveSubscription: isActive }
+          )
+        }
 
         console.log(`Subscription resumed: ${subscription._id}`)
       }

@@ -11,31 +11,14 @@ const offer_model_1 = require("../offer/offer.model");
 const QueryBuilder_1 = __importDefault(require("../../builder/QueryBuilder"));
 const business_constants_1 = require("./business.constants");
 const offer_1 = require("../../enum/offer");
-const subscription_model_1 = require("../subscription/subscription.model");
 /**
  * Creates a new business listing and sets it as Pending.
  * @param payload The business data to be created
  * @returns The newly created business document
  */
 const createBusiness = async (payload) => {
-    const userId = payload.user;
-    // Count existing businesses of this user
-    const businessCount = await business_model_1.Business.countDocuments({ user: userId });
-    // Find active subscription
-    const activeSubscription = await subscription_model_1.Subscription.findOne({
-        userId,
-        status: { $in: ['active', 'trialing'] },
-    });
-    // Enforce limits:
-    // - If no active subscription: max 1 business allowed
-    // - If active subscription: max 5 businesses allowed
-    const limit = activeSubscription ? 5 : 1;
-    if (businessCount >= limit) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, activeSubscription
-            ? `You have reached the limit of ${limit} businesses under your current subscription plan.`
-            : `You can only add 1 business on the free tier. Please subscribe to a premium plan to add more businesses.`);
-    }
     payload.status = 'Pending'; // Always start as pending until admin approves
+    payload.hasActiveSubscription = false; // Explicitly start with no active subscription
     const result = await business_model_1.Business.create(payload);
     return result;
 };

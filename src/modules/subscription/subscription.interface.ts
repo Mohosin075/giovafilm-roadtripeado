@@ -26,6 +26,7 @@ export type SubscriptionPlanModel = Model<ISubscriptionPlan>
 export interface ISubscription {
   _id?: Types.ObjectId
   userId: Types.ObjectId
+  businessId: Types.ObjectId
   planId: Types.ObjectId
   stripeCustomerId: string
   stripeSubscriptionId: string
@@ -69,6 +70,7 @@ export interface SubscriptionModel extends Model<ISubscription> {
 // Request/Response Types
 export interface CreateSubscriptionRequest {
   planId: string
+  businessId: string
   paymentMethodId?: string
   couponId?: string
 }

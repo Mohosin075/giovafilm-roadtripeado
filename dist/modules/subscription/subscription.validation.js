@@ -60,6 +60,7 @@ exports.updateSubscriptionPlanSchema = zod_1.z.object({
 exports.createSubscriptionSchema = zod_1.z.object({
     body: zod_1.z.object({
         planId: zod_1.z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid plan ID format'),
+        businessId: zod_1.z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid business ID format'),
         paymentMethodId: zod_1.z.string().optional(),
         couponId: zod_1.z.string().optional(),
     }),
@@ -77,6 +78,7 @@ exports.updateSubscriptionSchema = zod_1.z.object({
 exports.createCheckoutSessionSchema = zod_1.z.object({
     body: zod_1.z.object({
         planId: zod_1.z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid plan ID format'),
+        businessId: zod_1.z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid business ID format'),
         successUrl: zod_1.z.string().url('Invalid success URL'),
         cancelUrl: zod_1.z.string().url('Invalid cancel URL'),
     }),

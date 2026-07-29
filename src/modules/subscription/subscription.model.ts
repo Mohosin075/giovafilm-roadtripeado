@@ -8,6 +8,11 @@ const subscriptionSchema = new Schema<ISubscription, SubscriptionModel>(
       ref: 'User',
       required: true,
     },
+    businessId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Business',
+      required: true,
+    },
     planId: {
       type: Schema.Types.ObjectId,
       ref: 'SubscriptionPlan',
@@ -134,6 +139,7 @@ const subscriptionSchema = new Schema<ISubscription, SubscriptionModel>(
 
 // Indexes for efficient queries
 subscriptionSchema.index({ userId: 1 })
+subscriptionSchema.index({ businessId: 1 })
 subscriptionSchema.index({ stripeSubscriptionId: 1 })
 subscriptionSchema.index({ stripeCustomerId: 1 })
 subscriptionSchema.index({ status: 1 })
@@ -142,6 +148,7 @@ subscriptionSchema.index({ trialEnd: 1 })
 
 // Compound indexes
 subscriptionSchema.index({ userId: 1, status: 1 })
+subscriptionSchema.index({ businessId: 1, status: 1 })
 
 // Static methods
 subscriptionSchema.statics.findActiveByUserId = function (userId: string) {

@@ -8,6 +8,11 @@ const subscriptionSchema = new mongoose_1.Schema({
         ref: 'User',
         required: true,
     },
+    businessId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'Business',
+        required: true,
+    },
     planId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'SubscriptionPlan',
@@ -131,6 +136,7 @@ const subscriptionSchema = new mongoose_1.Schema({
 });
 // Indexes for efficient queries
 subscriptionSchema.index({ userId: 1 });
+subscriptionSchema.index({ businessId: 1 });
 subscriptionSchema.index({ stripeSubscriptionId: 1 });
 subscriptionSchema.index({ stripeCustomerId: 1 });
 subscriptionSchema.index({ status: 1 });
@@ -138,6 +144,7 @@ subscriptionSchema.index({ currentPeriodEnd: 1 });
 subscriptionSchema.index({ trialEnd: 1 });
 // Compound indexes
 subscriptionSchema.index({ userId: 1, status: 1 });
+subscriptionSchema.index({ businessId: 1, status: 1 });
 // Static methods
 subscriptionSchema.statics.findActiveByUserId = function (userId) {
     return this.findOne({

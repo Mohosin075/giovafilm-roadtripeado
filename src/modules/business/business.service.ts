@@ -6,7 +6,6 @@ import { Offer } from '../offer/offer.model'
 import QueryBuilder from '../../builder/QueryBuilder'
 import { businessSearchableFields } from './business.constants'
 import { OFFER_STATUS } from '../../enum/offer'
-import { Subscription } from '../subscription/subscription.model'
 
 /**
  * Creates a new business listing and sets it as Pending.
@@ -15,32 +14,8 @@ import { Subscription } from '../subscription/subscription.model'
  */
 
 const createBusiness = async (payload: IBusiness): Promise<IBusiness> => {
-  const userId = payload.user
-
-  // Count existing businesses of this user
-  const businessCount = await Business.countDocuments({ user: userId })
-
-  // Find active subscription
-  const activeSubscription = await Subscription.findOne({
-    userId,
-    status: { $in: ['active', 'trialing'] },
-  })
-
-  // Enforce limits:
-  // - If no active subscription: max 1 business allowed
-  // - If active subscription: max 5 businesses allowed
-  const limit = activeSubscription ? 5 : 1
-
-  if (businessCount >= limit) {
-    throw new ApiError(
-      StatusCodes.BAD_REQUEST,
-      activeSubscription
-        ? `You have reached the limit of ${limit} businesses under your current subscription plan.`
-        : `You can only add 1 business on the free tier. Please subscribe to a premium plan to add more businesses.`,
-    )
-  }
-
   payload.status = 'Pending' // Always start as pending until admin approves
+  payload.hasActiveSubscription = false // Explicitly start with no active subscription
   const result = await Business.create(payload)
   return result
 }

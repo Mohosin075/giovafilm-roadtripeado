@@ -69,8 +69,9 @@ const createSubscription = catchAsync(async (req: Request, res: Response) => {
 const getUserSubscription = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
   const userId = user.authId!.toString()
+  const { businessId } = req.query
 
-  const subscription = await subscriptionService.getUserSubscription(userId)
+  const subscription = await subscriptionService.getUserSubscription(userId, businessId as string)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -128,8 +129,9 @@ const getSubscriptionStatus = catchAsync(
   async (req: Request, res: Response) => {
     const user = req.user as JwtPayload
     const userId = user.authId!.toString()
+    const { businessId } = req.query
 
-    const status = await subscriptionService.getSubscriptionStatus(userId)
+    const status = await subscriptionService.getSubscriptionStatus(userId, businessId as string)
 
     sendResponse(res, {
       statusCode: StatusCodes.OK,
@@ -145,11 +147,12 @@ const createCheckoutSession = catchAsync(
   async (req: Request, res: Response) => {
     const user = req.user as JwtPayload
     const userId = user.authId!.toString()
-    const { planId, successUrl, cancelUrl } = req.body
+    const { planId, businessId, successUrl, cancelUrl } = req.body
 
     const session = await subscriptionService.createCheckoutSession(
       userId,
       planId,
+      businessId,
       successUrl,
       cancelUrl,
     )

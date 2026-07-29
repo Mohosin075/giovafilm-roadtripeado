@@ -109,12 +109,20 @@ class SubscriptionService {
             if (!user) {
                 throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
             }
+            // Validate business exists and belongs to the user
+            const business = await business_model_1.Business.findOne({ _id: request.businessId, user: userId });
+            if (!business) {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Business not found or does not belong to you');
+            }
             // Validate plan exists
             const plan = await this.getPlanById(request.planId);
-            // Check if user already has an active subscription
-            const existingSubscription = await subscription_model_1.Subscription.findActiveByUserId(userId);
+            // Check if this business already has an active subscription
+            const existingSubscription = await subscription_model_1.Subscription.findOne({
+                businessId: new mongoose_1.Types.ObjectId(request.businessId),
+                status: { $in: ['active', 'trialing'] },
+            });
             if (existingSubscription) {
-                throw new ApiError_1.default(http_status_codes_1.StatusCodes.CONFLICT, 'User already has an active subscription');
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.CONFLICT, 'This business already has an active subscription');
             }
             // Check trial eligibility
             const trialInfo = await this.checkTrialEligibility(userId);
@@ -133,7 +141,7 @@ class SubscriptionService {
                 await stripe_service_1.stripeService.attachPaymentMethod(request.paymentMethodId, stripeCustomerId);
                 await stripe_service_1.stripeService.setDefaultPaymentMethod(stripeCustomerId, request.paymentMethodId);
             }
-            console.log('Metadata', userId, request.planId);
+            console.log('Metadata', userId, request.planId, request.businessId);
             // Create Stripe subscription
             const stripeSubscription = await stripe_service_1.stripeService.createSubscription({
                 customerId: stripeCustomerId,
@@ -145,6 +153,7 @@ class SubscriptionService {
                 metadata: {
                     userId: userId.toString(),
                     planId: request.planId,
+                    businessId: request.businessId,
                 },
             });
             // Create local subscription record
@@ -156,6 +165,7 @@ class SubscriptionService {
                 subscriptionItem.current_period_end;
             const subscription = new subscription_model_1.Subscription({
                 userId: new mongoose_1.Types.ObjectId(userId),
+                businessId: new mongoose_1.Types.ObjectId(request.businessId),
                 planId: new mongoose_1.Types.ObjectId(request.planId),
                 stripeCustomerId,
                 stripeSubscriptionId: stripeSubscription.id,
@@ -189,7 +199,7 @@ class SubscriptionService {
             });
             // Update business hasActiveSubscription
             const isActive = ['active', 'trialing'].includes(stripeSubscription.status);
-            await business_model_1.Business.updateMany({ user: userId }, { hasActiveSubscription: isActive });
+            await business_model_1.Business.findByIdAndUpdate(request.businessId, { hasActiveSubscription: isActive, plan: plan._id });
             // Send welcome email
             await email_notification_service_1.emailNotificationService.sendSubscriptionWelcomeEmail(subscription, plan, !!stripeSubscription.trial_start);
             // Get client secret for payment confirmation if needed
@@ -240,9 +250,15 @@ class SubscriptionService {
         }
     }
     // Get user's current subscription
-    async getUserSubscription(userId) {
+    async getUserSubscription(userId, businessId) {
         try {
-            const subscription = await subscription_model_1.Subscription.findActiveByUserId(userId);
+            const query = { userId: new mongoose_1.Types.ObjectId(userId) };
+            if (businessId) {
+                query.businessId = new mongoose_1.Types.ObjectId(businessId);
+            }
+            const subscription = await subscription_model_1.Subscription.findOne(query)
+                .sort({ createdAt: -1 })
+                .populate('planId');
             return subscription;
         }
         catch (error) {
@@ -403,7 +419,9 @@ class SubscriptionService {
                     subscriptionStatus: 'canceled',
                 });
                 // Update business hasActiveSubscription
-                await business_model_1.Business.updateMany({ user: userId }, { hasActiveSubscription: false });
+                if (subscription.businessId) {
+                    await business_model_1.Business.findByIdAndUpdate(subscription.businessId, { hasActiveSubscription: false });
+                }
             }
             const updatedSubscription = await subscription_model_1.Subscription.findByIdAndUpdate(subscriptionId, updateData, { new: true }).populate(['planId']);
             console.log(`Subscription canceled: ${subscriptionId}`);
@@ -442,7 +460,9 @@ class SubscriptionService {
             }, { new: true }).populate(['planId']);
             // Update business hasActiveSubscription
             const isActive = ['active', 'trialing'].includes(updatedSubscription.status);
-            await business_model_1.Business.updateMany({ user: userId }, { hasActiveSubscription: isActive });
+            if (updatedSubscription === null || updatedSubscription === void 0 ? void 0 : updatedSubscription.businessId) {
+                await business_model_1.Business.findByIdAndUpdate(updatedSubscription.businessId, { hasActiveSubscription: isActive });
+            }
             // Send reactivation email
             const plan = updatedSubscription === null || updatedSubscription === void 0 ? void 0 : updatedSubscription.planId;
             if (plan) {
@@ -459,12 +479,16 @@ class SubscriptionService {
         }
     }
     // Get subscription status
-    async getSubscriptionStatus(userId) {
+    async getSubscriptionStatus(userId, businessId) {
         try {
-            const subscription = await subscription_model_1.Subscription.findOne({
+            const query = {
                 userId: new mongoose_1.Types.ObjectId(userId),
                 status: { $in: ['active', 'trialing'] },
-            }).populate('planId');
+            };
+            if (businessId) {
+                query.businessId = new mongoose_1.Types.ObjectId(businessId);
+            }
+            const subscription = await subscription_model_1.Subscription.findOne(query).populate('planId');
             if (!subscription) {
                 return {
                     isActive: false,
@@ -506,15 +530,28 @@ class SubscriptionService {
         }
     }
     // Create checkout session
-    async createCheckoutSession(userId, planId, successUrl, cancelUrl) {
+    async createCheckoutSession(userId, planId, businessId, successUrl, cancelUrl) {
         try {
             const user = await user_model_1.User.findById(userId).select('+email');
             console.log({ user });
             if (!user) {
                 throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
             }
+            // Validate business exists and belongs to the user
+            const business = await business_model_1.Business.findOne({ _id: businessId, user: userId });
+            if (!business) {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Business not found or does not belong to you');
+            }
             const plan = await this.getPlanById(planId);
             const trialInfo = await this.checkTrialEligibility(userId);
+            // Check if this business already has an active subscription
+            const existingSubscription = await subscription_model_1.Subscription.findOne({
+                businessId: new mongoose_1.Types.ObjectId(businessId),
+                status: { $in: ['active', 'trialing'] },
+            });
+            if (existingSubscription) {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.CONFLICT, 'This business already has an active subscription');
+            }
             // Create or get Stripe customer
             let stripeCustomerId;
             const existingCustomer = await subscription_model_1.Subscription.findOne({ userId }).select('stripeCustomerId');
@@ -536,6 +573,7 @@ class SubscriptionService {
                 metadata: {
                     userId: userId.toString(),
                     planId,
+                    businessId,
                 },
             });
             return {

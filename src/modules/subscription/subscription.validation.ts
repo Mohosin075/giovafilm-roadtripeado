@@ -60,6 +60,7 @@ export const updateSubscriptionPlanSchema = z.object({
 export const createSubscriptionSchema = z.object({
   body: z.object({
     planId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid plan ID format'),
+    businessId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid business ID format'),
     paymentMethodId: z.string().optional(),
     couponId: z.string().optional(),
   }),
@@ -79,6 +80,7 @@ export const updateSubscriptionSchema = z.object({
 export const createCheckoutSessionSchema = z.object({
   body: z.object({
     planId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid plan ID format'),
+    businessId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid business ID format'),
     successUrl: z.string().url('Invalid success URL'),
     cancelUrl: z.string().url('Invalid cancel URL'),
   }),

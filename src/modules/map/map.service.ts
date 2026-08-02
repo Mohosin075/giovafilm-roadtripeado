@@ -191,10 +191,11 @@ const getAvailableCountries = async (): Promise<string[]> => {
   return combined.filter((country): country is string => typeof country === 'string' && country !== 'Unknown' && country.trim() !== '')
 }
 
+// Marker/list only — no description/media (detail APIs load those on click)
 const DISCOVERY_PLACE_FIELDS =
-  'name type status category map country address description rating totalReview location'
+  'name type status category map country address rating totalReview location'
 const DISCOVERY_BUSINESS_FIELDS =
-  'name status category description location rating totalReview hasActiveSubscription'
+  'name status category location rating totalReview hasActiveSubscription'
 const DISCOVERY_MAX_FETCH = 2000
 
 const getDiscoveryData = async (

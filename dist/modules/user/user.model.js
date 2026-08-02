@@ -90,6 +90,12 @@ const UserSchema = new mongoose_1.Schema({
             ref: 'Offer',
         },
     ],
+    favoriteBusinesses: [
+        {
+            type: mongoose_1.Schema.Types.ObjectId,
+            ref: 'Business',
+        },
+    ],
     purchasedMaps: [
         {
             type: mongoose_1.Schema.Types.ObjectId,
@@ -98,7 +104,8 @@ const UserSchema = new mongoose_1.Schema({
     ],
     // --- Points & Rewards ---
     points: { type: Number, default: 0 },
-    level: { type: Number, default: 1 },
+    level: { type: Number, default: 0 }, // starts at level 0: Explorador
+    totalReviewsApproved: { type: Number, default: 0 },
     redeemedFreeMap: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Map', default: null },
     // --- Subscription Fields ---
     stripeCustomerId: { type: String, default: null },

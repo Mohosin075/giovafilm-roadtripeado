@@ -9,6 +9,7 @@ import { paginationHelper } from '../../helpers/paginationHelper'
 import { paymentSearchableFields } from './payment.constants'
 import { Types } from 'mongoose'
 import { User } from '../user/user.model'
+import { Map } from '../map/map.model'
 
 import config from '../../config'
 
@@ -23,25 +24,45 @@ const createCheckoutSession = async (
   payload: any,
 ): Promise<{ sessionId: string; url: string }> => {
   try {
-    // Basic checkout session creation without ticket dependency
+    const map = await Map.findById(payload.mapId)
+    if (!map) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')
+    }
+    if (!map.isPaid) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        'This map is free and does not require checkout',
+      )
+    }
+    if (!map.price || map.price <= 0) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        'Map price is not configured',
+      )
+    }
+
+    // Always charge server-side map price (ignore client amount)
+    const amount = map.price
+    const currency = (payload.currency || 'EUR').toLowerCase()
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {
           price_data: {
-            currency: (payload.currency || 'EUR').toLowerCase(),
+            currency,
             product_data: {
-              name: payload.productName || 'Payment',
-              description: payload.description,
+              name: payload.productName || map.name || 'Map Purchase',
+              description: payload.description || map.description,
             },
-            unit_amount: Math.round(payload.amount * 100),
+            unit_amount: Math.round(amount * 100),
           },
           quantity: 1,
         },
       ],
       mode: 'payment',
       success_url: `${config.clientUrl}?session_id={CHECKOUT_SESSION_ID}&success=true`,
-      cancel_url: `${config.clientUrl}/payment/cancel?success=false`,
+      cancel_url: `${config.clientUrl}/cancel?success=false`,
       customer_email: user.email,
       metadata: {
         userId: user.authId.toString(),
@@ -54,8 +75,8 @@ const createCheckoutSession = async (
       userId: user.authId,
       mapId: payload.mapId,
       userEmail: user.email,
-      amount: payload.amount,
-      currency: payload.currency || 'EUR',
+      amount,
+      currency: currency.toUpperCase(),
       paymentMethod: 'stripe',
       paymentIntentId: session.payment_intent || session.id,
       status: 'pending',
@@ -71,6 +92,7 @@ const createCheckoutSession = async (
       url: session.url!,
     }
   } catch (error: any) {
+    if (error instanceof ApiError) throw error
     throw new ApiError(
       StatusCodes.INTERNAL_SERVER_ERROR,
       `Checkout session creation failed: ${error.message}`,
@@ -179,9 +201,30 @@ const createPaymentIntent = async (
   payload: any,
 ): Promise<{ clientSecret: string; paymentIntentId: string; amount: number }> => {
   try {
+    // Same as checkout: charge Map.price server-side (never trust client amount)
+    const map = await Map.findById(payload.mapId)
+    if (!map) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')
+    }
+    if (!map.isPaid) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        'This map is free and does not require checkout',
+      )
+    }
+    if (!map.price || map.price <= 0) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        'Map price is not configured',
+      )
+    }
+
+    const amount = map.price
+    const currency = (payload.currency || 'eur').toLowerCase()
+
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(payload.amount * 100), // Convert to cents
-      currency: payload.currency || 'eur',
+      amount: Math.round(amount * 100), // Convert to cents
+      currency,
       metadata: {
         userId: user.authId.toString(),
         userEmail: user.email,
@@ -195,8 +238,8 @@ const createPaymentIntent = async (
       userId: user.authId,
       mapId: payload.mapId,
       userEmail: user.email,
-      amount: payload.amount,
-      currency: (payload.currency || 'EUR').toUpperCase(),
+      amount,
+      currency: currency.toUpperCase(),
       paymentMethod: 'stripe',
       paymentIntentId: paymentIntent.id,
       status: 'pending',
@@ -210,9 +253,10 @@ const createPaymentIntent = async (
     return {
       clientSecret: paymentIntent.client_secret!,
       paymentIntentId: paymentIntent.id,
-      amount: payload.amount,
+      amount,
     }
   } catch (error: any) {
+    if (error instanceof ApiError) throw error
     throw new ApiError(
       StatusCodes.INTERNAL_SERVER_ERROR,
       `Payment Intent creation failed: ${error.message}`,
@@ -348,8 +392,9 @@ const getAllPayments = async (
     })
   }
 
-  // Regular users can only see their own payments
-  if (user.activeRole === USER_ROLES.USER) {
+  // Non-admins can only see their own payments (JWT uses `role`, not `activeRole`)
+  const role = (user as any).role || (user as any).activeRole
+  if (![USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN].includes(role)) {
     andConditions.push({
       userId: new Types.ObjectId(user.authId),
     })
@@ -380,7 +425,10 @@ const getAllPayments = async (
   }
 }
 
-const getSinglePayment = async (id: string): Promise<IPayment> => {
+const getSinglePayment = async (
+  id: string,
+  user?: JwtPayload,
+): Promise<IPayment> => {
   if (!Types.ObjectId.isValid(id)) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Payment ID')
   }
@@ -393,6 +441,16 @@ const getSinglePayment = async (id: string): Promise<IPayment> => {
       StatusCodes.NOT_FOUND,
       'Requested payment not found, please try again with valid id',
     )
+  }
+
+  if (user) {
+    const role = (user as any).role || (user as any).activeRole
+    const isAdmin = [USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN].includes(role)
+    const ownerId =
+      (result.userId as any)?._id?.toString() || result.userId?.toString()
+    if (!isAdmin && ownerId !== user.authId?.toString()) {
+      throw new ApiError(StatusCodes.FORBIDDEN, 'You are not authorized to view this payment')
+    }
   }
 
   return result

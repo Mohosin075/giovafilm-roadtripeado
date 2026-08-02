@@ -8,10 +8,9 @@ exports.PaymentValidations = {
             mapId: zod_1.z.string({
                 required_error: 'Map ID is required',
             }),
-            amount: zod_1.z.number({
-                required_error: 'Amount is required',
-            }).min(1, 'Amount must be at least 1'),
-            currency: zod_1.z.string().default('USD'),
+            // Amount is optional — server always charges Map.price
+            amount: zod_1.z.number().min(1).optional(),
+            currency: zod_1.z.string().optional(),
             productName: zod_1.z.string().optional(),
             description: zod_1.z.string().optional(),
         }),

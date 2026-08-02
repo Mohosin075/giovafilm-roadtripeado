@@ -12,6 +12,19 @@ import { SubscriptionController } from './modules/subscription/subscription.cont
 import { PaymentController } from './modules/payment/payment.controller'
 
 const app = express()
+const isProduction = config.node_env === 'production'
+
+// Fail fast in production if JWT secret is missing/weak
+if (isProduction && (!config.jwt.jwt_secret || config.jwt.jwt_secret === 'secret')) {
+  throw new Error(
+    'JWT_SECRET must be set to a strong value in production',
+  )
+}
+
+if (isProduction) {
+  // Trust proxy so secure cookies work behind reverse proxy / load balancer
+  app.set('trust proxy', 1)
+}
 
 // -------------------- Middleware --------------------
 // Stripe webhook must come before express.json()
@@ -28,16 +41,28 @@ app.post(
 )
 
 // Body parsers must come after webhook
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+app.use(express.json({ limit: '1mb' }))
+app.use(express.urlencoded({ extended: true, limit: '1mb' }))
 
 // Session must come before passport
+const sessionSecret = config.jwt.jwt_secret || (!isProduction ? 'dev-only-secret' : '')
+if (!sessionSecret) {
+  throw new Error('JWT_SECRET is required for session configuration')
+}
+
 app.use(
   session({
-    secret: config.jwt.jwt_secret || 'secret',
+    name: 'roadtripeado.sid',
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false }, // true if using HTTPS
+    cookie: {
+      httpOnly: true,
+      secure: isProduction, // HTTPS-only cookies in production
+      // lax is enough for same-site / top-level OAuth redirects; avoids cross-site cookie pitfalls
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+    },
   }),
 )
 

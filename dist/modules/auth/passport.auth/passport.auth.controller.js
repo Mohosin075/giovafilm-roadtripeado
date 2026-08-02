@@ -13,22 +13,24 @@ const login = (0, catchAsync_1.default)(async (req, res) => {
     const user = req.user;
     const { deviceToken, password } = req.body;
     const result = await common_1.AuthCommonServices.handleLoginLogic({ deviceToken: deviceToken, password: password }, user);
-    const { status, message, accessToken, refreshToken, role } = result;
-    res.cookie('refreshToken', refreshToken, {
-        secure: config_1.default.node_env === 'production',
-        httpOnly: true,
-    });
+    const { status, message, accessToken, refreshToken, role, needPassword } = result;
+    if (refreshToken) {
+        res.cookie('refreshToken', refreshToken, {
+            secure: config_1.default.node_env === 'production',
+            httpOnly: true,
+        });
+    }
     (0, sendResponse_1.default)(res, {
         statusCode: status,
         success: true,
         message: message,
-        data: { accessToken, refreshToken, role },
+        data: { accessToken, refreshToken, role, needPassword },
     });
 });
 const googleAuthCallback = (0, catchAsync_1.default)(async (req, res) => {
     const result = await passport_auth_service_1.PassportAuthServices.handleGoogleLogin(req.user);
     const { status, message, accessToken, refreshToken, role } = result;
-    return res.redirect(`${config_1.default.clientUrl}/auth/login?accessToken=${accessToken}&refreshToken=${refreshToken}&role=user`);
+    return res.redirect(`${config_1.default.clientUrl}/login?accessToken=${accessToken}&refreshToken=${refreshToken}&role=user`);
 });
 exports.PassportAuthController = {
     login,

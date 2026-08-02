@@ -145,6 +145,14 @@ const purchaseMap = async (userId: string, mapId: string) => {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')
   }
 
+  // Paid maps are unlocked only via Stripe checkout / award redeem — not this route
+  if (isMapExist.isPaid) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Paid maps must be purchased through checkout',
+    )
+  }
+
   const user = await User.findById(userId)
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')

@@ -72,11 +72,26 @@ exports.createStaffSchema = zod_1.z.object({
     }),
 });
 exports.inviteUserSchema = zod_1.z.object({
-    body: zod_1.z.object({
+    body: zod_1.z
+        .object({
         email: zod_1.z.string().email({ message: 'Invalid email address' }),
         role: zod_1.z.nativeEnum(user_1.USER_ROLES),
         assignedMaps: zod_1.z.array(zod_1.z.string()).optional(),
         assignedCountries: zod_1.z.array(zod_1.z.string()).optional(),
+    })
+        .superRefine((data, ctx) => {
+        var _a, _b, _c, _d;
+        if (data.role === user_1.USER_ROLES.MAP_EDITOR) {
+            const maps = (_b = (_a = data.assignedMaps) === null || _a === void 0 ? void 0 : _a.length) !== null && _b !== void 0 ? _b : 0;
+            const countries = (_d = (_c = data.assignedCountries) === null || _c === void 0 ? void 0 : _c.length) !== null && _d !== void 0 ? _d : 0;
+            if (maps === 0 && countries === 0) {
+                ctx.addIssue({
+                    code: zod_1.z.ZodIssueCode.custom,
+                    message: 'Map Editor must be assigned at least one map or country.',
+                    path: ['assignedMaps'],
+                });
+            }
+        }
     }),
 });
 exports.updateUserRoleSchema = zod_1.z.object({
@@ -123,8 +138,25 @@ exports.assignEditorAccessZodSchema = zod_1.z.object({
             required_error: 'User ID is required',
         }),
     }),
-    body: zod_1.z.object({
+    body: zod_1.z
+        .object({
         assignedMaps: zod_1.z.array(zod_1.z.string()).optional(),
         assignedCountries: zod_1.z.array(zod_1.z.string()).optional(),
+    })
+        .superRefine((data, ctx) => {
+        var _a, _b, _c, _d;
+        const maps = (_b = (_a = data.assignedMaps) === null || _a === void 0 ? void 0 : _a.length) !== null && _b !== void 0 ? _b : 0;
+        const countries = (_d = (_c = data.assignedCountries) === null || _c === void 0 ? void 0 : _c.length) !== null && _d !== void 0 ? _d : 0;
+        // Only enforce when both fields are explicitly sent empty
+        if (data.assignedMaps !== undefined &&
+            data.assignedCountries !== undefined &&
+            maps === 0 &&
+            countries === 0) {
+            ctx.addIssue({
+                code: zod_1.z.ZodIssueCode.custom,
+                message: 'Map Editor must be assigned at least one map or country.',
+                path: ['assignedMaps'],
+            });
+        }
     }),
 });

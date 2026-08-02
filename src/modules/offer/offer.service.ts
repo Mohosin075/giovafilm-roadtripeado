@@ -57,7 +57,9 @@ const getAllOffers = async (query: Record<string, unknown>) => {
 }
 
 const getOfferById = async (id: string): Promise<IOffer | null> => {
-  const result = await Offer.findById(id).populate('place')
+  const result = await Offer.findById(id)
+    .populate('place', 'name location media status category map country')
+    .populate('business', 'name location media status category')
   if (!result) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Offer not found')
   }

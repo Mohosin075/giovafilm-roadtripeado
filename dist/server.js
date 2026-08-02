@@ -42,10 +42,13 @@ async function main() {
                 console.log(colors_1.default.green(`   - Requested IP: http://${config_1.default.ip_address}:${port}`));
             }
         });
-        // Socket.IO setup
+        // Socket.IO setup — align CORS with API config (no open *)
         exports.io = new socket_io_1.Server(server, {
             pingTimeout: 60000,
-            cors: { origin: '*' },
+            cors: {
+                origin: config_1.default.cors_origins,
+                credentials: true,
+            },
         });
         // Create admin user
         await user_service_1.UserServices.createAdmin();

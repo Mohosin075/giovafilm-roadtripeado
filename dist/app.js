@@ -16,19 +16,39 @@ const config_1 = __importDefault(require("./config"));
 const subscription_controller_1 = require("./modules/subscription/subscription.controller");
 const payment_controller_1 = require("./modules/payment/payment.controller");
 const app = (0, express_1.default)();
+const isProduction = config_1.default.node_env === 'production';
+// Fail fast in production if JWT secret is missing/weak
+if (isProduction && (!config_1.default.jwt.jwt_secret || config_1.default.jwt.jwt_secret === 'secret')) {
+    throw new Error('JWT_SECRET must be set to a strong value in production');
+}
+if (isProduction) {
+    // Trust proxy so secure cookies work behind reverse proxy / load balancer
+    app.set('trust proxy', 1);
+}
 // -------------------- Middleware --------------------
 // Stripe webhook must come before express.json()
 app.post('/api/v1/subscription/webhook', express_1.default.raw({ type: 'application/json' }), subscription_controller_1.SubscriptionController.handleWebhook);
 app.post('/api/v1/payment/webhook', express_1.default.raw({ type: 'application/json' }), payment_controller_1.PaymentController.handleWebhook);
 // Body parsers must come after webhook
-app.use(express_1.default.json());
-app.use(express_1.default.urlencoded({ extended: true }));
+app.use(express_1.default.json({ limit: '1mb' }));
+app.use(express_1.default.urlencoded({ extended: true, limit: '1mb' }));
 // Session must come before passport
+const sessionSecret = config_1.default.jwt.jwt_secret || (!isProduction ? 'dev-only-secret' : '');
+if (!sessionSecret) {
+    throw new Error('JWT_SECRET is required for session configuration');
+}
 app.use((0, express_session_1.default)({
-    secret: config_1.default.jwt.jwt_secret || 'secret',
+    name: 'roadtripeado.sid',
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false }, // true if using HTTPS
+    cookie: {
+        httpOnly: true,
+        secure: isProduction, // HTTPS-only cookies in production
+        // lax is enough for same-site / top-level OAuth redirects; avoids cross-site cookie pitfalls
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000, // 1 day
+    },
 }));
 // Initialize Passport
 app.use(passport_1.default.initialize());

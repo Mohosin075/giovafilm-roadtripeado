@@ -66,10 +66,12 @@ const verifyAccount = (0, catchAsync_1.default)(async (req, res) => {
     const { oneTimeCode, phone, email, password } = req.body;
     const result = await custom_auth_service_1.CustomAuthServices.verifyAccount(email, oneTimeCode, password);
     const { status, message, accessToken, refreshToken, role, token, needPassword } = result;
-    res.cookie('refreshToken', refreshToken, {
-        secure: process.env.NODE_ENV === 'production',
-        httpOnly: true,
-    });
+    if (refreshToken) {
+        res.cookie('refreshToken', refreshToken, {
+            secure: process.env.NODE_ENV === 'production',
+            httpOnly: true,
+        });
+    }
     (0, sendResponse_1.default)(res, {
         statusCode: status,
         success: true,

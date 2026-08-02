@@ -6,6 +6,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.emailHelper = void 0;
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const config_1 = __importDefault(require("../config"));
+// Default: verify TLS in production. Override with EMAIL_TLS_REJECT_UNAUTHORIZED=false if SMTP uses self-signed certs.
+const rejectUnauthorized = process.env.EMAIL_TLS_REJECT_UNAUTHORIZED !== undefined
+    ? process.env.EMAIL_TLS_REJECT_UNAUTHORIZED !== 'false'
+    : config_1.default.node_env === 'production';
 const transporter = nodemailer_1.default.createTransport({
     host: config_1.default.email.host,
     port: Number(config_1.default.email.port),
@@ -14,10 +18,8 @@ const transporter = nodemailer_1.default.createTransport({
         user: config_1.default.email.user,
         pass: config_1.default.email.pass,
     },
-    // 👇 ignore self-signed cert
-    // 👇 TODO : remove after complete
     tls: {
-        rejectUnauthorized: false,
+        rejectUnauthorized,
     },
 });
 const sendEmail = async (values) => {

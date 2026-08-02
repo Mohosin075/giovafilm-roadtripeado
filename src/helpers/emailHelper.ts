@@ -2,6 +2,12 @@ import nodemailer from 'nodemailer'
 import config from '../config'
 import { ISendEmail } from '../interfaces/email'
 
+// Default: verify TLS in production. Override with EMAIL_TLS_REJECT_UNAUTHORIZED=false if SMTP uses self-signed certs.
+const rejectUnauthorized =
+  process.env.EMAIL_TLS_REJECT_UNAUTHORIZED !== undefined
+    ? process.env.EMAIL_TLS_REJECT_UNAUTHORIZED !== 'false'
+    : config.node_env === 'production'
+
 const transporter = nodemailer.createTransport({
   host: config.email.host,
   port: Number(config.email.port),
@@ -10,10 +16,8 @@ const transporter = nodemailer.createTransport({
     user: config.email.user,
     pass: config.email.pass,
   },
-  // 👇 ignore self-signed cert
-  // 👇 TODO : remove after complete
   tls: {
-    rejectUnauthorized: false,
+    rejectUnauthorized,
   },
 })
 

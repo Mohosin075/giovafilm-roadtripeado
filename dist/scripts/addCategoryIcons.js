@@ -69,7 +69,9 @@ async function run() {
         try {
             await mongoose_1.default.disconnect();
         }
-        catch (_) { }
+        catch (_a) {
+            // ignore disconnect errors during shutdown
+        }
         process.exit(1);
     }
 }

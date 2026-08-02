@@ -136,7 +136,7 @@ const getAllUsers = async (paginationOptions, filterables = {}) => {
         data: result,
     };
 };
-const deleteUser = async (userId) => {
+const deleteUser = async (userId, actor) => {
     if (!mongoose_1.Types.ObjectId.isValid(userId)) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid User ID.');
     }
@@ -147,6 +147,7 @@ const deleteUser = async (userId) => {
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
     }
+    assertCanDeleteUser(actor === null || actor === void 0 ? void 0 : actor.role, isUserExist.role);
     const deletedUser = await user_model_1.User.findOneAndUpdate({ _id: userId, status: { $nin: [user_1.USER_STATUS.DELETED] } }, { $set: { status: user_1.USER_STATUS.DELETED } }, { new: true });
     if (!deletedUser) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to delete user.');
@@ -187,7 +188,26 @@ const getUserById = async (userId) => {
     }
     return user;
 };
-const updateUserStatus = async (userId, status) => {
+/** Public, shareable profile — safe fields only */
+const getPublicProfile = async (userId) => {
+    var _a;
+    if (!mongoose_1.Types.ObjectId.isValid(userId)) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid User ID.');
+    }
+    const user = await user_model_1.User.findOne({
+        _id: userId,
+        status: user_1.USER_STATUS.ACTIVE,
+        verified: true,
+    }).select('name profile level points role createdAt website instagram description specialty settings.profileStatus');
+    if (!user) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Profile not found.');
+    }
+    if (((_a = user.settings) === null || _a === void 0 ? void 0 : _a.profileStatus) === 'private') {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'This profile is private.');
+    }
+    return user;
+};
+const updateUserStatus = async (userId, status, actor) => {
     if (!mongoose_1.Types.ObjectId.isValid(userId)) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid User ID.');
     }
@@ -197,6 +217,11 @@ const updateUserStatus = async (userId, status) => {
     });
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
+    }
+    // Admin cannot change super_admin status
+    if (isUserExist.role === user_1.USER_ROLES.SUPER_ADMIN &&
+        (actor === null || actor === void 0 ? void 0 : actor.role) !== user_1.USER_ROLES.SUPER_ADMIN) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'Only Super Admin can update Super Admin status.');
     }
     const updatedUser = await user_model_1.User.findOneAndUpdate({ _id: userId, status: { $nin: [user_1.USER_STATUS.DELETED] } }, { $set: { status } }, { new: true });
     if (!updatedUser) {
@@ -204,7 +229,45 @@ const updateUserStatus = async (userId, status) => {
     }
     return 'User status updated successfully.';
 };
-const updateUserRole = async (userId, role, assignedMaps, assignedCountries) => {
+const assertCanAssignRole = (actorRole, targetRole, existingRole) => {
+    if (!actorRole) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, 'You are not authorized.');
+    }
+    // Only super_admin can create / manage super_admin
+    if ((targetRole === user_1.USER_ROLES.SUPER_ADMIN ||
+        existingRole === user_1.USER_ROLES.SUPER_ADMIN) &&
+        actorRole !== user_1.USER_ROLES.SUPER_ADMIN) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'Only Super Admin can manage Super Admin accounts.');
+    }
+    if (actorRole !== user_1.USER_ROLES.ADMIN &&
+        actorRole !== user_1.USER_ROLES.SUPER_ADMIN) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'You are not authorized.');
+    }
+};
+const assertCanDeleteUser = (actorRole, targetRole) => {
+    if (!actorRole) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, 'You are not authorized.');
+    }
+    if (!targetRole) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Target user role is missing.');
+    }
+    if (targetRole === user_1.USER_ROLES.SUPER_ADMIN) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'Super Admin accounts cannot be deleted this way.');
+    }
+    if (actorRole === user_1.USER_ROLES.SUPER_ADMIN) {
+        return;
+    }
+    if (actorRole === user_1.USER_ROLES.ADMIN) {
+        // Admin can delete regular users and map editors only
+        if (targetRole === user_1.USER_ROLES.USER ||
+            targetRole === user_1.USER_ROLES.MAP_EDITOR) {
+            return;
+        }
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'Admins cannot delete other admin accounts.');
+    }
+    throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'You are not authorized.');
+};
+const updateUserRole = async (userId, role, assignedMaps, assignedCountries, actor) => {
     if (!mongoose_1.Types.ObjectId.isValid(userId)) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid User ID.');
     }
@@ -215,12 +278,21 @@ const updateUserRole = async (userId, role, assignedMaps, assignedCountries) => 
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
     }
+    assertCanAssignRole(actor === null || actor === void 0 ? void 0 : actor.role, role, isUserExist.role);
     const updateData = { role };
     if (role === user_1.USER_ROLES.MAP_EDITOR) {
-        if (assignedMaps !== undefined)
-            updateData.assignedMaps = assignedMaps;
-        if (assignedCountries !== undefined)
-            updateData.assignedCountries = assignedCountries;
+        const maps = assignedMaps || [];
+        const countries = assignedCountries || [];
+        if (maps.length === 0 && countries.length === 0) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Map Editor must be assigned at least one map or country.');
+        }
+        updateData.assignedMaps = maps;
+        updateData.assignedCountries = countries;
+    }
+    else {
+        // Clear editor scope when leaving map_editor
+        updateData.assignedMaps = [];
+        updateData.assignedCountries = [];
     }
     const updatedUser = await user_model_1.User.findOneAndUpdate({ _id: userId, status: { $nin: [user_1.USER_STATUS.DELETED] } }, { $set: updateData }, { new: true });
     if (!updatedUser) {
@@ -228,8 +300,9 @@ const updateUserRole = async (userId, role, assignedMaps, assignedCountries) => 
     }
     return 'User role updated successfully.';
 };
-const inviteUser = async (payload) => {
+const inviteUser = async (payload, actor) => {
     const email = payload.email.toLowerCase().trim();
+    assertCanAssignRole(actor === null || actor === void 0 ? void 0 : actor.role, payload.role);
     const isUserExist = await user_model_1.User.findOne({ email });
     if (isUserExist && isUserExist.verified) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'User with this email already exists and is verified.');
@@ -250,10 +323,18 @@ const inviteUser = async (payload) => {
         authentication,
     };
     if (payload.role === user_1.USER_ROLES.MAP_EDITOR) {
-        if (payload.assignedMaps !== undefined)
-            baseUpdate.assignedMaps = payload.assignedMaps;
-        if (payload.assignedCountries !== undefined)
-            baseUpdate.assignedCountries = payload.assignedCountries;
+        const maps = payload.assignedMaps || [];
+        const countries = payload.assignedCountries || [];
+        if (maps.length === 0 && countries.length === 0) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Map Editor must be assigned at least one map or country.');
+        }
+        baseUpdate.assignedMaps = maps;
+        baseUpdate.assignedCountries = countries;
+    }
+    else {
+        // Re-invite as non-editor — clear any previous editor scope
+        baseUpdate.assignedMaps = [];
+        baseUpdate.assignedCountries = [];
     }
     let user;
     if (isUserExist) {
@@ -284,7 +365,9 @@ const getProfile = async (user) => {
     const isUserExist = await user_model_1.User.findOne({
         _id: user.authId,
         status: { $nin: [user_1.USER_STATUS.DELETED] },
-    }).select('-authentication -password -__v');
+    })
+        .select('-authentication -password -__v')
+        .populate('assignedMaps', 'name country');
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
     }
@@ -335,10 +418,12 @@ const getFavoriteMaps = async (userId) => {
     if (!mongoose_1.Types.ObjectId.isValid(userId)) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid User ID.');
     }
-    const user = await user_model_1.User.findById(userId).populate({
+    const user = await user_model_1.User.findById(userId)
+        .populate({
         path: 'favoriteMaps',
-        populate: { path: 'places', populate: { path: 'category' } },
-    });
+        select: 'name country images isActive isPaid price rating totalReview createdAt description',
+    })
+        .lean();
     if (!user) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
     }
@@ -398,6 +483,7 @@ const updatePointsAndLevel = async (userId, pointsToAdd) => {
     });
 };
 const assignEditorAccess = async (userId, assignedMaps, assignedCountries) => {
+    var _a, _b, _c;
     if (!mongoose_1.Types.ObjectId.isValid(userId)) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid User ID.');
     }
@@ -407,6 +493,11 @@ const assignEditorAccess = async (userId, assignedMaps, assignedCountries) => {
     }
     if (user.role !== user_1.USER_ROLES.MAP_EDITOR) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'User is not a MAP_EDITOR.');
+    }
+    const maps = (_b = assignedMaps !== null && assignedMaps !== void 0 ? assignedMaps : (_a = user.assignedMaps) === null || _a === void 0 ? void 0 : _a.map((id) => id.toString())) !== null && _b !== void 0 ? _b : [];
+    const countries = (_c = assignedCountries !== null && assignedCountries !== void 0 ? assignedCountries : user.assignedCountries) !== null && _c !== void 0 ? _c : [];
+    if (maps.length === 0 && countries.length === 0) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Map Editor must be assigned at least one map or country.');
     }
     const updateData = {};
     if (assignedMaps !== undefined) {
@@ -424,6 +515,7 @@ exports.UserServices = {
     getAllUsers,
     deleteUser,
     getUserById,
+    getPublicProfile,
     updateUserStatus,
     updateUserRole,
     inviteUser,

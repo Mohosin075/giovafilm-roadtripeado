@@ -19,9 +19,11 @@ export class EmailProvider {
         user: config.email.user,
         pass: config.email.pass,
       },
-      // For development, bypass SSL verification
       tls: {
-        rejectUnauthorized: false,
+        rejectUnauthorized:
+          process.env.EMAIL_TLS_REJECT_UNAUTHORIZED !== undefined
+            ? process.env.EMAIL_TLS_REJECT_UNAUTHORIZED !== 'false'
+            : config.node_env === 'production',
       },
       // Connection settings
       pool: true,

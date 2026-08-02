@@ -213,6 +213,7 @@ const resetPassword = async (resetToken, payload) => {
     return { message: 'Password reset successfully' };
 };
 const verifyAccount = async (email, onetimeCode, password) => {
+    var _a;
     //verify fo new user
     if (!onetimeCode) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'OTP is required.');
@@ -225,8 +226,8 @@ const verifyAccount = async (email, onetimeCode, password) => {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `No account found with this ${email}, please register first.`);
     }
     const { authentication } = isUserExist;
-    //check the otp
-    if ((authentication === null || authentication === void 0 ? void 0 : authentication.oneTimeCode) !== onetimeCode) {
+    //check the otp (normalize to string — OTP may be stored/sent as number)
+    if (String((_a = authentication === null || authentication === void 0 ? void 0 : authentication.oneTimeCode) !== null && _a !== void 0 ? _a : '') !== String(onetimeCode !== null && onetimeCode !== void 0 ? onetimeCode : '')) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid OTP, please try again.');
     }
     const currentDate = new Date();
@@ -297,12 +298,12 @@ const verifyAccount = async (email, onetimeCode, password) => {
         const token = await token_model_1.Token.create({
             token: (0, crypto_1.default)(),
             user: isUserExist._id,
-            expireAt: new Date(Date.now() + 5 * 60 * 1000), // 15 minutes
+            expireAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
         });
         if (!token) {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Something went wrong, please try again. or contact support.');
         }
-        return (0, common_1.authResponse)(http_status_codes_1.StatusCodes.OK, 'OTP verified successfully, please reset your password.', undefined, undefined, undefined, token === null || token === void 0 ? void 0 : token.token);
+        return (0, common_1.authResponse)(http_status_codes_1.StatusCodes.OK, 'OTP verified successfully, please reset your password.', undefined, undefined, undefined, token === null || token === void 0 ? void 0 : token.token, true);
     }
 };
 const getRefreshToken = async (token) => {
@@ -415,33 +416,37 @@ const deleteAccount = async (user, password) => {
     };
 };
 const resendOtp = async (email, authType) => {
-    console.log({ email, authType });
     const isUserExist = await user_model_1.User.findOne({
         email: email.toLowerCase().trim(),
         status: { $in: [user_1.USER_STATUS.ACTIVE, user_1.USER_STATUS.INACTIVE] },
-    }).select('+authentication');
+    }).select('+password +authentication');
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `No account found with this ${email}, please try again.`);
     }
     const { authentication } = isUserExist;
+    const nextRequestCount = ((authentication === null || authentication === void 0 ? void 0 : authentication.requestCount) || 0) + 1;
+    if (nextRequestCount > 5) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'You have exceeded the maximum number of requests. Please try again later.');
+    }
+    // Invited users (unverified, no password) keep the longer invite window
+    const isInviteAccept = !isUserExist.verified && !isUserExist.password && authType === 'createAccount';
+    const expiresAt = new Date(Date.now() + (isInviteAccept ? 24 * 60 * 60 * 1000 : 5 * 60 * 1000));
     const otp = (0, crypto_1.generateOtp)();
     const authenticationPayload = {
         oneTimeCode: otp,
         latestRequestAt: new Date(),
-        requestCount: (authentication === null || authentication === void 0 ? void 0 : authentication.requestCount) + 1,
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
+        requestCount: nextRequestCount,
+        expiresAt,
+        authType,
+        resetPassword: authType === 'resetPassword',
     };
     await user_model_1.User.findByIdAndUpdate(isUserExist._id, {
         $set: { authentication: authenticationPayload },
     }, { new: true });
-    if (authenticationPayload.requestCount >= 5) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'You have exceeded the maximum number of requests. Please try again later.');
-    }
-    //send otp to user
     if (email) {
         const forgetPasswordEmailTemplate = emailTemplate_1.emailTemplate.resendOtp({
             email: email,
-            name: isUserExist.name,
+            name: isUserExist.name || 'there',
             otp,
             type: authType,
         });

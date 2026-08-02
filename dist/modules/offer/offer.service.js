@@ -50,7 +50,9 @@ const getAllOffers = async (query) => {
     };
 };
 const getOfferById = async (id) => {
-    const result = await offer_model_1.Offer.findById(id).populate('place');
+    const result = await offer_model_1.Offer.findById(id)
+        .populate('place', 'name location media status category map country')
+        .populate('business', 'name location media status category');
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Offer not found');
     }

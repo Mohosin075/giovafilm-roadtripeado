@@ -8,6 +8,22 @@ const http_status_codes_1 = require("http-status-codes");
 const catchAsync_1 = __importDefault(require("../../shared/catchAsync"));
 const sendResponse_1 = __importDefault(require("../../shared/sendResponse"));
 const business_service_1 = require("./business.service");
+const ApiError_1 = __importDefault(require("../../errors/ApiError"));
+const user_1 = require("../../enum/user");
+const mapAccessHelper_1 = require("../../helpers/mapAccessHelper");
+const isAdminRole = (role) => !!role && [user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN].includes(role);
+const getBusinessOwnerId = (business) => {
+    if (!(business === null || business === void 0 ? void 0 : business.user))
+        return null;
+    return (business.user._id || business.user).toString();
+};
+const stripPrivateInfo = (business) => {
+    if (!business)
+        return business;
+    const obj = typeof business.toObject === 'function' ? business.toObject() : { ...business };
+    delete obj.privateInfo;
+    return obj;
+};
 /**
  * Controller to handle business creation requests.
  * Extracts user ID from the JWT payload and injects into business data.
@@ -47,13 +63,19 @@ const createBusiness = (0, catchAsync_1.default)(async (req, res) => {
  * Controller to retrieve a paginated listing of all businesses.
  */
 const getAllBusinesses = (0, catchAsync_1.default)(async (req, res) => {
+    const user = await (0, mapAccessHelper_1.getUserFromToken)(req.headers.authorization);
     const result = await business_service_1.BusinessService.getAllBusinesses(req.query);
+    const data = result.data.map((biz) => {
+        const ownerId = getBusinessOwnerId(biz);
+        const canSeePrivate = isAdminRole(user === null || user === void 0 ? void 0 : user.role) || (user && ownerId === user._id.toString());
+        return canSeePrivate ? biz : stripPrivateInfo(biz);
+    });
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Businesses retrieved successfully',
         meta: result.meta,
-        data: result.data,
+        data,
     });
 });
 /**
@@ -76,20 +98,39 @@ const getMyBusinesses = (0, catchAsync_1.default)(async (req, res) => {
  */
 const getBusinessById = (0, catchAsync_1.default)(async (req, res) => {
     const { id } = req.params;
+    const user = await (0, mapAccessHelper_1.getUserFromToken)(req.headers.authorization);
     const result = await business_service_1.BusinessService.getBusinessById(id);
+    const ownerId = getBusinessOwnerId(result);
+    const canSeePrivate = isAdminRole(user === null || user === void 0 ? void 0 : user.role) || (user && ownerId === user._id.toString());
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Business retrieved successfully',
-        data: result,
+        data: canSeePrivate ? result : stripPrivateInfo(result),
     });
 });
 /**
  * Controller to update a business submission.
  */
 const updateBusiness = (0, catchAsync_1.default)(async (req, res) => {
+    var _a;
     const { id } = req.params;
+    const authUser = req.user;
+    const existing = await business_service_1.BusinessService.getBusinessById(id);
+    if (!existing) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Business not found');
+    }
+    const ownerId = getBusinessOwnerId(existing);
+    const admin = isAdminRole(authUser === null || authUser === void 0 ? void 0 : authUser.role);
+    if (!admin && ownerId !== ((_a = authUser === null || authUser === void 0 ? void 0 : authUser.authId) === null || _a === void 0 ? void 0 : _a.toString())) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'You are not authorized to update this business');
+    }
     const businessData = { ...req.body };
+    // Users cannot self-approve or toggle subscription
+    if (!admin) {
+        delete businessData.status;
+        delete businessData.hasActiveSubscription;
+    }
     // Handle image upload from disk storage
     if (req.body.images) {
         if (!businessData.media)
@@ -106,7 +147,6 @@ const updateBusiness = (0, catchAsync_1.default)(async (req, res) => {
             ? req.body.documents[0]
             : req.body.documents;
     }
-    console.log(req.body);
     const result = await business_service_1.BusinessService.updateBusiness(id, businessData);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
@@ -133,7 +173,18 @@ const updateBusinessStatus = (0, catchAsync_1.default)(async (req, res) => {
  * Controller to handle permanent deletion of a business.
  */
 const deleteBusiness = (0, catchAsync_1.default)(async (req, res) => {
+    var _a;
     const { id } = req.params;
+    const authUser = req.user;
+    const existing = await business_service_1.BusinessService.getBusinessById(id);
+    if (!existing) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Business not found');
+    }
+    const ownerId = getBusinessOwnerId(existing);
+    const admin = isAdminRole(authUser === null || authUser === void 0 ? void 0 : authUser.role);
+    if (!admin && ownerId !== ((_a = authUser === null || authUser === void 0 ? void 0 : authUser.authId) === null || _a === void 0 ? void 0 : _a.toString())) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'You are not authorized to delete this business');
+    }
     const result = await business_service_1.BusinessService.deleteBusiness(id);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,

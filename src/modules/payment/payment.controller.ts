@@ -77,7 +77,7 @@ const getAllPayments = catchAsync(async (req: Request, res: Response) => {
 
 const getSinglePayment = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
-  const result = await PaymentServices.getSinglePayment(id)
+  const result = await PaymentServices.getSinglePayment(id, req.user as JwtPayload)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,

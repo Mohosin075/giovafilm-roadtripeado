@@ -38,10 +38,21 @@ const googleAuthCallback = catchAsync(async (req: Request, res: Response) => {
   const result = await PassportAuthServices.handleGoogleLogin(
     req.user as IUser & { profile: any },
   )
-  const { status, message, accessToken, refreshToken, role } = result
+  const { accessToken, refreshToken } = result
 
+  // Set refresh cookie on API domain so FE credentials:include refresh works
+  if (refreshToken) {
+    res.cookie('refreshToken', refreshToken, {
+      secure: config.node_env === 'production',
+      httpOnly: true,
+      sameSite: config.node_env === 'production' ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    })
+  }
+
+  // Do not put refreshToken in the URL
   return res.redirect(
-    `${config.clientUrl}/login?accessToken=${accessToken}&refreshToken=${refreshToken}&role=user`,
+    `${config.clientUrl}/login?accessToken=${accessToken}&role=user`,
   )
 })
 

@@ -12,11 +12,29 @@ import {
   getAccessibleMapIds,
   verifyEditorEditAccess,
   verifyEditorBusinessAccess,
+  buildCountryToMapIdLookup,
+  resolveOfferMapId,
+  resolveOfferMapIdAsync,
 } from '../../helpers/mapAccessHelper'
 import { Place } from '../place/place.model'
 import { Business } from '../business/business.model'
 import { USER_ROLES } from '../../enum/user'
 import { OfferRedemption } from './offerRedemption.model'
+
+/** Strip paid-only fields from locked list items; keep teaser fields for cards. */
+const sanitizeLockedOffer = (offer: any) => {
+  const {
+    description,
+    redemptionRules,
+    ...safe
+  } = offer
+  return {
+    ...safe,
+    description: undefined,
+    redemptionRules: undefined,
+    isLocked: true,
+  }
+}
 
 const createOffer = catchAsync(async (req: Request, res: Response) => {
   const { images, ...offerData } = req.body
@@ -67,12 +85,20 @@ const getAllOffers = catchAsync(async (req: Request, res: Response) => {
 
   const accessibleMapIds = await getAccessibleMapIds(user)
 
+  const countries = result.data
+    .map((offer: any) => offer.business?.location?.country || offer.business?.country)
+    .filter(Boolean)
+  const countryLookup = await buildCountryToMapIdLookup(countries)
+
   const updatedData = result.data.map((offer: any) => {
-    const placeMapId = offer.place?.map?._id || offer.place?.map || offer.business?.map?._id || offer.business?.map
-    const isLocked = !isPremium && (!placeMapId || !accessibleMapIds.includes(placeMapId.toString()))
+    const placeMapId = resolveOfferMapId(offer, countryLookup)
+    const isLocked = !isPremium && (!placeMapId || !accessibleMapIds.includes(placeMapId))
+    if (isLocked) {
+      return sanitizeLockedOffer({ ...offer, isLocked: true })
+    }
     return {
       ...offer,
-      isLocked,
+      isLocked: false,
     }
   })
 
@@ -98,8 +124,8 @@ const getOfferById = catchAsync(async (req: Request, res: Response) => {
 
   if (!isPremium && result) {
     const accessibleMapIds = await getAccessibleMapIds(user)
-    const placeMapId = (result as any).place?.map?._id || (result as any).place?.map || (result as any).business?.map?._id || (result as any).business?.map
-    if (!placeMapId || !accessibleMapIds.includes(placeMapId.toString())) {
+    const placeMapId = await resolveOfferMapIdAsync(result)
+    if (!placeMapId || !accessibleMapIds.includes(placeMapId)) {
       throw new ApiError(
         StatusCodes.FORBIDDEN,
         'This information and these benefits can be unlocked by purchasing your favorite map.'
@@ -140,25 +166,35 @@ const updateOffer = catchAsync(async (req: Request, res: Response) => {
   }
 
   // Verify access for Map Editors
+  // getOfferById populates place/business — always resolve raw ids
+  const existingPlaceId =
+    (existingOffer as any).place?._id?.toString() ||
+    (existingOffer as any).place?.toString() ||
+    null
+  const existingBusinessId =
+    (existingOffer as any).business?._id?.toString() ||
+    (existingOffer as any).business?.toString() ||
+    null
+
   if (user && user.role === USER_ROLES.MAP_EDITOR) {
     // Check existing offer's place/business
-    if (existingOffer.place) {
-      const place = await Place.findById(existingOffer.place)
+    if (existingPlaceId) {
+      const place = await Place.findById(existingPlaceId)
       if (place) {
         const mapId = place.map?._id || place.map
         if (mapId) {
           await verifyEditorEditAccess(user, mapId.toString())
         }
       }
-    } else if (existingOffer.business) {
-      const business = await Business.findById(existingOffer.business)
+    } else if (existingBusinessId) {
+      const business = await Business.findById(existingBusinessId)
       if (business) {
         await verifyEditorBusinessAccess(user, business.location?.country)
       }
     }
 
     // Check new place/business if they are being updated
-    if (offerData.place && offerData.place !== existingOffer.place?.toString()) {
+    if (offerData.place && offerData.place !== existingPlaceId) {
       const place = await Place.findById(offerData.place)
       if (place) {
         const mapId = place.map?._id || place.map
@@ -166,7 +202,7 @@ const updateOffer = catchAsync(async (req: Request, res: Response) => {
           await verifyEditorEditAccess(user, mapId.toString())
         }
       }
-    } else if (offerData.business && offerData.business !== existingOffer.business?.toString()) {
+    } else if (offerData.business && offerData.business !== existingBusinessId) {
       const business = await Business.findById(offerData.business)
       if (business) {
         await verifyEditorBusinessAccess(user, business.location?.country)
@@ -178,8 +214,6 @@ const updateOffer = catchAsync(async (req: Request, res: Response) => {
   if (images) {
     offerData.photo = Array.isArray(images) ? images[0] : images
   }
-
-  console.log(req.body)
 
   const result = await OfferService.updateOffer(id, offerData)
   sendResponse(res, {
@@ -205,8 +239,8 @@ const getOffersByPlaceOrBusinessId = catchAsync(async (req: Request, res: Respon
   if (result) {
     offerObj = typeof result.toObject === 'function' ? (result as any).toObject() : result
     const accessibleMapIds = await getAccessibleMapIds(user)
-    const placeMapId = offerObj.place?.map?._id || offerObj.place?.map || offerObj.business?.map?._id || offerObj.business?.map
-    offerObj.isLocked = !isPremium && (!placeMapId || !accessibleMapIds.includes(placeMapId.toString()))
+    const placeMapId = await resolveOfferMapIdAsync(offerObj)
+    offerObj.isLocked = !isPremium && (!placeMapId || !accessibleMapIds.includes(placeMapId))
   }
 
   sendResponse(res, {
@@ -249,8 +283,8 @@ const calculateDiscount = catchAsync(async (req: Request, res: Response) => {
 
   if (!isPremium) {
     const accessibleMapIds = await getAccessibleMapIds(user)
-    const placeMapId = (offer as any).place?.map?._id || (offer as any).place?.map || (offer as any).business?.map?._id || (offer as any).business?.map
-    if (!placeMapId || !accessibleMapIds.includes(placeMapId.toString())) {
+    const placeMapId = await resolveOfferMapIdAsync(offer)
+    if (!placeMapId || !accessibleMapIds.includes(placeMapId)) {
       throw new ApiError(
         StatusCodes.FORBIDDEN,
         'This information and these benefits can be unlocked by purchasing your favorite map.'
@@ -284,8 +318,8 @@ const redeemOffer = catchAsync(async (req: Request, res: Response) => {
 
   if (!isPremium) {
     const accessibleMapIds = await getAccessibleMapIds(user)
-    const placeMapId = (offer as any).place?.map?._id || (offer as any).place?.map || (offer as any).business?.map?._id || (offer as any).business?.map
-    if (!placeMapId || !accessibleMapIds.includes(placeMapId.toString())) {
+    const placeMapId = await resolveOfferMapIdAsync(offer)
+    if (!placeMapId || !accessibleMapIds.includes(placeMapId)) {
       throw new ApiError(
         StatusCodes.FORBIDDEN,
         'This information and these benefits can be unlocked by purchasing your favorite map.'

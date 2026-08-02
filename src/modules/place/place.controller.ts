@@ -49,9 +49,20 @@ const getAllPlaces = catchAsync(async (req: Request, res: Response) => {
   const updatedData = result.data.map((place: any) => {
     const mapId = place.map?._id || place.map
     const isLocked = !isPremium && mapId && lockedMapIds.includes(mapId.toString()) && place.type !== 'Business'
+    if (isLocked) {
+      // Keep teaser fields (name/media/category/location) for locked cards
+      const { description, hours, privateInfo, ...teaser } = place
+      return {
+        ...teaser,
+        description: undefined,
+        hours: undefined,
+        privateInfo: undefined,
+        isLocked: true,
+      }
+    }
     return {
       ...place,
-      isLocked: !!isLocked,
+      isLocked: false,
     }
   })
 

@@ -31,17 +31,11 @@ const getAllMaps = (0, catchAsync_1.default)(async (req, res) => {
         query.isActive = 'true';
     }
     const result = await map_service_1.MapService.getAllMaps(query);
-    // Convert mongoose documents to plain objects to tag places with isLocked for locked maps
+    // Tag each map with isLocked (places are NOT populated in list view for performance)
     const data = result.data.map((map) => {
         const mapObj = typeof map.toObject === 'function' ? map.toObject() : map;
         const isLockedMap = !accessibleMapIds.includes(mapObj._id.toString());
-        mapObj.places = (mapObj.places || []).map((place) => {
-            const isPlaceLocked = isLockedMap && place.type !== 'Business';
-            return {
-                ...place,
-                isLocked: isPlaceLocked,
-            };
-        });
+        mapObj.isLocked = isLockedMap;
         return mapObj;
     });
     (0, sendResponse_1.default)(res, {
@@ -60,15 +54,11 @@ const getMapById = (0, catchAsync_1.default)(async (req, res) => {
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Map not found');
     }
-    const mapObj = typeof result.toObject === 'function' ? result.toObject() : result;
-    const isLockedMap = !accessibleMapIds.includes(mapObj._id.toString());
-    mapObj.places = (mapObj.places || []).map((place) => {
-        const isPlaceLocked = isLockedMap && place.type !== 'Business';
-        return {
-            ...place,
-            isLocked: isPlaceLocked,
-        };
-    });
+    const mapObj = typeof result.toObject === 'function'
+        ? result.toObject()
+        : { ...result };
+    // Access flag for catalog UI; places are loaded via discovery, not nested here
+    mapObj.isLocked = !accessibleMapIds.includes(mapObj._id.toString());
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -129,9 +119,11 @@ const getAvailableCountries = (0, catchAsync_1.default)(async (req, res) => {
 const getDiscoveryData = (0, catchAsync_1.default)(async (req, res) => {
     const authorizationHeader = req.headers.authorization;
     const user = await (0, mapAccessHelper_1.getUserFromToken)(authorizationHeader);
-    const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
-    // Find all paid maps to compute locked maps
-    const paidMaps = await map_model_1.Map.find({ isPaid: true }, '_id');
+    // Run accessible map IDs and paid maps lookup in parallel
+    const [accessibleMapIds, paidMaps] = await Promise.all([
+        (0, mapAccessHelper_1.getAccessibleMapIds)(user),
+        map_model_1.Map.find({ isPaid: true }, '_id'),
+    ]);
     const paidMapIds = paidMaps.map(m => m._id.toString());
     const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id));
     const result = await map_service_1.MapService.getDiscoveryData(req.query, lockedMapIds);

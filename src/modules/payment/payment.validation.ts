@@ -6,10 +6,9 @@ export const PaymentValidations = {
       mapId: z.string({
         required_error: 'Map ID is required',
       }),
-      amount: z.number({
-        required_error: 'Amount is required',
-      }).min(1, 'Amount must be at least 1'),
-      currency: z.string().default('USD'),
+      // Amount is optional — server always charges Map.price
+      amount: z.number().min(1).optional(),
+      currency: z.string().optional(),
       productName: z.string().optional(),
       description: z.string().optional(),
     }),

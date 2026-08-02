@@ -56,10 +56,13 @@ async function main() {
       }
     })
 
-    // Socket.IO setup
+    // Socket.IO setup — align CORS with API config (no open *)
     io = new Server(server, {
       pingTimeout: 60000,
-      cors: { origin: '*' },
+      cors: {
+        origin: config.cors_origins,
+        credentials: true,
+      },
     })
 
     // Create admin user

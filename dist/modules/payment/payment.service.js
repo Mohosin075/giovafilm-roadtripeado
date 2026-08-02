@@ -12,6 +12,7 @@ const paginationHelper_1 = require("../../helpers/paginationHelper");
 const payment_constants_1 = require("./payment.constants");
 const mongoose_1 = require("mongoose");
 const user_model_1 = require("../user/user.model");
+const map_model_1 = require("../map/map.model");
 const config_1 = __importDefault(require("../../config"));
 const webhook_service_1 = require("./webhook.service");
 const emailHelper_1 = require("../../helpers/emailHelper");
@@ -19,18 +20,30 @@ const stripe_1 = __importDefault(require("../../config/stripe"));
 const invoiceHelper_1 = require("../../helpers/invoiceHelper");
 const createCheckoutSession = async (user, payload) => {
     try {
-        // Basic checkout session creation without ticket dependency
+        const map = await map_model_1.Map.findById(payload.mapId);
+        if (!map) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Map not found');
+        }
+        if (!map.isPaid) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'This map is free and does not require checkout');
+        }
+        if (!map.price || map.price <= 0) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Map price is not configured');
+        }
+        // Always charge server-side map price (ignore client amount)
+        const amount = map.price;
+        const currency = (payload.currency || 'EUR').toLowerCase();
         const session = await stripe_1.default.checkout.sessions.create({
             payment_method_types: ['card'],
             line_items: [
                 {
                     price_data: {
-                        currency: (payload.currency || 'EUR').toLowerCase(),
+                        currency,
                         product_data: {
-                            name: payload.productName || 'Payment',
-                            description: payload.description,
+                            name: payload.productName || map.name || 'Map Purchase',
+                            description: payload.description || map.description,
                         },
-                        unit_amount: Math.round(payload.amount * 100),
+                        unit_amount: Math.round(amount * 100),
                     },
                     quantity: 1,
                 },
@@ -49,8 +62,8 @@ const createCheckoutSession = async (user, payload) => {
             userId: user.authId,
             mapId: payload.mapId,
             userEmail: user.email,
-            amount: payload.amount,
-            currency: payload.currency || 'EUR',
+            amount,
+            currency: currency.toUpperCase(),
             paymentMethod: 'stripe',
             paymentIntentId: session.payment_intent || session.id,
             status: 'pending',
@@ -66,6 +79,8 @@ const createCheckoutSession = async (user, payload) => {
         };
     }
     catch (error) {
+        if (error instanceof ApiError_1.default)
+            throw error;
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, `Checkout session creation failed: ${error.message}`);
     }
 };
@@ -148,9 +163,22 @@ const verifyCheckoutSession = async (sessionId) => {
  */
 const createPaymentIntent = async (user, payload) => {
     try {
+        // Same as checkout: charge Map.price server-side (never trust client amount)
+        const map = await map_model_1.Map.findById(payload.mapId);
+        if (!map) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Map not found');
+        }
+        if (!map.isPaid) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'This map is free and does not require checkout');
+        }
+        if (!map.price || map.price <= 0) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Map price is not configured');
+        }
+        const amount = map.price;
+        const currency = (payload.currency || 'eur').toLowerCase();
         const paymentIntent = await stripe_1.default.paymentIntents.create({
-            amount: Math.round(payload.amount * 100), // Convert to cents
-            currency: payload.currency || 'eur',
+            amount: Math.round(amount * 100), // Convert to cents
+            currency,
             metadata: {
                 userId: user.authId.toString(),
                 userEmail: user.email,
@@ -163,8 +191,8 @@ const createPaymentIntent = async (user, payload) => {
             userId: user.authId,
             mapId: payload.mapId,
             userEmail: user.email,
-            amount: payload.amount,
-            currency: (payload.currency || 'EUR').toUpperCase(),
+            amount,
+            currency: currency.toUpperCase(),
             paymentMethod: 'stripe',
             paymentIntentId: paymentIntent.id,
             status: 'pending',
@@ -177,10 +205,12 @@ const createPaymentIntent = async (user, payload) => {
         return {
             clientSecret: paymentIntent.client_secret,
             paymentIntentId: paymentIntent.id,
-            amount: payload.amount,
+            amount,
         };
     }
     catch (error) {
+        if (error instanceof ApiError_1.default)
+            throw error;
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, `Payment Intent creation failed: ${error.message}`);
     }
 };
@@ -284,8 +314,9 @@ const getAllPayments = async (user, filterables, pagination) => {
             })),
         });
     }
-    // Regular users can only see their own payments
-    if (user.activeRole === user_1.USER_ROLES.USER) {
+    // Non-admins can only see their own payments (JWT uses `role`, not `activeRole`)
+    const role = user.role || user.activeRole;
+    if (![user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN].includes(role)) {
         andConditions.push({
             userId: new mongoose_1.Types.ObjectId(user.authId),
         });
@@ -312,7 +343,8 @@ const getAllPayments = async (user, filterables, pagination) => {
         data: result,
     };
 };
-const getSinglePayment = async (id) => {
+const getSinglePayment = async (id, user) => {
+    var _a, _b, _c, _d;
     if (!mongoose_1.Types.ObjectId.isValid(id)) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid Payment ID');
     }
@@ -320,6 +352,14 @@ const getSinglePayment = async (id) => {
         .populate('userId', 'name email');
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Requested payment not found, please try again with valid id');
+    }
+    if (user) {
+        const role = user.role || user.activeRole;
+        const isAdmin = [user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN].includes(role);
+        const ownerId = ((_b = (_a = result.userId) === null || _a === void 0 ? void 0 : _a._id) === null || _b === void 0 ? void 0 : _b.toString()) || ((_c = result.userId) === null || _c === void 0 ? void 0 : _c.toString());
+        if (!isAdmin && ownerId !== ((_d = user.authId) === null || _d === void 0 ? void 0 : _d.toString())) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'You are not authorized to view this payment');
+        }
     }
     return result;
 };

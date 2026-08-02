@@ -83,6 +83,14 @@ const BusinessSchema = new mongoose_1.Schema({
         type: Boolean,
         default: false,
     },
+    rating: {
+        type: Number,
+        default: 0,
+    },
+    totalReview: {
+        type: Number,
+        default: 0,
+    },
 }, {
     timestamps: true,
     toJSON: { virtuals: true },
@@ -90,4 +98,7 @@ const BusinessSchema = new mongoose_1.Schema({
 });
 // Index for geo queries
 BusinessSchema.index({ 'location.mapLocation': '2dsphere' });
+// Discovery / map listing filters
+BusinessSchema.index({ status: 1, hasActiveSubscription: 1 });
+BusinessSchema.index({ 'location.country': 1, status: 1, hasActiveSubscription: 1 });
 exports.Business = (0, mongoose_1.model)('Business', BusinessSchema);

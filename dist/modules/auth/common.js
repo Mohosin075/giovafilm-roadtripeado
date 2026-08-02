@@ -18,8 +18,9 @@ const handleLoginLogic = async (payload, isUserExist) => {
     const { restrictionLeftAt, wrongLoginAttempts } = authentication;
     if (!verified) {
         //send otp to user
+        const isInviteAccept = !password;
         const otp = (0, crypto_1.generateOtp)();
-        const otpExpiresIn = new Date(Date.now() + 5 * 60 * 1000);
+        const otpExpiresIn = new Date(Date.now() + (isInviteAccept ? 24 * 60 * 60 * 1000 : 5 * 60 * 1000));
         const authentication = {
             email: payload.email,
             oneTimeCode: otp,
@@ -32,14 +33,23 @@ const handleLoginLogic = async (payload, isUserExist) => {
                 authentication,
             },
         });
-        const otpTemplate = emailTemplate_1.emailTemplate.createAccount({
-            name: isUserExist.name,
-            email: isUserExist.email,
-            otp,
-        });
-        emailHelper_1.emailHelper.sendEmail(otpTemplate);
-        // emailQueue.add('emails', otpTemplate)
-        return (0, exports.authResponse)(http_status_codes_1.StatusCodes.OK, `An OTP has been sent to your ${payload.email}. Please verify.`);
+        if (isInviteAccept) {
+            const invitationEmail = emailTemplate_1.emailTemplate.userInvitation({
+                email: isUserExist.email,
+                role: isUserExist.role || 'user',
+                otp,
+            });
+            emailHelper_1.emailHelper.sendEmail(invitationEmail);
+        }
+        else {
+            const otpTemplate = emailTemplate_1.emailTemplate.createAccount({
+                name: isUserExist.name || 'there',
+                email: isUserExist.email,
+                otp,
+            });
+            emailHelper_1.emailHelper.sendEmail(otpTemplate);
+        }
+        return (0, exports.authResponse)(http_status_codes_1.StatusCodes.OK, `An OTP has been sent to your ${payload.email}. Please verify.`, undefined, undefined, undefined, undefined, isInviteAccept);
     }
     if (status === user_1.USER_STATUS.DELETED) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'No account found with this email');

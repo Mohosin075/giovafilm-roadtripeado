@@ -158,3 +158,70 @@ export const verifyEditorBusinessAccess = async (
     'You are not authorized to edit offers for this business.',
   )
 }
+
+/** Direct map id from place/business populate (when present). */
+export const getDirectOfferMapId = (offer: any): string | null => {
+  const placeMap = offer?.place?.map?._id || offer?.place?.map
+  if (placeMap) return placeMap.toString()
+  const businessMap = offer?.business?.map?._id || offer?.business?.map
+  if (businessMap) return businessMap.toString()
+  return null
+}
+
+/**
+ * Businesses store location.country as map name or geographic country.
+ * Build name/country → mapId lookup for batch lock checks.
+ */
+export const buildCountryToMapIdLookup = async (
+  countries: string[],
+): Promise<Record<string, string>> => {
+  const unique = Array.from(
+    new Set(countries.map(c => (c || '').trim()).filter(Boolean)),
+  )
+  if (unique.length === 0) return {}
+
+  const maps = await Map.find({
+    $or: [{ name: { $in: unique } }, { country: { $in: unique } }],
+  }).select('_id name country')
+
+  const lookup: Record<string, string> = {}
+  for (const m of maps) {
+    if (m.name) lookup[m.name] = m._id.toString()
+    if (m.country) lookup[m.country] = m._id.toString()
+  }
+  return lookup
+}
+
+/** Resolve the map id that gates an offer (place.map or business country → map). */
+export const resolveOfferMapId = (
+  offer: any,
+  countryLookup: Record<string, string> = {},
+): string | null => {
+  const direct = getDirectOfferMapId(offer)
+  if (direct) return direct
+
+  const country = (
+    offer?.business?.location?.country ||
+    offer?.business?.country ||
+    ''
+  ).trim()
+  if (country && countryLookup[country]) return countryLookup[country]
+  return null
+}
+
+export const resolveOfferMapIdAsync = async (
+  offer: any,
+): Promise<string | null> => {
+  const direct = getDirectOfferMapId(offer)
+  if (direct) return direct
+
+  const country = (
+    offer?.business?.location?.country ||
+    offer?.business?.country ||
+    ''
+  ).trim()
+  if (!country) return null
+
+  const lookup = await buildCountryToMapIdLookup([country])
+  return lookup[country] || null
+}

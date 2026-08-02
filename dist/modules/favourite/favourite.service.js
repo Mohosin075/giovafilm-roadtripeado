@@ -10,10 +10,11 @@ const favourite_model_1 = require("./favourite.model");
 const map_model_1 = require("../map/map.model");
 const place_model_1 = require("../place/place.model");
 const offer_model_1 = require("../offer/offer.model");
+const business_model_1 = require("../business/business.model");
 const user_model_1 = require("../user/user.model");
 const mongoose_1 = __importDefault(require("mongoose"));
 const toggleFavourite = async (userId, payload) => {
-    const { type, map, place, offer } = payload;
+    const { type, map, place, offer, business } = payload;
     const session = await mongoose_1.default.startSession();
     try {
         session.startTransaction();
@@ -74,6 +75,32 @@ const toggleFavourite = async (userId, payload) => {
                 return result[0];
             }
         }
+        else if (type === 'Business' && business) {
+            const isBusinessExist = await business_model_1.Business.findById(business).session(session);
+            if (!isBusinessExist) {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Business not found');
+            }
+            const isFavouriteExist = await favourite_model_1.Favourite.findOne({
+                user: userId,
+                business,
+            }).session(session);
+            if (isFavouriteExist) {
+                await favourite_model_1.Favourite.findOneAndDelete({ user: userId, business }).session(session);
+                await user_model_1.User.findByIdAndUpdate(userId, {
+                    $pull: { favoriteBusinesses: business },
+                }).session(session);
+                await session.commitTransaction();
+                return null;
+            }
+            else {
+                const result = await favourite_model_1.Favourite.create([{ user: userId, business, type }], { session });
+                await user_model_1.User.findByIdAndUpdate(userId, {
+                    $addToSet: { favoriteBusinesses: business },
+                }).session(session);
+                await session.commitTransaction();
+                return result[0];
+            }
+        }
         else {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid payload');
         }
@@ -89,49 +116,78 @@ const toggleFavourite = async (userId, payload) => {
 const getMyFavourites = async (userId, query) => {
     const { page = 1, limit = 10, sort = '-createdAt', ...filterData } = query;
     const skip = (Number(page) - 1) * Number(limit);
-    const pipeline = [
-        { $match: { user: new mongoose_1.default.Types.ObjectId(userId) } },
-    ];
-    // Lookups for all supported types
-    pipeline.push({
-        $lookup: {
-            from: 'maps',
-            localField: 'map',
-            foreignField: '_id',
-            as: 'map',
-        },
-    }, { $unwind: { path: '$map', preserveNullAndEmptyArrays: true } }, {
-        $lookup: {
-            from: 'places',
-            localField: 'place',
-            foreignField: '_id',
-            as: 'place',
-        },
-    }, { $unwind: { path: '$place', preserveNullAndEmptyArrays: true } }, {
-        $lookup: {
-            from: 'offers',
-            localField: 'offer',
-            foreignField: '_id',
-            as: 'offer',
-        },
-    }, { $unwind: { path: '$offer', preserveNullAndEmptyArrays: true } });
-    // Filtering (if any specific fields are provided in query)
-    if (Object.keys(filterData).length > 0) {
-        pipeline.push({ $match: filterData });
-    }
-    // Sorting
     const sortStr = sort;
     const sortOrder = sortStr.startsWith('-') ? -1 : 1;
     const sortField = sortStr.replace(/^-/, '');
-    pipeline.push({ $sort: { [sortField]: sortOrder } });
-    // Pagination
-    const resultPipeline = [
-        ...pipeline,
+    const matchStage = {
+        user: new mongoose_1.default.Types.ObjectId(userId),
+        ...filterData,
+    };
+    // Paginate first, then lookup only the page of docs (list fields only)
+    const pipeline = [
+        { $match: matchStage },
+        { $sort: { [sortField]: sortOrder } },
         { $skip: skip },
         { $limit: Number(limit) },
+        {
+            $lookup: {
+                from: 'maps',
+                localField: 'map',
+                foreignField: '_id',
+                pipeline: [
+                    { $project: { name: 1, description: 1, images: 1 } },
+                ],
+                as: 'map',
+            },
+        },
+        { $unwind: { path: '$map', preserveNullAndEmptyArrays: true } },
+        {
+            $lookup: {
+                from: 'places',
+                localField: 'place',
+                foreignField: '_id',
+                pipeline: [
+                    { $project: { name: 1, description: 1, media: 1 } },
+                ],
+                as: 'place',
+            },
+        },
+        { $unwind: { path: '$place', preserveNullAndEmptyArrays: true } },
+        {
+            $lookup: {
+                from: 'offers',
+                localField: 'offer',
+                foreignField: '_id',
+                pipeline: [
+                    { $project: { title: 1, name: 1, description: 1, image: 1, media: 1 } },
+                ],
+                as: 'offer',
+            },
+        },
+        { $unwind: { path: '$offer', preserveNullAndEmptyArrays: true } },
+        {
+            $lookup: {
+                from: 'businesses',
+                localField: 'business',
+                foreignField: '_id',
+                pipeline: [
+                    {
+                        $project: {
+                            name: 1,
+                            description: 1,
+                            'media.photos': 1,
+                        },
+                    },
+                ],
+                as: 'business',
+            },
+        },
+        { $unwind: { path: '$business', preserveNullAndEmptyArrays: true } },
     ];
-    const data = await favourite_model_1.Favourite.aggregate(resultPipeline);
-    const total = await favourite_model_1.Favourite.countDocuments({ user: userId, ...filterData });
+    const [data, total] = await Promise.all([
+        favourite_model_1.Favourite.aggregate(pipeline),
+        favourite_model_1.Favourite.countDocuments(matchStage),
+    ]);
     const totalPage = Math.ceil(total / Number(limit));
     return {
         meta: {
@@ -159,6 +215,11 @@ const removeFavourite = async (id, userId) => {
         }
         else if (result.type === 'Offer' && result.offer) {
             await user_model_1.User.findByIdAndUpdate(userId, { $pull: { favoriteOffers: result.offer } }).session(session);
+        }
+        else if (result.type === 'Business' && result.business) {
+            await user_model_1.User.findByIdAndUpdate(userId, {
+                $pull: { favoriteBusinesses: result.business },
+            }).session(session);
         }
         await session.commitTransaction();
         return result;

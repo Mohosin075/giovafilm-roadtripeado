@@ -4,6 +4,25 @@ import catchAsync from '../../shared/catchAsync'
 import sendResponse from '../../shared/sendResponse'
 import { BusinessService } from './business.service'
 import { JwtPayload } from 'jsonwebtoken'
+import ApiError from '../../errors/ApiError'
+import { USER_ROLES } from '../../enum/user'
+import { getUserFromToken } from '../../helpers/mapAccessHelper'
+
+const isAdminRole = (role?: string) =>
+  !!role && [USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN].includes(role as any)
+
+const getBusinessOwnerId = (business: any): string | null => {
+  if (!business?.user) return null
+  return (business.user._id || business.user).toString()
+}
+
+const stripPrivateInfo = (business: any) => {
+  if (!business) return business
+  const obj =
+    typeof business.toObject === 'function' ? business.toObject() : { ...business }
+  delete obj.privateInfo
+  return obj
+}
 
 /**
  * Controller to handle business creation requests.
@@ -46,13 +65,22 @@ const createBusiness = catchAsync(async (req: Request, res: Response) => {
  * Controller to retrieve a paginated listing of all businesses.
  */
 const getAllBusinesses = catchAsync(async (req: Request, res: Response) => {
+  const user = await getUserFromToken(req.headers.authorization)
   const result = await BusinessService.getAllBusinesses(req.query)
+
+  const data = result.data.map((biz: any) => {
+    const ownerId = getBusinessOwnerId(biz)
+    const canSeePrivate =
+      isAdminRole(user?.role) || (user && ownerId === user._id.toString())
+    return canSeePrivate ? biz : stripPrivateInfo(biz)
+  })
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Businesses retrieved successfully',
     meta: result.meta,
-    data: result.data,
+    data,
   })
 })
 
@@ -77,12 +105,17 @@ const getMyBusinesses = catchAsync(async (req: Request, res: Response) => {
  */
 const getBusinessById = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
+  const user = await getUserFromToken(req.headers.authorization)
   const result = await BusinessService.getBusinessById(id)
+  const ownerId = getBusinessOwnerId(result)
+  const canSeePrivate =
+    isAdminRole(user?.role) || (user && ownerId === user._id.toString())
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Business retrieved successfully',
-    data: result,
+    data: canSeePrivate ? result : stripPrivateInfo(result),
   })
 })
 
@@ -91,7 +124,28 @@ const getBusinessById = catchAsync(async (req: Request, res: Response) => {
  */
 const updateBusiness = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
+  const authUser = req.user as JwtPayload
+  const existing = await BusinessService.getBusinessById(id)
+  if (!existing) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Business not found')
+  }
+
+  const ownerId = getBusinessOwnerId(existing)
+  const admin = isAdminRole(authUser?.role)
+  if (!admin && ownerId !== authUser?.authId?.toString()) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      'You are not authorized to update this business',
+    )
+  }
+
   const businessData = { ...req.body }
+
+  // Users cannot self-approve or toggle subscription
+  if (!admin) {
+    delete businessData.status
+    delete businessData.hasActiveSubscription
+  }
 
   // Handle image upload from disk storage
   if (req.body.images) {
@@ -108,8 +162,6 @@ const updateBusiness = catchAsync(async (req: Request, res: Response) => {
       ? req.body.documents[0]
       : req.body.documents
   }
-
-  console.log(req.body)
 
   const result = await BusinessService.updateBusiness(id, businessData)
   sendResponse(res, {
@@ -140,6 +192,21 @@ const updateBusinessStatus = catchAsync(async (req: Request, res: Response) => {
  */
 const deleteBusiness = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
+  const authUser = req.user as JwtPayload
+  const existing = await BusinessService.getBusinessById(id)
+  if (!existing) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Business not found')
+  }
+
+  const ownerId = getBusinessOwnerId(existing)
+  const admin = isAdminRole(authUser?.role)
+  if (!admin && ownerId !== authUser?.authId?.toString()) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      'You are not authorized to delete this business',
+    )
+  }
+
   const result = await BusinessService.deleteBusiness(id)
   sendResponse(res, {
     statusCode: StatusCodes.OK,

@@ -58,7 +58,7 @@ const getAllPayments = (0, catchAsync_1.default)(async (req, res) => {
 });
 const getSinglePayment = (0, catchAsync_1.default)(async (req, res) => {
     const { id } = req.params;
-    const result = await payment_service_1.PaymentServices.getSinglePayment(id);
+    const result = await payment_service_1.PaymentServices.getSinglePayment(id, req.user);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,

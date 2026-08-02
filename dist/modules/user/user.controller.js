@@ -39,7 +39,7 @@ const getAllUsers = (0, catchAsync_1.default)(async (req, res) => {
 });
 const deleteUser = (0, catchAsync_1.default)(async (req, res) => {
     const { userId } = req.params;
-    const result = await user_service_1.UserServices.deleteUser(userId);
+    const result = await user_service_1.UserServices.deleteUser(userId, req.user);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -77,7 +77,7 @@ const updateUserStatus = (0, catchAsync_1.default)(async (req, res) => {
     if (!status) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Status is required');
     }
-    const result = await user_service_1.UserServices.updateUserStatus(userId, status);
+    const result = await user_service_1.UserServices.updateUserStatus(userId, status, req.user);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -91,7 +91,7 @@ const updateUserRole = (0, catchAsync_1.default)(async (req, res) => {
     if (!role) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Role is required');
     }
-    const result = await user_service_1.UserServices.updateUserRole(userId, role, assignedMaps, assignedCountries);
+    const result = await user_service_1.UserServices.updateUserRole(userId, role, assignedMaps, assignedCountries, req.user);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -100,7 +100,7 @@ const updateUserRole = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 const inviteUser = (0, catchAsync_1.default)(async (req, res) => {
-    const result = await user_service_1.UserServices.inviteUser(req.body);
+    const result = await user_service_1.UserServices.inviteUser(req.body, req.user);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -113,6 +113,16 @@ const getProfile = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'User profile retrieved successfully',
+        data: result,
+    });
+});
+const getPublicProfile = (0, catchAsync_1.default)(async (req, res) => {
+    const { userId } = req.params;
+    const result = await user_service_1.UserServices.getPublicProfile(userId);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Public profile retrieved successfully',
         data: result,
     });
 });
@@ -189,6 +199,7 @@ exports.UserController = {
     updateUserRole,
     inviteUser,
     getProfile,
+    getPublicProfile,
     deleteProfile,
     addUserInterest,
     toggleFavoriteMap,

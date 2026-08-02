@@ -64,8 +64,9 @@ router.post(
 router.get(
   '/verify-checkout/:sessionId',
   auth(
-    
     USER_ROLES.USER,
+    USER_ROLES.ADMIN,
+    USER_ROLES.SUPER_ADMIN,
   ),
   PaymentController.verifyCheckoutSession,
 )

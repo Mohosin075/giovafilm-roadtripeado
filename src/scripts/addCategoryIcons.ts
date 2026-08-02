@@ -62,7 +62,9 @@ async function run() {
     console.error('Error updating categories:', err)
     try {
       await mongoose.disconnect()
-    } catch (_) {}
+    } catch {
+      // ignore disconnect errors during shutdown
+    }
     process.exit(1)
   }
 }

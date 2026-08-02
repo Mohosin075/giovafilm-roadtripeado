@@ -10,7 +10,8 @@ const validateRequest_1 = __importDefault(require("../../middleware/validateRequ
 const contact_validation_1 = require("./contact.validation");
 const auth_1 = __importDefault(require("../../middleware/auth"));
 const user_1 = require("../../enum/user");
+const rateLimit_1 = require("../../middleware/rateLimit");
 const router = express_1.default.Router();
-router.post('/', (0, validateRequest_1.default)(contact_validation_1.createContactSchema), contact_controller_1.ContactController.createContact);
+router.post('/', rateLimit_1.contactRateLimiter, (0, validateRequest_1.default)(contact_validation_1.createContactSchema), contact_controller_1.ContactController.createContact);
 router.get('/', (0, auth_1.default)(user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN), contact_controller_1.ContactController.getAllContacts);
 exports.ContactRoutes = router;

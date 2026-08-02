@@ -32,23 +32,34 @@ const createPlace = (0, catchAsync_1.default)(async (req, res) => {
 });
 const getAllPlaces = (0, catchAsync_1.default)(async (req, res) => {
     const authorizationHeader = req.headers.authorization;
-    const user = await (0, mapAccessHelper_1.getUserFromToken)(authorizationHeader);
+    // Run auth lookup and paid map IDs in parallel to avoid sequential DB hits
+    const [user, paidMaps] = await Promise.all([
+        (0, mapAccessHelper_1.getUserFromToken)(authorizationHeader),
+        map_model_1.Map.find({ isPaid: true }, '_id'),
+    ]);
     const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
-    // Find all paid map IDs
-    const paidMaps = await map_model_1.Map.find({ isPaid: true }, '_id');
     const paidMapIds = paidMaps.map(m => m._id.toString());
-    // Compute locked maps
     const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id));
     const isPremium = user && [user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.MAP_EDITOR].includes(user.role);
-    console.log('--- getAllPlaces req.query ---', req.query);
     const result = await place_service_1.PlaceService.getAllPlaces(req.query);
     const updatedData = result.data.map((place) => {
         var _a;
         const mapId = ((_a = place.map) === null || _a === void 0 ? void 0 : _a._id) || place.map;
         const isLocked = !isPremium && mapId && lockedMapIds.includes(mapId.toString()) && place.type !== 'Business';
+        if (isLocked) {
+            // Keep teaser fields (name/media/category/location) for locked cards
+            const { description, hours, privateInfo, ...teaser } = place;
+            return {
+                ...teaser,
+                description: undefined,
+                hours: undefined,
+                privateInfo: undefined,
+                isLocked: true,
+            };
+        }
         return {
             ...place,
-            isLocked: !!isLocked,
+            isLocked: false,
         };
     });
     (0, sendResponse_1.default)(res, {

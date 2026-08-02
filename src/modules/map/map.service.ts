@@ -283,12 +283,15 @@ const getDiscoveryData = async (
     businessQuery.modelQuery,
   ])
 
-  // Map to include type and isLocked
+  // Map to include type and isLocked.
+  // Keep original Place.type (Business|Regular) as placeType — `type` is overwritten
+  // to 'place' so the client can tell Place vs Business collection entities apart.
   const formattedPlaces = places.map(place => {
     const mapId = place.map?._id || place.map
     const isLocked = mapId && lockedMapIds && lockedMapIds.includes(mapId.toString()) && place.type !== 'Business'
     return {
       ...(place as any),
+      placeType: place.type,
       type: 'place',
       isLocked: !!isLocked,
     }

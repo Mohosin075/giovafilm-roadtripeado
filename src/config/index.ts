@@ -12,7 +12,6 @@ export default {
     ? process.env.CORS_ORIGINS.split(',')
     : ['https://roadtripeado.shop', 'http://10.10.26.208:3000', 'http://localhost:3000', 'http://10.10.26.173:3000', 'http://10.10.26.172:3000', 'http://195.35.6.13:3008', 'http://localhost:3001', 'https://mohosin5004.binarybards.online'],
   bcrypt_salt_rounds: process.env.BCRYPT_SALT_ROUNDS,
-  firebase_service_account_base64: process.env.FIREBASE_SERVICE_ACCOUNT_BASE64,
   server_map_api_key: process.env.SERVER_MAP_API_KEY,
   google: {
     client_id: process.env.GOOGLE_CLIENT_ID,
@@ -41,11 +40,6 @@ export default {
     bucket_name: process.env.AWS_BUCKET_NAME,
   },
 
-  agora: {
-    app_id: process.env.AGORA_APP_ID,
-    app_certificate: process.env.AGORA_APP_CERTIFICATE,
-    web_hook_secret: process.env.AGORA_WEB_HOOK_SECRET,
-  },
   jwt: {
     jwt_secret: process.env.JWT_SECRET,
     jwt_expire_in: process.env.JWT_EXPIRE_IN,
@@ -55,9 +49,6 @@ export default {
     temp_jwt_secret: process.env.TEMP_JWT_SECRET,
     temp_jwt_expire_in: process.env.TEMP_JWT_EXPIRE_IN,
   },
-  application_fee: process.env.APPLICATION_FEE,
-  instant_transfer_fee: process.env.INSTANT_TRANSFER_FEE,
-  openAi_api_key: process.env.OPENAI_API_KEY,
   email: {
     from: process.env.EMAIL_FROM,
     user: process.env.EMAIL_USER,
@@ -66,30 +57,10 @@ export default {
     pass: process.env.EMAIL_PASS,
     resend_api_key: process.env.RESEND_API_KEY,
   },
-  twilio: {
-    account_sid: process.env.TWILIO_ACCOUNT_SID,
-    auth_token: process.env.TWILIO_AUTH_TOKEN,
-    phone_number: process.env.TWILIO_PHONE_NUMBER,
-  },
   cloudinary: {
     cloudinary_name: process.env.CLOUDINARY_NAME,
     cloudinary_api_key: process.env.CLOUDINARY_API_KEY,
     cloudinary_secret: process.env.CLOUDINARY_SECRET,
-  },
-  // Firebase Service Account Configuration
-  firebase: {
-    type: process.env.FIREBASE_TYPE,
-    project_id: process.env.FIREBASE_PROJECT_ID,
-    private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-    private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'), // Handle newline characters
-    client_email: process.env.FIREBASE_CLIENT_EMAIL,
-    client_id: process.env.FIREBASE_CLIENT_ID,
-    auth_uri: process.env.FIREBASE_AUTH_URI,
-    token_uri: process.env.FIREBASE_TOKEN_URI,
-    auth_provider_x509_cert_url:
-      process.env.FIREBASE_AUTH_PROVIDER_X509_CERT_URL,
-    client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
-    universe_domain: process.env.FIREBASE_UNIVERSE_DOMAIN,
   },
   super_admin: {
     name: process.env.SUPER_ADMIN_NAME,

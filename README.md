@@ -114,9 +114,7 @@ The API follows a clean, **domain-driven modular architecture** where each featu
 - Message and chat history retrieval REST endpoints
 
 ### 🔔 Notifications
-- **Firebase Cloud Messaging (FCM)** for mobile push notifications
 - Email notifications via **Resend** and **Nodemailer** (SMTP)
-- SMS notifications via **Twilio**
 - Notification persistence in MongoDB with read/unread status
 
 ### 🎖️ Award & Gamification System
@@ -170,11 +168,7 @@ The API follows a clean, **domain-driven modular architecture** where each featu
 | **Image Processing** | Sharp |
 | **Video** | fluent-ffmpeg |
 | **Payments** | Stripe (Subscriptions + One-Time) |
-| **Push Notifications** | Firebase Admin SDK (FCM) |
 | **Email** | Resend, Nodemailer (SMTP) |
-| **SMS** | Twilio |
-| **Video Calls** | Agora (token generation) |
-| **AI Integration** | OpenAI API |
 | **Social Auth** | Passport.js (Google, Facebook OAuth) |
 | **Validation** | Zod |
 | **Logging** | Winston + Daily Rotate |
@@ -240,11 +234,7 @@ Ensure the following are installed and available before running the project:
 - **Redis** — Required for BullMQ background queues — [Download](https://redis.io/)
 - **AWS Account** — For S3 file storage
 - **Stripe Account** — For payment and subscription management
-- **Firebase Project** — For push notifications (FCM)
-- **Twilio Account** — For SMS notifications
 - **Resend Account** (or SMTP server) — For transactional emails
-- **Agora Account** *(optional)* — For video call token generation
-- **OpenAI API Key** *(optional)* — For AI-powered features
 
 ---
 

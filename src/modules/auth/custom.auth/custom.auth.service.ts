@@ -171,7 +171,7 @@ const forgetPassword = async (email?: string, phone?: string) => {
   const otp = generateOtp()
 
   if (phone) {
-    //implement this feature using twilio/aws sns
+    // implement SMS OTP via SMS provider if needed
   }
 
   const authentication = {
@@ -584,7 +584,7 @@ const resendOtpToPhoneOrEmail = async (
   }
   // TODO : need mobile varificaition implementation after signup with phone
   if (phone) {
-    //implement this feature using twilio/aws sns
+    // implement SMS OTP via SMS provider if needed
 
     await User.findByIdAndUpdate(
       isUserExist._id,

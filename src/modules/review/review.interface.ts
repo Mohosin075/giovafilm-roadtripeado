@@ -3,7 +3,8 @@ import { IUser } from '../user/user.interface'
 
 export type IReview = {
   _id?: Types.ObjectId
-  placeId: Types.ObjectId
+  placeId?: Types.ObjectId
+  businessId?: Types.ObjectId
   reviewer: Types.ObjectId | IUser
   rating: number
   review: string

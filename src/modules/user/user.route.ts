@@ -27,6 +27,8 @@ router.get(
   UserController.getProfile,
 )
 
+router.get('/public/:userId', UserController.getPublicProfile)
+
 router.post(
   '/interest',
   auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN),
@@ -86,7 +88,12 @@ router.patch(
 
 router.delete(
   '/profile',
-  auth(USER_ROLES.ADMIN, USER_ROLES.USER),
+  auth(
+    USER_ROLES.ADMIN,
+    USER_ROLES.SUPER_ADMIN,
+    USER_ROLES.USER,
+    USER_ROLES.MAP_EDITOR,
+  ),
   UserController.deleteProfile,
 )
 
@@ -115,7 +122,7 @@ router
 
 router.patch(
   '/assign-editor-access/:userId',
-  auth(USER_ROLES.SUPER_ADMIN),
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   validateRequest(assignEditorAccessZodSchema),
   UserController.assignEditorAccess,
 )

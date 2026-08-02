@@ -3,7 +3,8 @@ import { IReview, ReviewModel } from './review.interface'
 
 const reviewSchema = new Schema<IReview, ReviewModel>(
   {
-    placeId: { type: Schema.Types.ObjectId, ref: 'Place', required: true },
+    placeId: { type: Schema.Types.ObjectId, ref: 'Place' },
+    businessId: { type: Schema.Types.ObjectId, ref: 'Business' },
     reviewer: {
       type: Schema.Types.ObjectId,
       ref: 'User',
@@ -25,9 +26,11 @@ const reviewSchema = new Schema<IReview, ReviewModel>(
   },
 )
 
-reviewSchema.index({ placeId: 1 })           // get reviews by place
-reviewSchema.index({ reviewer: 1 })          // get my reviews
-reviewSchema.index({ placeId: 1, reviewer: 1 }) // check duplicate review
-reviewSchema.index({ status: 1 })            // filter by status
+reviewSchema.index({ placeId: 1 })
+reviewSchema.index({ businessId: 1 })
+reviewSchema.index({ reviewer: 1 })
+reviewSchema.index({ placeId: 1, reviewer: 1 })
+reviewSchema.index({ businessId: 1, reviewer: 1 })
+reviewSchema.index({ status: 1 })
 
 export const Review = model<IReview, ReviewModel>('Review', reviewSchema)

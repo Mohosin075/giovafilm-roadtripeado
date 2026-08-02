@@ -5,7 +5,8 @@ export interface IFavourite {
   map?: Types.ObjectId
   place?: Types.ObjectId
   offer?: Types.ObjectId
-  type: 'Map' | 'Place' | 'Offer'
+  business?: Types.ObjectId
+  type: 'Map' | 'Place' | 'Offer' | 'Business'
 }
 
 export type FavouriteModel = Model<IFavourite>

@@ -44,6 +44,8 @@ export interface IBusiness {
   isAccuracyVerified: boolean
   viewCount: number
   hasActiveSubscription: boolean
+  rating?: number
+  totalReview?: number
   createdAt: Date
   updatedAt: Date
 }

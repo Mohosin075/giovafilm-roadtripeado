@@ -83,6 +83,14 @@ const BusinessSchema = new Schema<IBusiness, BusinessModel>(
       type: Boolean,
       default: false,
     },
+    rating: {
+      type: Number,
+      default: 0,
+    },
+    totalReview: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,

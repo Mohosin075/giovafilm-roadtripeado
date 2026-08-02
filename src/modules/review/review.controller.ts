@@ -33,8 +33,8 @@ const updateReview = catchAsync(async (req: Request, res: Response) => {
 const getAllReviews = catchAsync(async (req: Request, res: Response) => {
   const paginationOptions = pick(req.query, paginationFields)
   
-  // Extract filters: placeId, reviewer, status
-  const filter = pick(req.query, ['placeId', 'reviewer', 'status'])
+  // Extract filters: placeId, businessId, reviewer, status
+  const filter = pick(req.query, ['placeId', 'businessId', 'reviewer', 'status'])
   
   // Enforce Approved reviews only for regular users if status filter isn't explicitly checked/allowed
   const user = req.user as any
@@ -57,6 +57,22 @@ const getReviewsByPlace = catchAsync(async (req: Request, res: Response) => {
   const { placeId } = req.params
   const paginationOptions = pick(req.query, paginationFields)
   const result = await ReviewService.getReviewsByPlace(placeId, paginationOptions)
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Reviews retrieved successfully',
+    data: result,
+  })
+})
+
+const getReviewsByBusiness = catchAsync(async (req: Request, res: Response) => {
+  const { businessId } = req.params
+  const paginationOptions = pick(req.query, paginationFields)
+  const result = await ReviewService.getReviewsByBusiness(
+    businessId,
+    paginationOptions,
+  )
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -133,6 +149,7 @@ export const ReviewController = {
   deleteReview,
   getSingleReview,
   getReviewsByPlace,
+  getReviewsByBusiness,
   getMyReviews,
   approveReview,
   rejectReview,

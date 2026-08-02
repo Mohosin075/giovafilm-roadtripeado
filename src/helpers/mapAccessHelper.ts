@@ -22,10 +22,26 @@ export const getUserFromToken = async (authorizationHeader?: string) => {
 }
 
 export const getAccessibleMapIds = async (user: any): Promise<string[]> => {
-  // If user is Admin, Super Admin, or Map Editor, they have access to all maps
-  if (user && [USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role)) {
+  // Admin / Super Admin — all maps
+  if (user && [USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN].includes(user.role)) {
     const allMaps = await Map.find({}, '_id')
     return allMaps.map(m => m._id.toString())
+  }
+
+  // Map Editor — only assigned maps + maps in assigned countries
+  if (user && user.role === USER_ROLES.MAP_EDITOR) {
+    const assignedMapIds = (user.assignedMaps || []).map((id: any) =>
+      id.toString(),
+    )
+    const assignedCountries: string[] = user.assignedCountries || []
+
+    const countryMaps =
+      assignedCountries.length > 0
+        ? await Map.find({ country: { $in: assignedCountries } }, '_id')
+        : []
+
+    const countryMapIds = countryMaps.map(m => m._id.toString())
+    return Array.from(new Set([...assignedMapIds, ...countryMapIds]))
   }
 
   // Find all free maps
@@ -78,4 +94,67 @@ export const verifyEditorEditAccess = async (user: any, mapId: string): Promise<
   }
 
   throw new ApiError(StatusCodes.FORBIDDEN, 'You do not have permission to edit this resource.')
+}
+
+/**
+ * Business docs store location.country as map name OR geographic country.
+ * Allow access if:
+ * - assignedCountries includes that value, OR
+ * - any assigned map's name or country matches that value
+ */
+export const verifyEditorBusinessAccess = async (
+  user: any,
+  businessCountry?: string | null,
+): Promise<boolean> => {
+  if (!user) {
+    throw new ApiError(StatusCodes.UNAUTHORIZED, 'You are not authorized.')
+  }
+
+  if ([USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN].includes(user.role)) {
+    return true
+  }
+
+  if (user.role !== USER_ROLES.MAP_EDITOR) {
+    throw new ApiError(StatusCodes.FORBIDDEN, 'You do not have permission to edit this resource.')
+  }
+
+  const country = (businessCountry || '').trim()
+  if (!country) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      'You are not authorized to edit offers for this business.',
+    )
+  }
+
+  if (user.assignedCountries?.includes(country)) {
+    return true
+  }
+
+  const assignedMapIds = (user.assignedMaps || []).map((id: any) => id.toString())
+  if (assignedMapIds.length > 0) {
+    const maps = await Map.find({ _id: { $in: assignedMapIds } }).select('name country')
+    const matchesAssignedMap = maps.some(
+      m => m.name === country || m.country === country,
+    )
+    if (matchesAssignedMap) {
+      return true
+    }
+  }
+
+  // Country assignment may be geographic (e.g. "United States") while
+  // business.location.country stores the map name ("Estados Unidos")
+  const countryMaps =
+    (user.assignedCountries || []).length > 0
+      ? await Map.find({ country: { $in: user.assignedCountries } }).select(
+          'name country',
+        )
+      : []
+  if (countryMaps.some(m => m.name === country || m.country === country)) {
+    return true
+  }
+
+  throw new ApiError(
+    StatusCodes.FORBIDDEN,
+    'You are not authorized to edit offers for this business.',
+  )
 }

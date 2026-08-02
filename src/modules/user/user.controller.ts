@@ -42,7 +42,7 @@ const getAllUsers = catchAsync(async (req: Request, res: Response) => {
 
 const deleteUser = catchAsync(async (req: Request, res: Response) => {
   const { userId } = req.params
-  const result = await UserServices.deleteUser(userId)
+  const result = await UserServices.deleteUser(userId, req.user)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -85,7 +85,7 @@ const updateUserStatus = catchAsync(async (req: Request, res: Response) => {
   if (!status) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Status is required')
   }
-  const result = await UserServices.updateUserStatus(userId, status)
+  const result = await UserServices.updateUserStatus(userId, status, req.user)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -100,7 +100,13 @@ const updateUserRole = catchAsync(async (req: Request, res: Response) => {
   if (!role) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Role is required')
   }
-  const result = await UserServices.updateUserRole(userId, role, assignedMaps, assignedCountries)
+  const result = await UserServices.updateUserRole(
+    userId,
+    role,
+    assignedMaps,
+    assignedCountries,
+    req.user,
+  )
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -110,7 +116,7 @@ const updateUserRole = catchAsync(async (req: Request, res: Response) => {
 })
 
 const inviteUser = catchAsync(async (req: Request, res: Response) => {
-  const result = await UserServices.inviteUser(req.body)
+  const result = await UserServices.inviteUser(req.body, req.user)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -124,6 +130,17 @@ const getProfile = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'User profile retrieved successfully',
+    data: result,
+  })
+})
+
+const getPublicProfile = catchAsync(async (req: Request, res: Response) => {
+  const { userId } = req.params
+  const result = await UserServices.getPublicProfile(userId)
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Public profile retrieved successfully',
     data: result,
   })
 })
@@ -211,6 +228,7 @@ export const UserController = {
   updateUserRole,
   inviteUser,
   getProfile,
+  getPublicProfile,
   deleteProfile,
   addUserInterest,
   toggleFavoriteMap,

@@ -28,7 +28,7 @@ const createAccount = (values: ICreateAccount) => {
                     </div>
                     <p style="color:#777777; font-size:14px; margin:0 0 32px;">This code expires in 5 minutes. If you did not request this, please ignore this email.</p>
                     <div style="margin-bottom: 32px;">
-                      <a href="${config.clientUrl}/otp-verify?email=${values.email}" style="display:inline-block; background-color:#FFC107; color:#000000; padding:16px 40px; border-radius:10px; text-decoration:none; font-weight:700; font-size:16px; box-shadow: 0 4px 6px rgba(255, 193, 7, 0.2);">Verify Now</a>
+                      <a href="${config.clientUrl}/otp-verify?email=${encodeURIComponent(values.email)}&authType=createAccount" style="display:inline-block; background-color:#FFC107; color:#000000; padding:16px 40px; border-radius:10px; text-decoration:none; font-weight:700; font-size:16px; box-shadow: 0 4px 6px rgba(255, 193, 7, 0.2);">Verify Now</a>
                     </div>
                   </td>
                 </tr>
@@ -71,7 +71,7 @@ const resetPassword = (values: IResetPassword) => {
                     </div>
                     <p style="color:#777777; font-size:14px; margin:0 0 32px;">This code expires in 5 minutes. If you did not request this, please ignore this email.</p>
                     <div style="margin-bottom: 32px;">
-                      <a href="${config.clientUrl}/otp-verify?email=${values.email}&otp=${values.otp}" style="display:inline-block; background-color:#FFC107; color:#000000; padding:16px 40px; border-radius:10px; text-decoration:none; font-weight:700; font-size:16px; box-shadow: 0 4px 6px rgba(255, 193, 7, 0.2);">Reset Password</a>
+                      <a href="${config.clientUrl}/otp-verify?email=${encodeURIComponent(values.email)}&authType=resetPassword" style="display:inline-block; background-color:#FFC107; color:#000000; padding:16px 40px; border-radius:10px; text-decoration:none; font-weight:700; font-size:16px; box-shadow: 0 4px 6px rgba(255, 193, 7, 0.2);">Reset Password</a>
                     </div>
                   </td>
                 </tr>
@@ -465,7 +465,7 @@ const userInvitation = (values: { email: string; role: string; otp: string }) =>
                     
                     <!-- CTA Button -->
                     <div style="margin-bottom: 32px;">
-                      <a href="${config.clientUrl}/otp-verify?email=${values.email}" target="_blank" style="display:inline-block; background-color:#FFC107; color:#000000; padding:16px 40px; border-radius:10px; text-decoration:none; font-weight:700; font-size:16px; box-shadow: 0 4px 6px rgba(255, 193, 7, 0.2); transition: all 0.3s ease;">
+                      <a href="${config.clientUrl}/otp-verify?email=${encodeURIComponent(values.email)}&authType=invite" target="_blank" style="display:inline-block; background-color:#FFC107; color:#000000; padding:16px 40px; border-radius:10px; text-decoration:none; font-weight:700; font-size:16px; box-shadow: 0 4px 6px rgba(255, 193, 7, 0.2); transition: all 0.3s ease;">
                         Accept Invitation
                       </a>
                     </div>

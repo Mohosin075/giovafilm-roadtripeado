@@ -5,15 +5,15 @@ import { Favourite } from './favourite.model'
 import { Map } from '../map/map.model'
 import { Place } from '../place/place.model'
 import { Offer } from '../offer/offer.model'
+import { Business } from '../business/business.model'
 import { User } from '../user/user.model'
-import QueryBuilder from '../../builder/QueryBuilder'
 import mongoose from 'mongoose'
 
 const toggleFavourite = async (
   userId: string,
   payload: Partial<IFavourite>,
 ): Promise<IFavourite | null> => {
-  const { type, map, place, offer } = payload
+  const { type, map, place, offer, business } = payload
   const session = await mongoose.startSession()
 
   try {
@@ -73,6 +73,36 @@ const toggleFavourite = async (
         await session.commitTransaction()
         return result[0]
       }
+    } else if (type === 'Business' && business) {
+      const isBusinessExist = await Business.findById(business).session(session)
+      if (!isBusinessExist) {
+        throw new ApiError(StatusCodes.NOT_FOUND, 'Business not found')
+      }
+
+      const isFavouriteExist = await Favourite.findOne({
+        user: userId,
+        business,
+      }).session(session)
+      if (isFavouriteExist) {
+        await Favourite.findOneAndDelete({ user: userId, business }).session(
+          session,
+        )
+        await User.findByIdAndUpdate(userId, {
+          $pull: { favoriteBusinesses: business },
+        }).session(session)
+        await session.commitTransaction()
+        return null
+      } else {
+        const result = await Favourite.create(
+          [{ user: userId, business, type }],
+          { session },
+        )
+        await User.findByIdAndUpdate(userId, {
+          $addToSet: { favoriteBusinesses: business },
+        }).session(session)
+        await session.commitTransaction()
+        return result[0]
+      }
     } else {
       throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid payload')
     }
@@ -120,7 +150,16 @@ const getMyFavourites = async (userId: string, query: Record<string, unknown>) =
         as: 'offer',
       },
     },
-    { $unwind: { path: '$offer', preserveNullAndEmptyArrays: true } }
+    { $unwind: { path: '$offer', preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: 'businesses',
+        localField: 'business',
+        foreignField: '_id',
+        as: 'business',
+      },
+    },
+    { $unwind: { path: '$business', preserveNullAndEmptyArrays: true } },
   )
 
   // Filtering (if any specific fields are provided in query)
@@ -172,6 +211,10 @@ const removeFavourite = async (id: string, userId: string): Promise<IFavourite |
       await User.findByIdAndUpdate(userId, { $pull: { favoritePlaces: result.place } }).session(session)
     } else if (result.type === 'Offer' && result.offer) {
       await User.findByIdAndUpdate(userId, { $pull: { favoriteOffers: result.offer } }).session(session)
+    } else if (result.type === 'Business' && result.business) {
+      await User.findByIdAndUpdate(userId, {
+        $pull: { favoriteBusinesses: result.business },
+      }).session(session)
     }
 
     await session.commitTransaction()

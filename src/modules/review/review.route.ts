@@ -33,6 +33,13 @@ router
   )
 
 router
+  .route('/:businessId/business')
+  .get(
+    auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    ReviewController.getReviewsByBusiness,
+  )
+
+router
   .route('/:id')
   .get(
     auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),

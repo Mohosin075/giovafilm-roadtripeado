@@ -21,4 +21,5 @@ export type ILoginResponse = {
   message?: string
   nextStep?: string
   role?: string
+  needPassword?: boolean
 }

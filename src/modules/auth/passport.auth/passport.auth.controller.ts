@@ -16,18 +16,21 @@ const login = catchAsync(async (req: Request, res: Response) => {
     { deviceToken: deviceToken, password: password },
     user as IUser,
   )
-  const { status, message, accessToken, refreshToken, role } = result
+  const { status, message, accessToken, refreshToken, role, needPassword } =
+    result
 
-  res.cookie('refreshToken', refreshToken, {
-    secure: config.node_env === 'production',
-    httpOnly: true,
-  })
+  if (refreshToken) {
+    res.cookie('refreshToken', refreshToken, {
+      secure: config.node_env === 'production',
+      httpOnly: true,
+    })
+  }
 
   sendResponse<ILoginResponse>(res, {
     statusCode: status,
     success: true,
     message: message,
-    data: { accessToken, refreshToken, role },
+    data: { accessToken, refreshToken, role, needPassword },
   })
 })
 
@@ -38,7 +41,7 @@ const googleAuthCallback = catchAsync(async (req: Request, res: Response) => {
   const { status, message, accessToken, refreshToken, role } = result
 
   return res.redirect(
-    `${config.clientUrl}/auth/login?accessToken=${accessToken}&refreshToken=${refreshToken}&role=user`,
+    `${config.clientUrl}/login?accessToken=${accessToken}&refreshToken=${refreshToken}&role=user`,
   )
 })
 

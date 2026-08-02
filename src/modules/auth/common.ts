@@ -21,16 +21,18 @@ const handleLoginLogic = async (
 
   if (!verified) {
     //send otp to user
-
+    const isInviteAccept = !password
     const otp = generateOtp()
-    const otpExpiresIn = new Date(Date.now() + 5 * 60 * 1000)
+    const otpExpiresIn = new Date(
+      Date.now() + (isInviteAccept ? 24 * 60 * 60 * 1000 : 5 * 60 * 1000),
+    )
 
     const authentication = {
       email: payload.email,
       oneTimeCode: otp,
       expiresAt: otpExpiresIn,
       latestRequestAt: new Date(),
-      authType: 'createAccount',
+      authType: 'createAccount' as const,
     }
 
     await User.findByIdAndUpdate(isUserExist._id, {
@@ -39,19 +41,30 @@ const handleLoginLogic = async (
       },
     })
 
-    const otpTemplate = emailTemplate.createAccount({
-      name: isUserExist.name!,
-      email: isUserExist.email!,
-      otp,
-    })
-
-    emailHelper.sendEmail(otpTemplate)
-
-    // emailQueue.add('emails', otpTemplate)
+    if (isInviteAccept) {
+      const invitationEmail = emailTemplate.userInvitation({
+        email: isUserExist.email as string,
+        role: (isUserExist.role as string) || 'user',
+        otp,
+      })
+      emailHelper.sendEmail(invitationEmail)
+    } else {
+      const otpTemplate = emailTemplate.createAccount({
+        name: isUserExist.name || 'there',
+        email: isUserExist.email!,
+        otp,
+      })
+      emailHelper.sendEmail(otpTemplate)
+    }
 
     return authResponse(
       StatusCodes.OK,
       `An OTP has been sent to your ${payload.email}. Please verify.`,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      isInviteAccept, // needPassword — invited users must set a password
     )
   }
 

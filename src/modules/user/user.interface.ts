@@ -77,6 +77,7 @@ export interface IUser {
   favoriteMaps?: Types.ObjectId[]
   favoritePlaces?: Types.ObjectId[]
   favoriteOffers?: Types.ObjectId[]
+  favoriteBusinesses?: Types.ObjectId[]
   purchasedMaps?: Types.ObjectId[] // Ref Map
   awards?: any[]
 

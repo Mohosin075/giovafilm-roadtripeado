@@ -94,6 +94,12 @@ const UserSchema = new Schema<IUser, UserModel>(
         ref: 'Offer',
       },
     ],
+    favoriteBusinesses: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Business',
+      },
+    ],
     purchasedMaps: [
       {
         type: Schema.Types.ObjectId,

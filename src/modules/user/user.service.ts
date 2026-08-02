@@ -160,7 +160,10 @@ const getAllUsers = async (
   }
 }
 
-const deleteUser = async (userId: string): Promise<string> => {
+const deleteUser = async (
+  userId: string,
+  actor?: JwtPayload,
+): Promise<string> => {
   if (!Types.ObjectId.isValid(userId)) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid User ID.')
   }
@@ -172,6 +175,8 @@ const deleteUser = async (userId: string): Promise<string> => {
   if (!isUserExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
   }
+
+  assertCanDeleteUser(actor?.role, isUserExist.role)
 
   const deletedUser = await User.findOneAndUpdate(
     { _id: userId, status: { $nin: [USER_STATUS.DELETED] } },
@@ -240,7 +245,36 @@ const getUserById = async (userId: string): Promise<any> => {
   return user
 }
 
-const updateUserStatus = async (userId: string, status: USER_STATUS) => {
+/** Public, shareable profile — safe fields only */
+const getPublicProfile = async (userId: string) => {
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid User ID.')
+  }
+
+  const user = await User.findOne({
+    _id: userId,
+    status: USER_STATUS.ACTIVE,
+    verified: true,
+  }).select(
+    'name profile level points role createdAt website instagram description specialty settings.profileStatus',
+  )
+
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Profile not found.')
+  }
+
+  if (user.settings?.profileStatus === 'private') {
+    throw new ApiError(StatusCodes.FORBIDDEN, 'This profile is private.')
+  }
+
+  return user
+}
+
+const updateUserStatus = async (
+  userId: string,
+  status: USER_STATUS,
+  actor?: JwtPayload,
+) => {
   if (!Types.ObjectId.isValid(userId)) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid User ID.')
   }
@@ -251,6 +285,17 @@ const updateUserStatus = async (userId: string, status: USER_STATUS) => {
   })
   if (!isUserExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
+  }
+
+  // Admin cannot change super_admin status
+  if (
+    isUserExist.role === USER_ROLES.SUPER_ADMIN &&
+    actor?.role !== USER_ROLES.SUPER_ADMIN
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      'Only Super Admin can update Super Admin status.',
+    )
   }
 
   const updatedUser = await User.findOneAndUpdate(
@@ -266,11 +311,80 @@ const updateUserStatus = async (userId: string, status: USER_STATUS) => {
   return 'User status updated successfully.'
 }
 
+const assertCanAssignRole = (
+  actorRole: string | undefined,
+  targetRole: USER_ROLES,
+  existingRole?: string,
+) => {
+  if (!actorRole) {
+    throw new ApiError(StatusCodes.UNAUTHORIZED, 'You are not authorized.')
+  }
+
+  // Only super_admin can create / manage super_admin
+  if (
+    (targetRole === USER_ROLES.SUPER_ADMIN ||
+      existingRole === USER_ROLES.SUPER_ADMIN) &&
+    actorRole !== USER_ROLES.SUPER_ADMIN
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      'Only Super Admin can manage Super Admin accounts.',
+    )
+  }
+
+  if (
+    actorRole !== USER_ROLES.ADMIN &&
+    actorRole !== USER_ROLES.SUPER_ADMIN
+  ) {
+    throw new ApiError(StatusCodes.FORBIDDEN, 'You are not authorized.')
+  }
+}
+
+const assertCanDeleteUser = (
+  actorRole: string | undefined,
+  targetRole: string | undefined,
+) => {
+  if (!actorRole) {
+    throw new ApiError(StatusCodes.UNAUTHORIZED, 'You are not authorized.')
+  }
+  if (!targetRole) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Target user role is missing.')
+  }
+
+  if (targetRole === USER_ROLES.SUPER_ADMIN) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      'Super Admin accounts cannot be deleted this way.',
+    )
+  }
+
+  if (actorRole === USER_ROLES.SUPER_ADMIN) {
+    return
+  }
+
+  if (actorRole === USER_ROLES.ADMIN) {
+    // Admin can delete regular users and map editors only
+    if (
+      targetRole === USER_ROLES.USER ||
+      targetRole === USER_ROLES.MAP_EDITOR
+    ) {
+      return
+    }
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      'Admins cannot delete other admin accounts.',
+    )
+  }
+
+  throw new ApiError(StatusCodes.FORBIDDEN, 'You are not authorized.')
+}
+
 const updateUserRole = async (
   userId: string,
   role: USER_ROLES,
   assignedMaps?: string[],
-  assignedCountries?: string[]
+  assignedCountries?: string[],
+  actor?: JwtPayload,
 ) => {
   if (!Types.ObjectId.isValid(userId)) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid User ID.')
@@ -284,11 +398,25 @@ const updateUserRole = async (
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
   }
 
+  assertCanAssignRole(actor?.role, role, isUserExist.role)
+
   const updateData: any = { role }
 
   if (role === USER_ROLES.MAP_EDITOR) {
-    if (assignedMaps !== undefined) updateData.assignedMaps = assignedMaps
-    if (assignedCountries !== undefined) updateData.assignedCountries = assignedCountries
+    const maps = assignedMaps || []
+    const countries = assignedCountries || []
+    if (maps.length === 0 && countries.length === 0) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        'Map Editor must be assigned at least one map or country.',
+      )
+    }
+    updateData.assignedMaps = maps
+    updateData.assignedCountries = countries
+  } else {
+    // Clear editor scope when leaving map_editor
+    updateData.assignedMaps = []
+    updateData.assignedCountries = []
   }
 
   const updatedUser = await User.findOneAndUpdate(
@@ -304,13 +432,18 @@ const updateUserRole = async (
   return 'User role updated successfully.'
 }
 
-const inviteUser = async (payload: {
-  email: string
-  role: USER_ROLES
-  assignedMaps?: string[]
-  assignedCountries?: string[]
-}) => {
+const inviteUser = async (
+  payload: {
+    email: string
+    role: USER_ROLES
+    assignedMaps?: string[]
+    assignedCountries?: string[]
+  },
+  actor?: JwtPayload,
+) => {
   const email = payload.email.toLowerCase().trim()
+
+  assertCanAssignRole(actor?.role, payload.role)
 
   const isUserExist = await User.findOne({ email })
 
@@ -340,8 +473,20 @@ const inviteUser = async (payload: {
   }
 
   if (payload.role === USER_ROLES.MAP_EDITOR) {
-    if (payload.assignedMaps !== undefined) baseUpdate.assignedMaps = payload.assignedMaps
-    if (payload.assignedCountries !== undefined) baseUpdate.assignedCountries = payload.assignedCountries
+    const maps = payload.assignedMaps || []
+    const countries = payload.assignedCountries || []
+    if (maps.length === 0 && countries.length === 0) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        'Map Editor must be assigned at least one map or country.',
+      )
+    }
+    baseUpdate.assignedMaps = maps
+    baseUpdate.assignedCountries = countries
+  } else {
+    // Re-invite as non-editor — clear any previous editor scope
+    baseUpdate.assignedMaps = []
+    baseUpdate.assignedCountries = []
   }
 
   let user
@@ -381,7 +526,9 @@ export const getProfile = async (user: JwtPayload) => {
   const isUserExist = await User.findOne({
     _id: user.authId,
     status: { $nin: [USER_STATUS.DELETED] },
-  }).select('-authentication -password -__v')
+  })
+    .select('-authentication -password -__v')
+    .populate('assignedMaps', 'name country')
 
   if (!isUserExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
@@ -553,6 +700,16 @@ const assignEditorAccess = async (
     throw new ApiError(StatusCodes.BAD_REQUEST, 'User is not a MAP_EDITOR.')
   }
 
+  const maps = assignedMaps ?? user.assignedMaps?.map((id: any) => id.toString()) ?? []
+  const countries = assignedCountries ?? user.assignedCountries ?? []
+
+  if (maps.length === 0 && countries.length === 0) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Map Editor must be assigned at least one map or country.',
+    )
+  }
+
   const updateData: any = {}
   if (assignedMaps !== undefined) {
     updateData.assignedMaps = assignedMaps
@@ -576,6 +733,7 @@ export const UserServices = {
   getAllUsers,
   deleteUser,
   getUserById,
+  getPublicProfile,
   updateUserStatus,
   updateUserRole,
   inviteUser,

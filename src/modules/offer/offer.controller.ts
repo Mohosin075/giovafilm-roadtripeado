@@ -7,7 +7,12 @@ import ApiError from '../../errors/ApiError'
 
 import { JwtPayload } from 'jsonwebtoken'
 
-import { getUserFromToken, getAccessibleMapIds, verifyEditorEditAccess } from '../../helpers/mapAccessHelper'
+import {
+  getUserFromToken,
+  getAccessibleMapIds,
+  verifyEditorEditAccess,
+  verifyEditorBusinessAccess,
+} from '../../helpers/mapAccessHelper'
 import { Place } from '../place/place.model'
 import { Business } from '../business/business.model'
 import { USER_ROLES } from '../../enum/user'
@@ -29,10 +34,7 @@ const createOffer = catchAsync(async (req: Request, res: Response) => {
     } else if (offerData.business) {
       const business = await Business.findById(offerData.business)
       if (!business) throw new ApiError(StatusCodes.NOT_FOUND, 'Business not found')
-      const country = business.location?.country
-      if (!user.assignedCountries?.includes(country)) {
-        throw new ApiError(StatusCodes.FORBIDDEN, 'You are not authorized to edit offers for this business.')
-      }
+      await verifyEditorBusinessAccess(user, business.location?.country)
     }
   }
 
@@ -151,10 +153,7 @@ const updateOffer = catchAsync(async (req: Request, res: Response) => {
     } else if (existingOffer.business) {
       const business = await Business.findById(existingOffer.business)
       if (business) {
-        const country = business.location?.country
-        if (!user.assignedCountries?.includes(country)) {
-          throw new ApiError(StatusCodes.FORBIDDEN, 'You are not authorized to edit offers for this business.')
-        }
+        await verifyEditorBusinessAccess(user, business.location?.country)
       }
     }
 
@@ -170,10 +169,7 @@ const updateOffer = catchAsync(async (req: Request, res: Response) => {
     } else if (offerData.business && offerData.business !== existingOffer.business?.toString()) {
       const business = await Business.findById(offerData.business)
       if (business) {
-        const country = business.location?.country
-        if (!user.assignedCountries?.includes(country)) {
-          throw new ApiError(StatusCodes.FORBIDDEN, 'You are not authorized to assign offers to this business.')
-        }
+        await verifyEditorBusinessAccess(user, business.location?.country)
       }
     }
   }

@@ -6,11 +6,67 @@ import { JwtPayload } from 'jsonwebtoken'
 import mongoose from 'mongoose'
 import { User } from '../user/user.model'
 import { Place } from '../place/place.model'
+import { Business } from '../business/business.model'
 import { IPaginationOptions } from '../../interfaces/pagination'
 import { paginationHelper } from '../../helpers/paginationHelper'
 import { AwardServices } from '../award/award.service'
 
 import { getAccessibleMapIds } from '../../helpers/mapAccessHelper'
+
+const ratingIncPipeline = (rating: number) => [
+  {
+    $set: {
+      totalReview: { $add: [{ $ifNull: ['$totalReview', 0] }, 1] },
+      rating: {
+        $divide: [
+          {
+            $add: [
+              {
+                $multiply: [
+                  { $ifNull: ['$rating', 0] },
+                  { $ifNull: ['$totalReview', 0] },
+                ],
+              },
+              rating,
+            ],
+          },
+          { $add: [{ $ifNull: ['$totalReview', 0] }, 1] },
+        ],
+      },
+    },
+  },
+]
+
+const ratingDecPipeline = (rating: number) => [
+  {
+    $set: {
+      rating: {
+        $cond: [
+          { $lte: ['$totalReview', 1] },
+          0,
+          {
+            $divide: [
+              {
+                $subtract: [
+                  { $multiply: ['$rating', '$totalReview'] },
+                  rating,
+                ],
+              },
+              { $subtract: ['$totalReview', 1] },
+            ],
+          },
+        ],
+      },
+      totalReview: {
+        $cond: [
+          { $lte: ['$totalReview', 1] },
+          0,
+          { $subtract: ['$totalReview', 1] },
+        ],
+      },
+    },
+  },
+]
 
 const createReview = async (user: JwtPayload, payload: IReview) => {
   payload.reviewer = user.authId as unknown as mongoose.Types.ObjectId
@@ -24,21 +80,39 @@ const createReview = async (user: JwtPayload, payload: IReview) => {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
   }
 
-  const isPlaceExist = await Place.findById(payload.placeId)
-  if (!isPlaceExist) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
-  }
+  if (payload.placeId) {
+    const isPlaceExist = await Place.findById(payload.placeId)
+    if (!isPlaceExist) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
+    }
 
-  // Check map access: only allow review if the map is free, purchased, or the user is admin/editor
-  const mapId = isPlaceExist.map ? isPlaceExist.map.toString() : null
-  if (mapId) {
-    const accessibleMapIds = await getAccessibleMapIds(isUserExist)
-    if (!accessibleMapIds.includes(mapId)) {
+    // Check map access: only allow review if the map is free, purchased, or the user is admin/editor
+    const mapId = isPlaceExist.map ? isPlaceExist.map.toString() : null
+    if (mapId) {
+      const accessibleMapIds = await getAccessibleMapIds(isUserExist)
+      if (!accessibleMapIds.includes(mapId)) {
+        throw new ApiError(
+          StatusCodes.FORBIDDEN,
+          'You must unlock or purchase this map before you can review this place.',
+        )
+      }
+    }
+  } else if (payload.businessId) {
+    const isBusinessExist = await Business.findById(payload.businessId)
+    if (!isBusinessExist) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Business not found')
+    }
+    if (isBusinessExist.status !== 'Approved') {
       throw new ApiError(
-        StatusCodes.FORBIDDEN,
-        'You must unlock or purchase this map before you can review this place.'
+        StatusCodes.BAD_REQUEST,
+        'Only approved businesses can be reviewed.',
       )
     }
+  } else {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Either placeId or businessId is required',
+    )
   }
 
   const result = await Review.create(payload)
@@ -63,6 +137,7 @@ const getAllReviews = async (
     Review.find(filter)
       .populate('reviewer', 'name profile level')
       .populate('placeId', 'name media')
+      .populate('businessId', 'name media.photos')
       .skip(skip)
       .limit(limit)
       .sort({ [sortBy]: sortOrder }),
@@ -85,6 +160,16 @@ const getReviewsByPlace = async (
   paginationOptions: IPaginationOptions,
 ) => {
   return await getAllReviews(paginationOptions, { placeId, status: 'Approved' })
+}
+
+const getReviewsByBusiness = async (
+  businessId: string,
+  paginationOptions: IPaginationOptions,
+) => {
+  return await getAllReviews(paginationOptions, {
+    businessId,
+    status: 'Approved',
+  })
 }
 
 const updateReview = async (
@@ -118,45 +203,23 @@ const updateReview = async (
       payload.pointsEarned = 0
     }
 
-    // Update place stats and user points if the review was Approved but is now going back to Pending (due to edit)
+    // Update place/business stats and user points if the review was Approved but is now going back to Pending (due to edit)
     if (existingReview.status === 'Approved' && (payload.review !== undefined || payload.rating !== undefined || payload.media !== undefined)) {
       const rating = existingReview.rating
-      
-      // Update place stats
-      await Place.findByIdAndUpdate(
-        existingReview.placeId,
-        [
-          {
-            $set: {
-              rating: {
-                $cond: [
-                  { $lte: ['$totalReview', 1] },
-                  0,
-                  {
-                    $divide: [
-                      {
-                        $subtract: [
-                          { $multiply: ['$rating', '$totalReview'] },
-                          rating,
-                        ],
-                      },
-                      { $subtract: ['$totalReview', 1] },
-                    ],
-                  },
-                ],
-              },
-              totalReview: {
-                $cond: [
-                  { $lte: ['$totalReview', 1] },
-                  0,
-                  { $subtract: ['$totalReview', 1] },
-                ],
-              },
-            },
-          },
-        ],
-        { session, new: true },
-      )
+
+      if (existingReview.placeId) {
+        await Place.findByIdAndUpdate(
+          existingReview.placeId,
+          ratingDecPipeline(rating),
+          { session, new: true },
+        )
+      } else if (existingReview.businessId) {
+        await Business.findByIdAndUpdate(
+          existingReview.businessId,
+          ratingDecPipeline(rating),
+          { session, new: true },
+        )
+      }
 
       // Deduct points from user
       const reviewerId = existingReview.reviewer.toString()
@@ -235,44 +298,23 @@ const deleteReview = async (user: JwtPayload, id: string) => {
       )
     }
 
-    // If the review was approved, we need to update the place ratings/stats and reduce user points
+    // If the review was approved, we need to update the place/business ratings/stats and reduce user points
     if (existingReview.status === 'Approved') {
       const rating = existingReview.rating
 
-      await Place.findByIdAndUpdate(
-        existingReview.placeId,
-        [
-          {
-            $set: {
-              rating: {
-                $cond: [
-                  { $lte: ['$totalReview', 1] },
-                  0,
-                  {
-                    $divide: [
-                      {
-                        $subtract: [
-                          { $multiply: ['$rating', '$totalReview'] },
-                          rating,
-                        ],
-                      },
-                      { $subtract: ['$totalReview', 1] },
-                    ],
-                  },
-                ],
-              },
-              totalReview: {
-                $cond: [
-                  { $lte: ['$totalReview', 1] },
-                  0,
-                  { $subtract: ['$totalReview', 1] },
-                ],
-              },
-            },
-          },
-        ],
-        { session, new: true },
-      )
+      if (existingReview.placeId) {
+        await Place.findByIdAndUpdate(
+          existingReview.placeId,
+          ratingDecPipeline(rating),
+          { session, new: true },
+        )
+      } else if (existingReview.businessId) {
+        await Business.findByIdAndUpdate(
+          existingReview.businessId,
+          ratingDecPipeline(rating),
+          { session, new: true },
+        )
+      }
 
       // Deduct points from user
       const reviewerId = existingReview.reviewer.toString()
@@ -421,34 +463,20 @@ const approveReview = async (id: string) => {
       await AwardServices.updateAwardProgress(reviewerId, 'Top Reviewer', 1)
     }
 
-    // 3. Update the place rating and total reviews
-    await Place.findByIdAndUpdate(
-      existingReview.placeId,
-      [
-        {
-          $set: {
-            totalReview: { $add: [{ $ifNull: ['$totalReview', 0] }, 1] },
-            rating: {
-              $divide: [
-                {
-                  $add: [
-                    {
-                      $multiply: [
-                        { $ifNull: ['$rating', 0] },
-                        { $ifNull: ['$totalReview', 0] },
-                      ],
-                    },
-                    existingReview.rating,
-                  ],
-                },
-                { $add: [{ $ifNull: ['$totalReview', 0] }, 1] },
-              ],
-            },
-          },
-        },
-      ],
-      { session, new: true },
-    )
+    // 3. Update the place/business rating and total reviews
+    if (existingReview.placeId) {
+      await Place.findByIdAndUpdate(
+        existingReview.placeId,
+        ratingIncPipeline(existingReview.rating),
+        { session, new: true },
+      )
+    } else if (existingReview.businessId) {
+      await Business.findByIdAndUpdate(
+        existingReview.businessId,
+        ratingIncPipeline(existingReview.rating),
+        { session, new: true },
+      )
+    }
 
     await session.commitTransaction()
     return updatedReview
@@ -481,6 +509,7 @@ export const ReviewService = {
   createReview,
   getAllReviews,
   getReviewsByPlace,
+  getReviewsByBusiness,
   updateReview,
   deleteReview,
   getSingleReview,

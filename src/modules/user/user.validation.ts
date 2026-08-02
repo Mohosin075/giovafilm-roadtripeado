@@ -79,12 +79,27 @@ export const createStaffSchema = z.object({
 })
 
 export const inviteUserSchema = z.object({
-  body: z.object({
-    email: z.string().email({ message: 'Invalid email address' }),
-    role: z.nativeEnum(USER_ROLES),
-    assignedMaps: z.array(z.string()).optional(),
-    assignedCountries: z.array(z.string()).optional(),
-  }),
+  body: z
+    .object({
+      email: z.string().email({ message: 'Invalid email address' }),
+      role: z.nativeEnum(USER_ROLES),
+      assignedMaps: z.array(z.string()).optional(),
+      assignedCountries: z.array(z.string()).optional(),
+    })
+    .superRefine((data, ctx) => {
+      if (data.role === USER_ROLES.MAP_EDITOR) {
+        const maps = data.assignedMaps?.length ?? 0
+        const countries = data.assignedCountries?.length ?? 0
+        if (maps === 0 && countries === 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message:
+              'Map Editor must be assigned at least one map or country.',
+            path: ['assignedMaps'],
+          })
+        }
+      }
+    }),
 })
 
 export const updateUserRoleSchema = z.object({
@@ -136,8 +151,27 @@ export const assignEditorAccessZodSchema = z.object({
       required_error: 'User ID is required',
     }),
   }),
-  body: z.object({
-    assignedMaps: z.array(z.string()).optional(),
-    assignedCountries: z.array(z.string()).optional(),
-  }),
+  body: z
+    .object({
+      assignedMaps: z.array(z.string()).optional(),
+      assignedCountries: z.array(z.string()).optional(),
+    })
+    .superRefine((data, ctx) => {
+      const maps = data.assignedMaps?.length ?? 0
+      const countries = data.assignedCountries?.length ?? 0
+      // Only enforce when both fields are explicitly sent empty
+      if (
+        data.assignedMaps !== undefined &&
+        data.assignedCountries !== undefined &&
+        maps === 0 &&
+        countries === 0
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            'Map Editor must be assigned at least one map or country.',
+          path: ['assignedMaps'],
+        })
+      }
+    }),
 })

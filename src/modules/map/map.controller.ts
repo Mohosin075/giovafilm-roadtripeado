@@ -63,15 +63,12 @@ const getMapById = catchAsync(async (req: Request, res: Response) => {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')
   }
 
-  const mapObj = typeof result.toObject === 'function' ? (result as any).toObject() : result
-  const isLockedMap = !accessibleMapIds.includes(mapObj._id.toString())
-  mapObj.places = (mapObj.places || []).map((place: any) => {
-    const isPlaceLocked = isLockedMap && place.type !== 'Business'
-    return {
-      ...place,
-      isLocked: isPlaceLocked,
-    }
-  })
+  const mapObj =
+    typeof (result as any).toObject === 'function'
+      ? (result as any).toObject()
+      : { ...result }
+  // Access flag for catalog UI; places are loaded via discovery, not nested here
+  mapObj.isLocked = !accessibleMapIds.includes(mapObj._id.toString())
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,

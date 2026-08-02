@@ -604,10 +604,13 @@ const getFavoriteMaps = async (userId: string) => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid User ID.')
   }
 
-  const user = await User.findById(userId).populate({
-    path: 'favoriteMaps',
-    populate: { path: 'places', populate: { path: 'category' } },
-  })
+  const user = await User.findById(userId)
+    .populate({
+      path: 'favoriteMaps',
+      select:
+        'name country images isActive isPaid price rating totalReview createdAt description',
+    })
+    .lean()
 
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')

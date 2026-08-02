@@ -83,34 +83,13 @@ const getAllMaps = async (query: Record<string, unknown>) => {
 }
 
 const getMapById = async (id: string): Promise<any | null> => {
-  const result = await Map.findById(id).populate({
-    path: 'places',
-    select: 'name media location category status type difficulty address country rating totalReview openCount',
-    populate: { path: 'category', select: 'name color icon status' },
-  })
+  // Catalog / purchase UI only needs map summary — places come from discovery
+  const result = await Map.findById(id).select('-places').lean()
   if (!result) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')
   }
 
-  const mapObj = typeof result.toObject === 'function' ? result.toObject() : result;
-  const places = mapObj.places || [];
-  let totalReview = 0;
-  let totalWeightedRating = 0;
-  let placesWithReviews = 0;
-
-  places.forEach((place: any) => {
-    if (place.totalReview > 0) {
-      totalReview += place.totalReview;
-      totalWeightedRating += place.rating * place.totalReview;
-      placesWithReviews += place.totalReview;
-    }
-  });
-
-  const averageRating = placesWithReviews > 0 ? (totalWeightedRating / placesWithReviews) : 0;
-  mapObj.rating = Number(averageRating.toFixed(1)) || 0;
-  mapObj.totalReview = totalReview;
-
-  return mapObj;
+  return result
 }
 
 const updateMap = async (id: string, payload: Partial<IMap>): Promise<IMap | null> => {
@@ -193,11 +172,8 @@ const getPurchasedMaps = async (userId: string) => {
     .select('purchasedMaps')
     .populate({
       path: 'purchasedMaps',
-      populate: {
-        path: 'places',
-        select: 'name media location category status type difficulty address country rating totalReview',
-        populate: { path: 'category', select: 'name color icon status' },
-      },
+      select:
+        'name country images isActive isPaid price rating totalReview createdAt description',
     })
     .lean()
 
@@ -215,6 +191,12 @@ const getAvailableCountries = async (): Promise<string[]> => {
   return combined.filter((country): country is string => typeof country === 'string' && country !== 'Unknown' && country.trim() !== '')
 }
 
+const DISCOVERY_PLACE_FIELDS =
+  'name type status category map country address description rating totalReview location'
+const DISCOVERY_BUSINESS_FIELDS =
+  'name status category description location rating totalReview hasActiveSubscription'
+const DISCOVERY_MAX_FETCH = 2000
+
 const getDiscoveryData = async (
   query: Record<string, unknown>,
   lockedMapIds?: string[]
@@ -228,7 +210,7 @@ const getDiscoveryData = async (
 
   // 1. Handle "map" filter (Only applicable for Places, map businesses by their country)
   if (businessQueryObj.map) {
-    const mapObj = await Map.findById(businessQueryObj.map)
+    const mapObj = await Map.findById(businessQueryObj.map).select('name').lean()
     if (mapObj) {
       businessQueryObj['location.country'] = mapObj.name
     }
@@ -248,11 +230,10 @@ const getDiscoveryData = async (
   // 4. Enforce that businesses must have an active subscription to show on the map
   businessQueryObj.hasActiveSubscription = true
 
-  let basePlaceQuery = Place.find()
-
-  // Use QueryBuilder for Places
+  // Marker/list fields only — detail (media/hours/privateInfo) comes from place/business by id
   const placeQuery = new QueryBuilder(
-    basePlaceQuery
+    Place.find()
+      .select(DISCOVERY_PLACE_FIELDS)
       .populate('category', 'name color icon status')
       .lean(),
     placeQueryObj
@@ -261,9 +242,9 @@ const getDiscoveryData = async (
     .filter()
     .sort()
 
-  // Use QueryBuilder for Businesses
   const businessQuery = new QueryBuilder(
     Business.find()
+      .select(DISCOVERY_BUSINESS_FIELDS)
       .populate('category', 'name color icon status')
       .lean(),
     businessQueryObj
@@ -272,9 +253,8 @@ const getDiscoveryData = async (
     .filter()
     .sort()
 
-  // We fetch more items and then combine, sort, and paginate in memory
-  // to ensure consistent combined results.
-  const fetchLimit = Math.max(limit, 100)
+  // Honor requested limit (maps page uses ~1000); cap to avoid unbounded scans
+  const fetchLimit = Math.min(Math.max(limit, 1), DISCOVERY_MAX_FETCH)
   placeQuery.modelQuery.limit(fetchLimit)
   businessQuery.modelQuery.limit(fetchLimit)
 

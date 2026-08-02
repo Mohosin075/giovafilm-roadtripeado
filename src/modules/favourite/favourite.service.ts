@@ -118,17 +118,29 @@ const getMyFavourites = async (userId: string, query: Record<string, unknown>) =
   const { page = 1, limit = 10, sort = '-createdAt', ...filterData } = query
   const skip = (Number(page) - 1) * Number(limit)
 
-  const pipeline: any[] = [
-    { $match: { user: new mongoose.Types.ObjectId(userId) } },
-  ]
+  const sortStr = sort as string
+  const sortOrder = sortStr.startsWith('-') ? -1 : 1
+  const sortField = sortStr.replace(/^-/, '')
 
-  // Lookups for all supported types
-  pipeline.push(
+  const matchStage: Record<string, unknown> = {
+    user: new mongoose.Types.ObjectId(userId),
+    ...filterData,
+  }
+
+  // Paginate first, then lookup only the page of docs (list fields only)
+  const pipeline: any[] = [
+    { $match: matchStage },
+    { $sort: { [sortField]: sortOrder } },
+    { $skip: skip },
+    { $limit: Number(limit) },
     {
       $lookup: {
         from: 'maps',
         localField: 'map',
         foreignField: '_id',
+        pipeline: [
+          { $project: { name: 1, description: 1, images: 1 } },
+        ],
         as: 'map',
       },
     },
@@ -138,6 +150,9 @@ const getMyFavourites = async (userId: string, query: Record<string, unknown>) =
         from: 'places',
         localField: 'place',
         foreignField: '_id',
+        pipeline: [
+          { $project: { name: 1, description: 1, media: 1 } },
+        ],
         as: 'place',
       },
     },
@@ -147,6 +162,9 @@ const getMyFavourites = async (userId: string, query: Record<string, unknown>) =
         from: 'offers',
         localField: 'offer',
         foreignField: '_id',
+        pipeline: [
+          { $project: { title: 1, name: 1, description: 1, image: 1, media: 1 } },
+        ],
         as: 'offer',
       },
     },
@@ -156,32 +174,25 @@ const getMyFavourites = async (userId: string, query: Record<string, unknown>) =
         from: 'businesses',
         localField: 'business',
         foreignField: '_id',
+        pipeline: [
+          {
+            $project: {
+              name: 1,
+              description: 1,
+              'media.photos': 1,
+            },
+          },
+        ],
         as: 'business',
       },
     },
     { $unwind: { path: '$business', preserveNullAndEmptyArrays: true } },
-  )
-
-  // Filtering (if any specific fields are provided in query)
-  if (Object.keys(filterData).length > 0) {
-    pipeline.push({ $match: filterData })
-  }
-
-  // Sorting
-  const sortStr = sort as string
-  const sortOrder = sortStr.startsWith('-') ? -1 : 1
-  const sortField = sortStr.replace(/^-/, '')
-  pipeline.push({ $sort: { [sortField]: sortOrder } })
-
-  // Pagination
-  const resultPipeline = [
-    ...pipeline,
-    { $skip: skip },
-    { $limit: Number(limit) },
   ]
 
-  const data = await Favourite.aggregate(resultPipeline)
-  const total = await Favourite.countDocuments({ user: userId, ...filterData })
+  const [data, total] = await Promise.all([
+    Favourite.aggregate(pipeline),
+    Favourite.countDocuments(matchStage),
+  ])
   const totalPage = Math.ceil(total / Number(limit))
 
   return {

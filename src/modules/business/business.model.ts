@@ -101,5 +101,8 @@ const BusinessSchema = new Schema<IBusiness, BusinessModel>(
 
 // Index for geo queries
 BusinessSchema.index({ 'location.mapLocation': '2dsphere' })
+// Discovery / map listing filters
+BusinessSchema.index({ status: 1, hasActiveSubscription: 1 })
+BusinessSchema.index({ 'location.country': 1, status: 1, hasActiveSubscription: 1 })
 
 export const Business = model<IBusiness, BusinessModel>('Business', BusinessSchema)

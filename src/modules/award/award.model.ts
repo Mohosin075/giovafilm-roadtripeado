@@ -14,6 +14,8 @@ const awardSchema = new Schema<IAward, AwardModel>(
         'Trail Master',
         'History Buff',
         'Legendary Explorer',
+        'Exclusive Discount',
+        'Permanent Discount',
       ],
       required: true,
     },

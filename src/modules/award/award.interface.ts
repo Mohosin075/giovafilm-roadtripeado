@@ -8,6 +8,8 @@ export type IAwardType =
   | 'Trail Master'
   | 'History Buff'
   | 'Legendary Explorer'
+  | 'Exclusive Discount'
+  | 'Permanent Discount'
 
 export interface IAward {
   userId: Types.ObjectId

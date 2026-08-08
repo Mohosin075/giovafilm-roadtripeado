@@ -19,17 +19,28 @@ router.post(
   AwardController.redeemFreeMap,
 )
 
-router.get(
-  '/configs',
-  auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
-  AwardConfigController.getAllAwardConfigs,
-)
+router
+  .route('/configs')
+  .get(
+    auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    AwardConfigController.getAllAwardConfigs,
+  )
+  .post(
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    fileAndBodyProcessorUsingDiskStorage(),
+    AwardConfigController.createAwardConfig,
+  )
 
-router.patch(
-  '/configs/:id',
-  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
-  fileAndBodyProcessorUsingDiskStorage(),
-  AwardConfigController.updateAwardConfig,
-)
+router
+  .route('/configs/:id')
+  .patch(
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    fileAndBodyProcessorUsingDiskStorage(),
+    AwardConfigController.updateAwardConfig,
+  )
+  .delete(
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    AwardConfigController.deleteAwardConfig,
+  )
 
 export const AwardRoutes = router

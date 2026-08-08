@@ -2,11 +2,11 @@ GENERAL VERSION:
  
 Batch D: Dashboard
 
-1. On the "Users and Roles" page, within the map/country assignment section, remove the "country" selection option for the map editor, as assigning a map and a country amounts to the same thing. solved
+1. On the "Users and Roles" page, within the map/country assignment section, remove the "country" selection option for the map editor, as assigning a map and a country amounts to the same thing. -solved
 
-2. When adding or editing a restaurant or business location, the system must allow me to add menu or pricing photos so that they appear in the dropdown sections below—labeled "Menu and Prices"—alongside "Description and Access," "Offers and Discounts," etc.
+2. When adding or editing a restaurant or business location, the system must allow me to add menu or pricing photos so that they appear in the dropdown sections below—labeled "Menu and Prices"—alongside "Description and Access," "Offers and Discounts," etc. - solved
 
-3. I need a filter on the Dashboard's "Places" page that allows filtering by category and country.
+3. I need a filter on the Dashboard's "Places" page that allows filtering by category and country.  - solved
  
 Batch D: Dashboard/Rewards & Levels
 

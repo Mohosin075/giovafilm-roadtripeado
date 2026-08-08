@@ -71,8 +71,24 @@ const updateAwardConfig = async (
   return result
 }
 
+const createAwardConfig = async (
+  payload: IAwardConfig
+): Promise<IAwardConfig> => {
+  const result = await AwardConfig.create(payload)
+  return result
+}
+
+const deleteAwardConfig = async (
+  id: string
+): Promise<IAwardConfig | null> => {
+  const result = await AwardConfig.findByIdAndDelete(id)
+  return result
+}
+
 export const AwardConfigServices = {
   seedAwardConfigs,
   getAllAwardConfigs,
   updateAwardConfig,
+  createAwardConfig,
+  deleteAwardConfig,
 }

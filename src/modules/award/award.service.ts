@@ -29,7 +29,13 @@ const getMyAwards = async (userId: string) => {
     let progress = 0
     let isUnlocked = false
 
-    if (config.type === 'PDF Itinerary' || config.type === 'Free Map' || config.type === 'Gourmet Guide') {
+    if (
+      config.type === 'PDF Itinerary' ||
+      config.type === 'Free Map' ||
+      config.type === 'Gourmet Guide' ||
+      config.type === 'Exclusive Discount' ||
+      config.type === 'Permanent Discount'
+    ) {
       progress = user.points || 0
       isUnlocked = progress >= config.target
     } else if (found) {
@@ -52,7 +58,13 @@ const getMyAwards = async (userId: string) => {
     } else {
       // Update target, progress, isUnlocked if they differ
       const updates: any = { target: config.target }
-      if (config.type === 'PDF Itinerary' || config.type === 'Free Map' || config.type === 'Gourmet Guide') {
+      if (
+        config.type === 'PDF Itinerary' ||
+        config.type === 'Free Map' ||
+        config.type === 'Gourmet Guide' ||
+        config.type === 'Exclusive Discount' ||
+        config.type === 'Permanent Discount'
+      ) {
         updates.progress = progress
         updates.isUnlocked = isUnlocked
       } else {

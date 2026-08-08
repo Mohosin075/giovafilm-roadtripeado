@@ -10,15 +10,15 @@ Batch D: Dashboard
  
 Batch D: Dashboard/Rewards & Levels
 
-1. When editing a reward, the system does not allow me to select the reward type (e.g., PDF, free map, exclusive discount, or permanent discount).
+1. When editing a reward, the system does not allow me to select the reward type (e.g., PDF, free map, exclusive discount, or permanent discount). - solved
 
-2. I cannot add new rewards.
+2. I cannot add new rewards.- solved
 
-3. Rewards are earned as users level up, in accordance with the details provided in the PDF outlining the points required for each level and the corresponding rewards.
+3. Rewards are earned as users level up, in accordance with the details provided in the PDF outlining the points required for each level and the corresponding rewards. - solved
  
 Lot D: Business
 
-1. When adding a business as a user, it does not allow me to add the pin using the Google Maps link.
+1. When adding a business as a user, it does not allow me to add the pin using the Google Maps link. - solved
  
 Batch D: Users
 

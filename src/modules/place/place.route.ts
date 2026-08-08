@@ -23,7 +23,7 @@ router
 
 router.post(
   '/extract-coordinates',
-  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.MAP_EDITOR),
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.MAP_EDITOR, USER_ROLES.USER),
   PlaceController.extractCoordinates,
 )
 

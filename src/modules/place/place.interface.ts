@@ -9,6 +9,7 @@ export interface IPlace {
   country?: string // Country name
   description: string
   media: string[]
+  menuImages?: string[]
   address: string
   location: {
     type: 'Point'

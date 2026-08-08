@@ -10,6 +10,7 @@ export const createPlaceZodSchema = z.object({
     country: z.string().optional(),
     description: z.string({ required_error: 'Description is required' }),
     media: z.array(z.string()).optional(),
+    menuImages: z.array(z.string()).optional(),
     address: z.string({ required_error: 'Address is required' }),
     location: z.object({
       type: z.literal('Point').default('Point'),
@@ -49,6 +50,7 @@ export const createPlaceZodSchema = z.object({
     atmosphere: z.string().optional(),
     status: z.enum(['Draft', 'Published']).default('Draft'),
     images: z.array(z.string()).optional(),
+    documents: z.array(z.string()).optional(),
   }),
 })
 
@@ -64,6 +66,7 @@ export const updatePlaceZodSchema = z.object({
     country: z.string().optional(),
     description: z.string().optional(),
     media: z.array(z.string()).optional(),
+    menuImages: z.array(z.string()).optional(),
     address: z.string().optional(),
     location: z
       .object({
@@ -102,5 +105,6 @@ export const updatePlaceZodSchema = z.object({
     atmosphere: z.string().optional(),
     status: z.enum(['Draft', 'Published']).optional(),
     images: z.array(z.string()).optional(),
+    documents: z.array(z.string()).optional(),
   }),
 })

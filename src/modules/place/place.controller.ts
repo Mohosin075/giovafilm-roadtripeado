@@ -18,7 +18,10 @@ const createPlace = catchAsync(async (req: Request, res: Response) => {
   }
 
   if (req.body.images) {
-    req.body.media = req.body.images
+    req.body.media = [...(req.body.media || []), ...req.body.images]
+  }
+  if (req.body.documents) {
+    req.body.menuImages = [...(req.body.menuImages || []), ...req.body.documents]
   }
   const result = await PlaceService.createPlace(req.body)
   sendResponse(res, {
@@ -135,7 +138,10 @@ const updatePlace = catchAsync(async (req: Request, res: Response) => {
   }
 
   if (req.body.images) {
-    req.body.media = req.body.images
+    req.body.media = [...(req.body.media || []), ...req.body.images]
+  }
+  if (req.body.documents) {
+    req.body.menuImages = [...(req.body.menuImages || []), ...req.body.documents]
   }
   console.log(req.body)
   const result = await PlaceService.updatePlace(id, req.body)

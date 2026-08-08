@@ -15,6 +15,7 @@ const PlaceSchema = new Schema<IPlace, PlaceModel>(
     country: { type: String, required: true },
     description: { type: String, required: true },
     media: { type: [String], default: [] },
+    menuImages: { type: [String], default: [] },
     address: { type: String, required: true },
     location: {
       type: {

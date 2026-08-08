@@ -41,6 +41,7 @@ const forgetPasswordZodSchema = z.object({
 
 const resetPasswordZodSchema = z.object({
   body: z.object({
+    token: z.string().min(1).optional(),
     newPassword: z.string().min(8, { message: 'Password is required' }),
     confirmPassword: z
       .string()
@@ -79,7 +80,10 @@ const verifyAccountZodSchema = z.object({
       .refine(value => !value || /^\+?[1-9]\d{1,14}$/.test(value), {
         message: 'Invalid phone number format',
       }),
-    oneTimeCode: z.string().min(1, { message: 'OTP is required' }),
+    oneTimeCode: z.preprocess(
+      val => String(val ?? '').replace(/\D/g, ''),
+      z.string().length(6, { message: 'OTP must be a 6-digit code' }),
+    ),
     password: z.string().min(6).optional(),
   }),
 })

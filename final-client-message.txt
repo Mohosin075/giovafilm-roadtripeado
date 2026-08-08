@@ -1,0 +1,64 @@
+GENERAL VERSION:
+ 
+Batch D: Dashboard
+
+1. On the "Users and Roles" page, within the map/country assignment section, remove the "country" selection option for the map editor, as assigning a map and a country amounts to the same thing.
+
+2. When adding or editing a restaurant or business location, the system must allow me to add menu or pricing photos so that they appear in the dropdown sections below—labeled "Menu and Prices"—alongside "Description and Access," "Offers and Discounts," etc.
+
+3. I need a filter on the Dashboard's "Places" page that allows filtering by category and country.
+ 
+Batch D: Dashboard/Rewards & Levels
+
+1. When editing a reward, the system does not allow me to select the reward type (e.g., PDF, free map, exclusive discount, or permanent discount).
+
+2. I cannot add new rewards.
+
+3. Rewards are earned as users level up, in accordance with the details provided in the PDF outlining the points required for each level and the corresponding rewards.
+ 
+Lot D: Business
+
+1. When adding a business as a user, it does not allow me to add the pin using the Google Maps link.
+ 
+Batch D: Users
+
+1. On the "Places" page, locations locked for users who haven't purchased the map still display their names. All information must remain hidden until the corresponding map is purchased.
+
+2. When a user clicks "Redeem Offer," add a fixed, global 3-second countdown allowing the user to either cancel or proceed, preventing accidental redemption. After those 3 seconds, the original countdown (set when the offer was created/edited) should take over.
+
+3. On the "Maps" page, locations locked for users who haven't purchased the map still show their names within the "Categories" filter. All information must remain hidden until the corresponding map is purchased.
+
+4. When a user creates a review, the star rating points are not being awarded. Currently, only the 5 points for the review itself and the 10 bonus points for reviews exceeding 200 characters are being granted; the 1 point for the star rating is missing.
+
+5. On the "Offers" page, clicking an offer should first open the specific restaurant or business page. It used to work this way, but the behavior was changed.
+
+6. I would like administrators and editors to have access to the "Favorites," "Awards," and "Contributions & Reviews" options so they can test and use their accounts just like regular users and enjoy the app/website. You can exclude the "Purchased Maps," "My Business," and "Subscriptions" options for administrators and editors.
+
+7. On the "Places" page, I would remove the "Reviews" button located next to the Directions and "View on Map" buttons, as it clutters the area, and the reviews section belongs further down the page.
+
+8. Add a liability disclaimer to all locations on the map. (NOTICE: The information regarding this location is for informational purposes only. You visit and engage in activities here at your own risk.)
+
+9. Regarding the map icons: remove the colored line and keep only the existing white line next to the icon so the icon itself stands out more clearly.
+
+10. The levels do not show the correct points as specified in the PDF I sent you.
+
+11. On the Maps page, when selecting a pin with a very long description, the image gets cut off, making it impossible to click the "X" if the user wants to do something else.
+
+12. On the Maps page, when you open a pin and then go back, the map resets instead of remaining where it was.
+
+13. Upon logging in for the first time after creating an account, the website should open to the Catalog page. Thereafter, it should always open to the Map page.
+ 
+MOBILE VERSION:
+
+Batch D: Users:
+
+1. The map icons look too large; the layout appears cluttered and lacks aesthetic appeal.
+
+2. When viewing a location's details, the name, location, and category overlap the image of the place.
+
+3. On the "maps" page, there is a button labeled "filters." I would remove that button and replace it directly with a "categories" button.
+
+4. On the "maps" page, I would place the "categories" and "select map" buttons side-by-side to minimize screen clutter.
+
+5. On the "maps" page, when selecting a pin with a very long description, the image gets cut off, and the "X" button becomes inaccessible if the user wants to do something else.
+ 

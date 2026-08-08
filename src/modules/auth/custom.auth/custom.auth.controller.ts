@@ -5,6 +5,7 @@ import sendResponse from '../../../shared/sendResponse'
 import { StatusCodes } from 'http-status-codes'
 import { TokenServices } from '../../token/token.service'
 import { JwtPayload } from 'jsonwebtoken'
+import ApiError from '../../../errors/ApiError'
 
 const customLogin = catchAsync(async (req: Request, res: Response) => {
   const { ...loginData } = req.body
@@ -61,10 +62,20 @@ const forgetPassword = catchAsync(async (req: Request, res: Response) => {
 })
 
 const resetPassword = catchAsync(async (req: Request, res: Response) => {
-  const token = req.headers.authorization
-  const { ...resetData } = req.body
-  console.log({ token, resetData })
-  const result = await CustomAuthServices.resetPassword(token!, resetData)
+  // Prefer body.token — Authorization is often a logged-in session JWT
+  // (prepareHeaders / Bearer) and must not override the reset token.
+  const headerToken = req.headers.authorization?.replace(/^Bearer\s+/i, '').trim()
+  const { token: bodyToken, ...resetData } = req.body
+  const token = (typeof bodyToken === 'string' && bodyToken.trim()) || headerToken
+
+  if (!token) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      "You don't have authorization to reset your password, please verify your account first.",
+    )
+  }
+
+  const result = await CustomAuthServices.resetPassword(token, resetData)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,

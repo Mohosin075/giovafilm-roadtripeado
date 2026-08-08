@@ -119,6 +119,9 @@ const resendOtp = (values: {
                       <div style="font-size:42px; font-weight:800; color:#FFC107; letter-spacing:8px; margin:0;">${values.otp}</div>
                     </div>
                     <p style="color:#777777; font-size:14px; margin:0 0 32px;">This code expires in 5 minutes. Please do not share it with anyone.</p>
+                    <div style="margin-bottom: 8px;">
+                      <a href="${config.clientUrl}/otp-verify?email=${encodeURIComponent(values.email)}&authType=${isReset ? 'resetPassword' : 'createAccount'}" style="display:inline-block; background-color:#FFC107; color:#000000; padding:16px 40px; border-radius:10px; text-decoration:none; font-weight:700; font-size:16px; box-shadow: 0 4px 6px rgba(255, 193, 7, 0.2);">${isReset ? 'Reset Password' : 'Verify Now'}</a>
+                    </div>
                   </td>
                 </tr>
                 <tr>
@@ -460,7 +463,8 @@ const userInvitation = (values: { email: string; role: string; otp: string }) =>
                     </div>
                     
                     <p style="color:#4B5563; font-size:15px; line-height:1.6; margin:0 0 32px;">
-                      Please use this code to set up your account and password. Click the button below to get started.
+                      Enter the code above on the next screen, then set your password to join.
+                      If you received more than one invitation, use only the <strong>latest</strong> code.
                     </p>
                     
                     <!-- CTA Button -->
@@ -471,7 +475,7 @@ const userInvitation = (values: { email: string; role: string; otp: string }) =>
                     </div>
                     
                     <p style="color:#9CA3AF; font-size:13px; line-height:1.5; margin:0; border-top: 1px solid #F3F4F6; padding-top: 24px;">
-                      This invitation code will expire in 24 hours.<br>
+                      This invitation code will expire in 24 hours. Older codes stop working when a new invite is sent.<br>
                       If you were not expecting this invitation, please ignore this email.
                     </p>
                   </td>

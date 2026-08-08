@@ -271,6 +271,9 @@ const resetPassword = async (resetToken: string, payload: IResetPassword) => {
     { new: true },
   )
 
+  // One-time use
+  await Token.deleteOne({ token: resetToken })
+
   return { message: 'Password reset successfully' }
 }
 
@@ -297,11 +300,21 @@ const verifyAccount = async (
 
   const { authentication } = isUserExist
 
-  //check the otp (normalize to string — OTP may be stored/sent as number)
-  if (String(authentication?.oneTimeCode ?? '') !== String(onetimeCode ?? '')) {
+  // Normalize: digits only (handles number/string and stray whitespace)
+  const storedOtp = String(authentication?.oneTimeCode ?? '').replace(/\D/g, '')
+  const providedOtp = String(onetimeCode ?? '').replace(/\D/g, '')
+
+  if (!storedOtp) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
-      'Invalid OTP, please try again.',
+      'No active code found. Please use Resend Code or request a new invitation.',
+    )
+  }
+
+  if (storedOtp !== providedOtp) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Invalid or outdated code. Use the code from your latest email, or tap Resend Code.',
     )
   }
 

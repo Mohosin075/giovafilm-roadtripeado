@@ -42,15 +42,15 @@ Batch D: Users
 
 10. The levels do not show the correct points as specified in the PDF I sent you. - solved
 
-11. On the Maps page, when selecting a pin with a very long description, the image gets cut off, making it impossible to click the "X" if the user wants to do something else.
+11. On the Maps page, when selecting a pin with a very long description, the image gets cut off, making it impossible to click the "X" if the user wants to do something else. - solved
 
-12. On the Maps page, when you open a pin and then go back, the map resets instead of remaining where it was. 
+12. On the Maps page, when you open a pin and then go back, the map resets instead of remaining where it was.   - solved
 
-13. Upon logging in for the first time after creating an account, the website should open to the Catalog page. Thereafter, it should always open to the Map page.
+13. Upon logging in for the first time after creating an account, the website should open to the Catalog page. Thereafter, it should always open to the Map page.  - solved
  
 MOBILE VERSION:
 
-Batch D: Users:
+Batch D: Users: 
 
 1. The map icons look too large; the layout appears cluttered and lacks aesthetic appeal.
 

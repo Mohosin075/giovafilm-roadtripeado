@@ -63,7 +63,7 @@ Batch D: Users: solved
 5. On the "maps" page, when selecting a pin with a very long description, the image gets cut off, and the "X" button becomes inaccessible if the user wants to do something else.
 
 
-Batch E: Dashboard
+Batch E: Dashboard - solved
 1. Add the option to move existing pins or locations. In Google My Maps, you press and hold the pin
 and then drag it.
 2. It is not allowing videos to be added, and they are not visible either.

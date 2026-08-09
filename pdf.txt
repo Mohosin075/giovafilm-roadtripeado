@@ -1,0 +1,59 @@
+Roadtripeado User Types and Access Levels
+1. General Context
+Roadtripeado will have an independent map for each country available on the platform.
+Each map will mainly include two types of content:
+Tourist Attractions- Waterfalls- Caves- Beaches- Rivers- Scenic viewpoints- Parks- Museums- Tourist attractions- Other points of interest
+Businesses- Restaurants- Coffee shops- Accommodations- Rental businesses- Jet ski rentals- Tours- Transportation- Tourist experiences- Other tourism-related businesses
+Businesses will be able to offer exclusive discounts to users who have purchased the
+corresponding country's map.
+Each map will be purchased through a one-time payment. Business listings will require
+a separate monthly subscription.
+User 1: Registered User Without a Purchased Map
+Description
+A user who has created an account and signed in but has not yet purchased any map.
+This user does not necessarily have an active business plan, although they may
+purchase one at any time without first buying a map.
+Available Content
+This user may:- Browse the platform.- View businesses available on the different maps.- View public information about restaurants, experiences, rentals, and other
+businesses.- Purchase a map with a one-time payment.- Purchase a monthly business plan.
+Locked Content
+This user may not:- View tourist attraction information.- Access waterfalls, beaches, caves, rivers, viewpoints, and other premium tourist
+locations.- Use exclusive business discounts.- Access other premium benefits included with a purchased map.
+Premium features should remain visible but locked.
+When the user taps a locked feature, the system should display a message similar to:
+“This information and these benefits can be unlocked by purchasing your favorite
+map.”
+The message may include a button leading to the purchase page for that map.
+Important Rule
+Purchasing a map only unlocks the information and benefits for the purchased country.
+For example:- Purchasing the Puerto Rico map unlocks premium access only for Puerto Rico.- Maps for the United States, Peru, Colombia, and other countries remain locked until
+purchased individually.
+User 2: User With One or More Purchased Maps
+Description
+A user who has made the one-time payment to purchase one or more country maps.
+Each map purchase must be recorded individually by country.
+Available Access
+For every purchased map, this user may:- View all tourist attractions.- View waterfalls, beaches, caves, rivers, viewpoints, parks, and other attractions.- View all listed businesses.- Access complete information for attractions and businesses.- Use exclusive business discounts.- Access all premium benefits included in that map.
+Restrictions- Premium access is limited to purchased maps only.- No automatic access to maps from other countries.- Cannot edit tourist attractions.- Cannot edit other people's businesses.- Cannot manage general system information.
+Monthly Business Plan
+This user may also purchase a monthly business plan.
+Buying a map is not required to purchase a business plan. Maps and business
+subscriptions are independent products.
+User 3: User With a Monthly Business Plan
+Description
+Any user who purchases a monthly plan to add a business to the selected country's
+map.
+Purchasing the country's map is not required to register a business.
+The purpose of the plan is to increase the business's visibility, attract new customers,
+and allow it to offer an exclusive discount within Roadtripeado.
+Allowed Business Types
+Examples include:- Restaurants- Coffee shops- Accommodations- Vehicle rentals- Jet ski rentals- Tours- Experiences- Transportation- Tourism-related businesses
+Business User Permissions
+This user may:- Add one business to the selected map.- Complete the business information.- Edit only the business registered through their plan.- Add photos, descriptions, business hours, address, and contact details.- Configure the exclusive discount offered.- View business statistics.- View how many users visited or viewed the business profile.- View how many times the exclusive discount has been redeemed.
+One Business Per Plan Rule
+Each monthly plan allows only one business.
+To add multiple businesses, a separate monthly plan is required for each business.
+Restrictions
+This user:- May edit only the registered business.- May not edit other businesses.- May not edit tourist attractions.- May not manage users.- May not modify maps.- May not manage general system information.- Does not receive premium map access by having a business plan.- Does not have access to the dashboard.
+To access tourist attractions and use exclusive discounts, the corresponding map must
+be purchased.

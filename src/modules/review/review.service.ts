@@ -402,13 +402,11 @@ const approveReview = async (id: string) => {
     // Star qualification (only rating, no review text) = 1 point
     // Review text present = 5 points
     // Length of review >= 200 characters = +10 bonus points
-    let points = 0
-    if (!existingReview.review || existingReview.review.trim() === '') {
-      points = 1
-    } else {
-      points = 5
+    let points = 1 // 1 point for the star rating (every review must have a star rating)
+    if (existingReview.review && existingReview.review.trim() !== '') {
+      points += 5 // +5 points for the review itself
       if (existingReview.review.trim().length >= 200) {
-        points += 10
+        points += 10 // +10 bonus points for reviews exceeding 200 characters
       }
     }
 

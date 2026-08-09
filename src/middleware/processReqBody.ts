@@ -32,7 +32,18 @@ export const fileAndBodyProcessor = () => {
       const allowedTypes = {
         images: ['image/jpeg', 'image/png', 'image/jpg'],
         icon: ['image/jpeg', 'image/png', 'image/jpg'],
-        media: ['video/mp4', 'audio/mpeg'],
+        media: [
+          'video/mp4',
+          'video/webm',
+          'video/ogg',
+          'video/quicktime',
+          'video/3gpp',
+          'video/x-matroska',
+          'audio/mpeg',
+          'audio/mp3',
+          'audio/wav',
+          'audio/ogg',
+        ],
         documents: ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'],
       }
 
@@ -188,7 +199,18 @@ export const fileAndBodyProcessorUsingDiskStorage = () => {
       const allowedTypes = {
         images: ['image/jpeg', 'image/png', 'image/jpg'],
         icon: ['image/jpeg', 'image/png', 'image/jpg'],
-        media: ['video/mp4', 'audio/mpeg'],
+        media: [
+          'video/mp4',
+          'video/webm',
+          'video/ogg',
+          'video/quicktime',
+          'video/3gpp',
+          'video/x-matroska',
+          'audio/mpeg',
+          'audio/mp3',
+          'audio/wav',
+          'audio/ogg',
+        ],
         documents: ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'],
       }
 

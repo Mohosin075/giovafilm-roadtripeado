@@ -13,6 +13,12 @@ const processReqBody_1 = require("../../middleware/processReqBody");
 const router = express_1.default.Router();
 router.get('/my-awards', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), award_controller_1.AwardController.getMyAwards);
 router.post('/redeem-free-map', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), award_controller_1.AwardController.redeemFreeMap);
-router.get('/configs', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), awardConfig_controller_1.AwardConfigController.getAllAwardConfigs);
-router.patch('/configs/:id', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), (0, processReqBody_1.fileAndBodyProcessorUsingDiskStorage)(), awardConfig_controller_1.AwardConfigController.updateAwardConfig);
+router
+    .route('/configs')
+    .get((0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), awardConfig_controller_1.AwardConfigController.getAllAwardConfigs)
+    .post((0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), (0, processReqBody_1.fileAndBodyProcessorUsingDiskStorage)(), awardConfig_controller_1.AwardConfigController.createAwardConfig);
+router
+    .route('/configs/:id')
+    .patch((0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), (0, processReqBody_1.fileAndBodyProcessorUsingDiskStorage)(), awardConfig_controller_1.AwardConfigController.updateAwardConfig)
+    .delete((0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), awardConfig_controller_1.AwardConfigController.deleteAwardConfig);
 exports.AwardRoutes = router;

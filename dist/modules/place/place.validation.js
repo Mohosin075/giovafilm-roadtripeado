@@ -12,6 +12,7 @@ exports.createPlaceZodSchema = zod_1.z.object({
         country: zod_1.z.string().optional(),
         description: zod_1.z.string({ required_error: 'Description is required' }),
         media: zod_1.z.array(zod_1.z.string()).optional(),
+        menuImages: zod_1.z.array(zod_1.z.string()).optional(),
         address: zod_1.z.string({ required_error: 'Address is required' }),
         location: zod_1.z.object({
             type: zod_1.z.literal('Point').default('Point'),
@@ -48,6 +49,7 @@ exports.createPlaceZodSchema = zod_1.z.object({
         atmosphere: zod_1.z.string().optional(),
         status: zod_1.z.enum(['Draft', 'Published']).default('Draft'),
         images: zod_1.z.array(zod_1.z.string()).optional(),
+        documents: zod_1.z.array(zod_1.z.string()).optional(),
     }),
 });
 exports.updatePlaceZodSchema = zod_1.z.object({
@@ -62,6 +64,7 @@ exports.updatePlaceZodSchema = zod_1.z.object({
         country: zod_1.z.string().optional(),
         description: zod_1.z.string().optional(),
         media: zod_1.z.array(zod_1.z.string()).optional(),
+        menuImages: zod_1.z.array(zod_1.z.string()).optional(),
         address: zod_1.z.string().optional(),
         location: zod_1.z
             .object({
@@ -97,5 +100,6 @@ exports.updatePlaceZodSchema = zod_1.z.object({
         atmosphere: zod_1.z.string().optional(),
         status: zod_1.z.enum(['Draft', 'Published']).optional(),
         images: zod_1.z.array(zod_1.z.string()).optional(),
+        documents: zod_1.z.array(zod_1.z.string()).optional(),
     }),
 });

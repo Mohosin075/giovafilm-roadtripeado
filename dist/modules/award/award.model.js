@@ -14,6 +14,8 @@ const awardSchema = new mongoose_1.Schema({
             'Trail Master',
             'History Buff',
             'Legendary Explorer',
+            'Exclusive Discount',
+            'Permanent Discount',
         ],
         required: true,
     },

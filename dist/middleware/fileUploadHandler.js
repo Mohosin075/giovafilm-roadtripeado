@@ -17,11 +17,15 @@ const fileUploadHandler = () => {
             const allowedMediaTypes = [
                 'video/mp4',
                 'video/webm',
+                'video/ogg',
                 'video/quicktime',
+                'video/3gpp',
+                'video/x-matroska',
                 'audio/mpeg',
                 'audio/mp3',
+                'audio/wav',
+                'audio/ogg',
             ];
-            const allowedDocTypes = ['application/pdf'];
             const imageFields = ['image', 'license', 'signature', 'businessProfile'];
             // Images
             if (imageFields.includes(file.fieldname)) {
@@ -36,11 +40,12 @@ const fileUploadHandler = () => {
                 if (allowedMediaTypes.includes(file.mimetype))
                     cb(null, true);
                 else
-                    cb(new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Only .mp4, .mp3 file supported'));
+                    cb(new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Only .mp4, .mov, .webm, .ogg, .mp3, .wav file supported'));
                 return;
             }
             // Documents
             if (file.fieldname === 'doc') {
+                const allowedDocTypes = ['application/pdf'];
                 if (allowedDocTypes.includes(file.mimetype))
                     cb(null, true);
                 else

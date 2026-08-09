@@ -210,6 +210,8 @@ const resetPassword = async (resetToken, payload) => {
         },
     };
     await user_model_1.User.findByIdAndUpdate(isUserExist._id, { $set: updatedUserData }, { new: true });
+    // One-time use
+    await token_model_1.Token.deleteOne({ token: resetToken });
     return { message: 'Password reset successfully' };
 };
 const verifyAccount = async (email, onetimeCode, password) => {
@@ -226,9 +228,14 @@ const verifyAccount = async (email, onetimeCode, password) => {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `No account found with this ${email}, please register first.`);
     }
     const { authentication } = isUserExist;
-    //check the otp (normalize to string — OTP may be stored/sent as number)
-    if (String((_a = authentication === null || authentication === void 0 ? void 0 : authentication.oneTimeCode) !== null && _a !== void 0 ? _a : '') !== String(onetimeCode !== null && onetimeCode !== void 0 ? onetimeCode : '')) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid OTP, please try again.');
+    // Normalize: digits only (handles number/string and stray whitespace)
+    const storedOtp = String((_a = authentication === null || authentication === void 0 ? void 0 : authentication.oneTimeCode) !== null && _a !== void 0 ? _a : '').replace(/\D/g, '');
+    const providedOtp = String(onetimeCode !== null && onetimeCode !== void 0 ? onetimeCode : '').replace(/\D/g, '');
+    if (!storedOtp) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'No active code found. Please use Resend Code or request a new invitation.');
+    }
+    if (storedOtp !== providedOtp) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid or outdated code. Use the code from your latest email, or tap Resend Code.');
     }
     const currentDate = new Date();
     if ((authentication === null || authentication === void 0 ? void 0 : authentication.expiresAt) < currentDate) {

@@ -17,7 +17,7 @@ router.get('/:id', (0, auth_1.default)(user_1.USER_ROLES.USER), payment_controll
 router.get('/:id/invoice', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN), payment_controller_1.PaymentController.generateInvoice);
 // ✅ ONLY THIS - Checkout Session
 router.post('/create-checkout-session', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), (0, validateRequest_1.default)(payment_validation_1.PaymentValidations.create), payment_controller_1.PaymentController.createCheckoutSession);
-router.get('/verify-checkout/:sessionId', (0, auth_1.default)(user_1.USER_ROLES.USER), payment_controller_1.PaymentController.verifyCheckoutSession);
+router.get('/verify-checkout/:sessionId', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), payment_controller_1.PaymentController.verifyCheckoutSession);
 // ============================================
 // FLUTTER STRIPE ROUTES
 // ============================================

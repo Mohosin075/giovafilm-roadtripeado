@@ -50,7 +50,7 @@ const createCheckoutSession = async (user, payload) => {
             ],
             mode: 'payment',
             success_url: `${config_1.default.clientUrl}?session_id={CHECKOUT_SESSION_ID}&success=true`,
-            cancel_url: `${config_1.default.clientUrl}/payment/cancel?success=false`,
+            cancel_url: `${config_1.default.clientUrl}/cancel?success=false`,
             customer_email: user.email,
             metadata: {
                 userId: user.authId.toString(),

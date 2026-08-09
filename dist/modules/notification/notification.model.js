@@ -85,7 +85,7 @@ const notificationSchema = new mongoose_1.Schema({
     timestamps: true,
     toJSON: {
         virtuals: true,
-        transform: function (doc, ret) {
+        transform: function (_doc, ret) {
             delete ret.__v;
             return ret;
         },

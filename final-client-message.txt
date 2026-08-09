@@ -50,7 +50,7 @@ Batch D: Users
  
 MOBILE VERSION:
 
-Batch D: Users: 
+Batch D: Users: solved
 
 1. The map icons look too large; the layout appears cluttered and lacks aesthetic appeal.
 

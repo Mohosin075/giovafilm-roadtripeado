@@ -26,7 +26,11 @@ const getMyAwards = async (userId) => {
         const found = existingAwards.find(a => a.type === config.type);
         let progress = 0;
         let isUnlocked = false;
-        if (config.type === 'PDF Itinerary' || config.type === 'Free Map' || config.type === 'Gourmet Guide') {
+        if (config.type === 'PDF Itinerary' ||
+            config.type === 'Free Map' ||
+            config.type === 'Gourmet Guide' ||
+            config.type === 'Exclusive Discount' ||
+            config.type === 'Permanent Discount') {
             progress = user.points || 0;
             isUnlocked = progress >= config.target;
         }
@@ -50,7 +54,11 @@ const getMyAwards = async (userId) => {
         else {
             // Update target, progress, isUnlocked if they differ
             const updates = { target: config.target };
-            if (config.type === 'PDF Itinerary' || config.type === 'Free Map' || config.type === 'Gourmet Guide') {
+            if (config.type === 'PDF Itinerary' ||
+                config.type === 'Free Map' ||
+                config.type === 'Gourmet Guide' ||
+                config.type === 'Exclusive Discount' ||
+                config.type === 'Permanent Discount') {
                 updates.progress = progress;
                 updates.isUnlocked = isUnlocked;
             }

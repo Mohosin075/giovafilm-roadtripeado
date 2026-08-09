@@ -9,6 +9,7 @@ const custom_auth_service_1 = require("./custom.auth.service");
 const sendResponse_1 = __importDefault(require("../../../shared/sendResponse"));
 const http_status_codes_1 = require("http-status-codes");
 const token_service_1 = require("../../token/token.service");
+const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const customLogin = (0, catchAsync_1.default)(async (req, res) => {
     const { ...loginData } = req.body;
     console.log(loginData);
@@ -51,9 +52,15 @@ const forgetPassword = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 const resetPassword = (0, catchAsync_1.default)(async (req, res) => {
-    const token = req.headers.authorization;
-    const { ...resetData } = req.body;
-    console.log({ token, resetData });
+    var _a;
+    // Prefer body.token — Authorization is often a logged-in session JWT
+    // (prepareHeaders / Bearer) and must not override the reset token.
+    const headerToken = (_a = req.headers.authorization) === null || _a === void 0 ? void 0 : _a.replace(/^Bearer\s+/i, '').trim();
+    const { token: bodyToken, ...resetData } = req.body;
+    const token = (typeof bodyToken === 'string' && bodyToken.trim()) || headerToken;
+    if (!token) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "You don't have authorization to reset your password, please verify your account first.");
+    }
     const result = await custom_auth_service_1.CustomAuthServices.resetPassword(token, resetData);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,

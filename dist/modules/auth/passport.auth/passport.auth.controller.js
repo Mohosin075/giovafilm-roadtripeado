@@ -29,8 +29,18 @@ const login = (0, catchAsync_1.default)(async (req, res) => {
 });
 const googleAuthCallback = (0, catchAsync_1.default)(async (req, res) => {
     const result = await passport_auth_service_1.PassportAuthServices.handleGoogleLogin(req.user);
-    const { status, message, accessToken, refreshToken, role } = result;
-    return res.redirect(`${config_1.default.clientUrl}/login?accessToken=${accessToken}&refreshToken=${refreshToken}&role=user`);
+    const { accessToken, refreshToken } = result;
+    // Set refresh cookie on API domain so FE credentials:include refresh works
+    if (refreshToken) {
+        res.cookie('refreshToken', refreshToken, {
+            secure: config_1.default.node_env === 'production',
+            httpOnly: true,
+            sameSite: config_1.default.node_env === 'production' ? 'none' : 'lax',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+    }
+    // Do not put refreshToken in the URL
+    return res.redirect(`${config_1.default.clientUrl}/login?accessToken=${accessToken}&role=user`);
 });
 exports.PassportAuthController = {
     login,

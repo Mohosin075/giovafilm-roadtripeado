@@ -20,7 +20,10 @@ const createPlace = (0, catchAsync_1.default)(async (req, res) => {
         await (0, mapAccessHelper_1.verifyEditorEditAccess)(user, req.body.map);
     }
     if (req.body.images) {
-        req.body.media = req.body.images;
+        req.body.media = [...(req.body.media || []), ...req.body.images];
+    }
+    if (req.body.documents) {
+        req.body.menuImages = [...(req.body.menuImages || []), ...req.body.documents];
     }
     const result = await place_service_1.PlaceService.createPlace(req.body);
     (0, sendResponse_1.default)(res, {
@@ -118,7 +121,10 @@ const updatePlace = (0, catchAsync_1.default)(async (req, res) => {
         await (0, mapAccessHelper_1.verifyEditorEditAccess)(user, req.body.map);
     }
     if (req.body.images) {
-        req.body.media = req.body.images;
+        req.body.media = [...(req.body.media || []), ...req.body.images];
+    }
+    if (req.body.documents) {
+        req.body.menuImages = [...(req.body.menuImages || []), ...req.body.documents];
     }
     console.log(req.body);
     const result = await place_service_1.PlaceService.updatePlace(id, req.body);

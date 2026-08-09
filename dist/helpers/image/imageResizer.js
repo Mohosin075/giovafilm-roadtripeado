@@ -16,7 +16,7 @@ const optimizeImage = async (file, options = {}) => {
         image = image.resize(width);
     }
     // Apply quality settings based on the image format
-    if (format === 'jpeg' || format === 'jpg') {
+    if (format === 'jpeg') {
         image = image.jpeg({ quality });
     }
     else if (format === 'png') {

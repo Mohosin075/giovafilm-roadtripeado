@@ -40,6 +40,7 @@ const forgetPasswordZodSchema = zod_1.z.object({
 });
 const resetPasswordZodSchema = zod_1.z.object({
     body: zod_1.z.object({
+        token: zod_1.z.string().min(1).optional(),
         newPassword: zod_1.z.string().min(8, { message: 'Password is required' }),
         confirmPassword: zod_1.z
             .string()
@@ -76,7 +77,7 @@ const verifyAccountZodSchema = zod_1.z.object({
             .refine(value => !value || /^\+?[1-9]\d{1,14}$/.test(value), {
             message: 'Invalid phone number format',
         }),
-        oneTimeCode: zod_1.z.string().min(1, { message: 'OTP is required' }),
+        oneTimeCode: zod_1.z.preprocess(val => String(val !== null && val !== void 0 ? val : '').replace(/\D/g, ''), zod_1.z.string().length(6, { message: 'OTP must be a 6-digit code' })),
         password: zod_1.z.string().min(6).optional(),
     }),
 });

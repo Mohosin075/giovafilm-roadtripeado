@@ -37,7 +37,35 @@ const updateAwardConfig = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const createAwardConfig = (0, catchAsync_1.default)(async (req, res) => {
+    if (req.body.icon) {
+        req.body.coverPhoto = req.body.icon;
+    }
+    if (req.body.documents) {
+        req.body.fileUrl = Array.isArray(req.body.documents)
+            ? req.body.documents[0]
+            : req.body.documents;
+    }
+    const result = await awardConfig_service_1.AwardConfigServices.createAwardConfig(req.body);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.CREATED,
+        success: true,
+        message: 'Award configuration created successfully',
+        data: result,
+    });
+});
+const deleteAwardConfig = (0, catchAsync_1.default)(async (req, res) => {
+    const result = await awardConfig_service_1.AwardConfigServices.deleteAwardConfig(req.params.id);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Award configuration deleted successfully',
+        data: result,
+    });
+});
 exports.AwardConfigController = {
     getAllAwardConfigs,
     updateAwardConfig,
+    createAwardConfig,
+    deleteAwardConfig,
 };

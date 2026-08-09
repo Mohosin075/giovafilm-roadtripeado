@@ -65,8 +65,18 @@ const updateAwardConfig = async (id, payload) => {
     }).populate('mapId');
     return result;
 };
+const createAwardConfig = async (payload) => {
+    const result = await awardConfig_model_1.AwardConfig.create(payload);
+    return result;
+};
+const deleteAwardConfig = async (id) => {
+    const result = await awardConfig_model_1.AwardConfig.findByIdAndDelete(id);
+    return result;
+};
 exports.AwardConfigServices = {
     seedAwardConfigs,
     getAllAwardConfigs,
     updateAwardConfig,
+    createAwardConfig,
+    deleteAwardConfig,
 };

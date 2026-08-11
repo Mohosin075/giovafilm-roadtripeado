@@ -70,4 +70,95 @@ and then drag it.
 Batch E: Users
 I. Display a blurred, Iow-opacity background image when opening an image, so the background
 doesn't appear black or empty.
+
+
+
+##########################
+
+All issue solved
+
+##########################
+
+2nd update
+
+
+GENERAL VERSION:
+Batch F: Dashboard
+1. Pins already placed on the map in the "Places' can be drag, but there is a delay or they
+don't stay exactly where you drag them. (later)
+2. I cannot save chanes when editing an existing place on the map in the *Places' pae. (later)
+
+
+3. I cannot upload or view videos.
+4. The visit count for places or maps on the •Reports and Statistics• page is not working 
+5. On the "Reports and Statistics" add a filter that says •Today,• *This Week," •This Month," -Last Month,"
+6. On the *Reports and Statistics' paß add a search bar to find places by name-
+7. On the •Reports and Statistics' page, add an option to choose country and category to facilitate
+searching, as in all the previous sections.
+Batch F: Dashboard/Rewards & Level
+I. When editing a reward, I can now select if it's a free map, a permanent discount, etc., but I can't
+set the discount percenta*.
+Batch F: Users
+I. I would like administrators and editors to also see the 'Favorites: •Awards,• and "Contributions &
+Reviews" options so they can try out and use their account like any other user and erüoy the
+app/website. You can only omit the •Purchased Maps: •My Business,• and "Subscriptions• options for
+administrators and editors. Editors-
+2 On the Places page, I would remove the "Reviews" button next to the 'Directions' and 'View on
+Map" buttons, as it clutters the area, and the reviews section belonß in the area below.
+3. Add a disclaimer for all places on the map. (NOTICE: The information for this place is for
+informational purposes only. Your visit and activities are at your own risk.)
+4. I would remove the colored lines from the map icons and leave only the existing white line next to
+the icon, so that the icon is more visible.
+5. The photos of the places are still not displaying
+6. The search enøne is not respecting the search terms- If I type •rivers,• other places apc:ear that
+are not related to rivers or the word itself
+7. The 'Filters' button on the Places is not working. You can change the filter button to a button
+where you select different categories or •all cate@ries•.
+
+
+
+
+
+4. I would remove the colored lines from the map icons and leave only the existing white line next to
+the icon, so that the icon is more visible.
+S. The photos of the places are still not displaying.
+6. The search engine is not respecting the search terms. If I type •rivers," other places appear that
+are not related to rivers or the word itself
+7. The "Filters* button on the Places pae is not working. You can change the filter button to a button
+where you select different categories or •all cate@riest
+8. If they haven't yet logged in or created an account, they can't see the map or any other page, only
+the landing
+giovafilm
+Batch F: Business
+l. When adding an offer as a user in the "My Business" section, it doesn't allow you to add a photo of
+the offer.
+2- When adding an offer and selecting the "buy one get one" discount type, it doesn't allow you to
+choose whether the second product is free or has a specific discount percentage. It also doesn't
+specify the discount type to the user.
+When adding a discount from the "My Business• option, when you access the offer from the
+"Offer' pa*, it takes you to the map instead of the location information
+MOBILE VERSION:
+Users:
+1. On the "Maps" page, when selecting a pin, if that pin has a very long description, the image is cut
+off and it doesn't allow you to tap the if necessary. the user wants to do something else.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  

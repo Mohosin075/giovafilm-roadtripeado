@@ -114,7 +114,18 @@ const fileAndBodyProcessor = () => {
                         // Store as array or single value based on maxCount
                         processedFiles[fieldName] = maxCount > 1 ? paths : paths[0];
                     }
-                    req.body = { ...req.body, ...processedFiles };
+                    // Merge arrays instead of overwriting for list fields
+                    for (const [fieldName, value] of Object.entries(processedFiles)) {
+                        if (Array.isArray(req.body[fieldName]) && Array.isArray(value)) {
+                            req.body[fieldName] = [...req.body[fieldName], ...value];
+                        }
+                        else if (Array.isArray(req.body[fieldName]) && typeof value === 'string') {
+                            req.body[fieldName] = [...req.body[fieldName], value];
+                        }
+                        else {
+                            req.body[fieldName] = value;
+                        }
+                    }
                 }
                 next();
             }
@@ -245,7 +256,18 @@ const fileAndBodyProcessorUsingDiskStorage = () => {
                         // Store as array or single value based on maxCount
                         processedFiles[fieldName] = maxCount > 1 ? paths : paths[0];
                     }
-                    req.body = { ...req.body, ...processedFiles };
+                    // Merge arrays instead of overwriting for list fields
+                    for (const [fieldName, value] of Object.entries(processedFiles)) {
+                        if (Array.isArray(req.body[fieldName]) && Array.isArray(value)) {
+                            req.body[fieldName] = [...req.body[fieldName], ...value];
+                        }
+                        else if (Array.isArray(req.body[fieldName]) && typeof value === 'string') {
+                            req.body[fieldName] = [...req.body[fieldName], value];
+                        }
+                        else {
+                            req.body[fieldName] = value;
+                        }
+                    }
                 }
                 next();
             }

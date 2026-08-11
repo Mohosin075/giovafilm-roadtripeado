@@ -89,7 +89,7 @@ don't stay exactly where you drag them. (later)
 2. I cannot save chanes when editing an existing place on the map in the *Places' pae. (later)
 
 
-3. I cannot upload or view videos.
+3. I cannot upload or view videos. solved
 4. The visit count for places or maps on the •Reports and Statistics• page is not working 
 5. On the "Reports and Statistics" add a filter that says •Today,• *This Week," •This Month," -Last Month,"
 6. On the *Reports and Statistics' paß add a search bar to find places by name-

@@ -18,7 +18,7 @@ const getDashboardData = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 const getReportsData = (0, catchAsync_1.default)(async (req, res) => {
-    const result = await stats_service_1.StatsService.getReportsData();
+    const result = await stats_service_1.StatsService.getReportsData(req.query);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,

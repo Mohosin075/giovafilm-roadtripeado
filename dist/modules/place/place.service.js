@@ -73,7 +73,7 @@ const getAllPlaces = async (query) => {
     };
 };
 const getPlaceById = async (id) => {
-    const result = await place_model_1.Place.findById(id).populate('category').populate('map');
+    const result = await place_model_1.Place.findByIdAndUpdate(id, { $inc: { openCount: 1 } }, { new: true }).populate('category').populate('map');
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Place not found');
     }

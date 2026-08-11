@@ -16,7 +16,7 @@ const getDashboardData = catchAsync(async (req: Request, res: Response) => {
 })
 
 const getReportsData = catchAsync(async (req: Request, res: Response) => {
-  const result = await StatsService.getReportsData()
+  const result = await StatsService.getReportsData(req.query)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,

@@ -74,7 +74,7 @@ const getAllMaps = async (query) => {
 };
 const getMapById = async (id) => {
     // Catalog / purchase UI only needs map summary — places come from discovery
-    const result = await map_model_1.Map.findById(id).select('-places').lean();
+    const result = await map_model_1.Map.findByIdAndUpdate(id, { $inc: { viewCount: 1 } }, { new: true }).select('-places').lean();
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Map not found');
     }

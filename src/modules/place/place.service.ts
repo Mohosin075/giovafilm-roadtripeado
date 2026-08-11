@@ -84,7 +84,11 @@ const getAllPlaces = async (
 }
 
 const getPlaceById = async (id: string): Promise<IPlace | null> => {
-  const result = await Place.findById(id).populate('category').populate('map')
+  const result = await Place.findByIdAndUpdate(
+    id,
+    { $inc: { openCount: 1 } },
+    { new: true }
+  ).populate('category').populate('map')
   if (!result) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
   }

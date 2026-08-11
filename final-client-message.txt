@@ -104,9 +104,7 @@ Batch F: Dashboard/Rewards & Level
 I. When editing a reward, I can now select if it's a free map, a permanent discount, etc., but I can't set the discount percenta*. - solved
 Batch F: Users
 
-I. I would like administrators and editors to also see the 'Favorites: •Awards,• and "Contributions & Reviews" options so they can try out and use their account like any other user and erüoy the app/website. You can only omit the •Purchased Maps: •My Business,• and "Subscriptions• options for administrators and editors. Editors-2 On the Places page, I would remove the "Reviews" button next to the 'Directions' and 'View on Map" buttons, as it clutters the area, and the reviews section belonß in the area below.
-
-
+I. I would like administrators and editors to also see the 'Favorites: •Awards,• and "Contributions & Reviews" options so they can try out and use their account like any other user and erüoy the app/website. You can only omit the •Purchased Maps: •My Business,• and "Subscriptions• options for administrators and editors. Editors-2 On the Places page, I would remove the "Reviews" button next to the 'Directions' and 'View on Map" buttons, as it clutters the area, and the reviews section belonß in the area below. solved
 
 
 3. Add a disclaimer for all places on the map. (NOTICE: The information for this place is for

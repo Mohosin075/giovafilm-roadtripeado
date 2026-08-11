@@ -33,6 +33,10 @@ export const fileAndBodyProcessor = () => {
         images: ['image/jpeg', 'image/png', 'image/jpg'],
         icon: ['image/jpeg', 'image/png', 'image/jpg'],
         media: [
+          'image/jpeg',
+          'image/png',
+          'image/jpg',
+          'image/webp',
           'video/mp4',
           'video/webm',
           'video/ogg',
@@ -107,7 +111,7 @@ export const fileAndBodyProcessor = () => {
 
               // Apply Sharp optimization for images
               if (
-                ['images', 'icon'].includes(fieldName) &&
+                ['images', 'icon', 'media'].includes(fieldName) &&
                 file.mimetype.startsWith('image/')
               ) {
                 try {
@@ -209,6 +213,10 @@ export const fileAndBodyProcessorUsingDiskStorage = () => {
         images: ['image/jpeg', 'image/png', 'image/jpg'],
         icon: ['image/jpeg', 'image/png', 'image/jpg'],
         media: [
+          'image/jpeg',
+          'image/png',
+          'image/jpg',
+          'image/webp',
           'video/mp4',
           'video/webm',
           'video/ogg',
@@ -281,7 +289,7 @@ export const fileAndBodyProcessorUsingDiskStorage = () => {
 
               // Apply Sharp optimization for images
               if (
-                ['images', 'icon'].includes(fieldName) &&
+                ['images', 'icon', 'media'].includes(fieldName) &&
                 file.mimetype.startsWith('image/')
               ) {
                 try {

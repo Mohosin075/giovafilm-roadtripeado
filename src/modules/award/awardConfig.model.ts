@@ -24,6 +24,7 @@ const AwardConfigSchema = new Schema<IAwardConfig, AwardConfigModel>(
     target: { type: Number, required: true },
     fileUrl: { type: String },
     mapId: { type: Schema.Types.ObjectId, ref: 'Map' },
+    discountPercentage: { type: Number },
   },
   {
     timestamps: true,

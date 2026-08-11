@@ -18,6 +18,8 @@ const webhook_service_1 = require("./webhook.service");
 const emailHelper_1 = require("../../helpers/emailHelper");
 const stripe_1 = __importDefault(require("../../config/stripe"));
 const invoiceHelper_1 = require("../../helpers/invoiceHelper");
+const award_model_1 = require("../award/award.model");
+const awardConfig_model_1 = require("../award/awardConfig.model");
 const createCheckoutSession = async (user, payload) => {
     try {
         const map = await map_model_1.Map.findById(payload.mapId);
@@ -31,7 +33,32 @@ const createCheckoutSession = async (user, payload) => {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Map price is not configured');
         }
         // Always charge server-side map price (ignore client amount)
-        const amount = map.price;
+        let amount = map.price;
+        // Apply any unlocked discount rewards (Exclusive Discount or Permanent Discount)
+        try {
+            const unlockedDiscounts = await award_model_1.Award.find({
+                userId: user.authId,
+                isUnlocked: true,
+                type: { $in: ['Exclusive Discount', 'Permanent Discount'] },
+            });
+            if (unlockedDiscounts.length > 0) {
+                const discountTypes = unlockedDiscounts.map(d => d.type);
+                const configs = await awardConfig_model_1.AwardConfig.find({ type: { $in: discountTypes } });
+                let maxDiscount = 0;
+                configs.forEach(c => {
+                    if (c.discountPercentage && c.discountPercentage > maxDiscount) {
+                        maxDiscount = c.discountPercentage;
+                    }
+                });
+                if (maxDiscount > 0) {
+                    amount = amount * (1 - maxDiscount / 100);
+                    console.log(`Applied award discount of ${maxDiscount}%. Original: ${map.price}, Discounted: ${amount}`);
+                }
+            }
+        }
+        catch (discountError) {
+            console.error('Error applying award discount to checkout:', discountError);
+        }
         const currency = (payload.currency || 'EUR').toLowerCase();
         const session = await stripe_1.default.checkout.sessions.create({
             payment_method_types: ['card'],

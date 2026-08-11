@@ -70,6 +70,7 @@ export interface IUser {
     pushNotification?: boolean
     emailNotification?: boolean
     locationService?: boolean
+    weeklyReports?: boolean
     profileStatus: 'public' | 'private'
   }
 

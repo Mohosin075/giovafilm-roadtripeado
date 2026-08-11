@@ -26,6 +26,13 @@ const pointSchema = zod_1.z.object({
     type: zod_1.z.literal('Point').default('Point'),
     coordinates: zod_1.z.tuple([zod_1.z.number(), zod_1.z.number()]).optional(), // [longitude, latitude]
 });
+const settingsSchema = zod_1.z.object({
+    pushNotification: zod_1.z.boolean().optional(),
+    emailNotification: zod_1.z.boolean().optional(),
+    locationService: zod_1.z.boolean().optional(),
+    weeklyReports: zod_1.z.boolean().optional(),
+    profileStatus: zod_1.z.enum(['public', 'private']).optional(),
+});
 // ------------------ UPDATE USER VALIDATION ------------------
 exports.updateUserSchema = zod_1.z.object({
     body: zod_1.z.object({
@@ -41,6 +48,7 @@ exports.updateUserSchema = zod_1.z.object({
         location: pointSchema.optional(),
         appId: zod_1.z.string().optional(),
         deviceToken: zod_1.z.string().optional(),
+        settings: settingsSchema.optional(),
         // --- Cycle Tracking Fields ---
         lastPeriodStartDate: zod_1.z.string().datetime().optional(),
         cycleLength: zod_1.z.number().min(1).optional(),

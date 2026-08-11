@@ -62,6 +62,7 @@ const UserSchema = new Schema<IUser, UserModel>(
       pushNotification: { type: Boolean, default: true },
       emailNotification: { type: Boolean, default: true },
       locationService: { type: Boolean, default: true },
+      weeklyReports: { type: Boolean, default: true },
       profileStatus: { type: String, default: 'public' },
     },
 

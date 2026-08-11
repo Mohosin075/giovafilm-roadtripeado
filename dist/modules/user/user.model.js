@@ -59,6 +59,7 @@ const UserSchema = new mongoose_1.Schema({
         pushNotification: { type: Boolean, default: true },
         emailNotification: { type: Boolean, default: true },
         locationService: { type: Boolean, default: true },
+        weeklyReports: { type: Boolean, default: true },
         profileStatus: { type: String, default: 'public' },
     },
     authentication: {

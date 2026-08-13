@@ -85,18 +85,14 @@ All issue solved
 GENERAL VERSION:
 Batch F: Dashboard
 1. Pins already placed on the map in the "Places' can be drag, but there is a delay or they
-don't stay exactly where you drag them. (later)
-2. I cannot save chanes when editing an existing place on the map in the *Places' pae. (later)
-
-
-3. I cannot upload or view videos. solved
-4. The visit count for places or maps on the •Reports and Statistics• page is not working 
-5. On the "Reports and Statistics" add a filter that says •Today,• *This Week," •This Month," -Last Month,"
-6. On the *Reports and Statistics' paß add a search bar to find places by name-
+don't stay exactly where you drag them. - solved
+2. I cannot save chanes when editing an existing place on the map in the *Places' pae. - solved
+3. I cannot upload or view videos. - solved
+4. The visit count for places or maps on the •Reports and Statistics• page is not working - solved
+5. On the "Reports and Statistics" add a filter that says •Today,• *This Week," •This Month," -Last Month," - solved
+6. On the *Reports and Statistics' paß add a search bar to find places by name- - solved
 7. On the •Reports and Statistics' page, add an option to choose country and category to facilitate
-searching, as in all the previous sections.
-
-solved - 4,5,6,7
+searching, as in all the previous sections. - solved
 
 
 
@@ -108,7 +104,7 @@ I. I would like administrators and editors to also see the 'Favorites: •Awards
 
 
 3. Add a disclaimer for all places on the map. (NOTICE: The information for this place is for
-informational purposes only. Your visit and activities are at your own risk.)
+informational purposes only. Your visit and activities are at your own risk.) - solved
 4. I would remove the colored lines from the map icons and leave only the existing white line next to
 the icon, so that the icon is more visible.
 5. The photos of the places are still not displaying
@@ -137,18 +133,18 @@ solved
 giovafilm
 
 Batch F: Business
-l. When adding an offer as a user in the "My Business" section, it doesn't allow you to add a photo of
-the offer.
-2- When adding an offer and selecting the "buy one get one" discount type, it doesn't allow you to
+1. When adding an offer as a user in the "My Business" section, it doesn't allow you to add a photo of
+the offer. - solved
+2. When adding an offer and selecting the "buy one get one" discount type, it doesn't allow you to
 choose whether the second product is free or has a specific discount percentage. It also doesn't
-specify the discount type to the user.
-When adding a discount from the "My Business• option, when you access the offer from the
-"Offer' pa*, it takes you to the map instead of the location information
+specify the discount type to the user. - solved
+3. When adding a discount from the "My Business• option, when you access the offer from the
+"Offer' pa*, it takes you to the map instead of the location information - solved
+
 MOBILE VERSION:
 Users:
 1. On the "Maps" page, when selecting a pin, if that pin has a very long description, the image is cut
-off and it doesn't allow you to tap the if necessary. the user wants to do something else.
-solved
+off and it doesn't allow you to tap the if necessary. the user wants to do something else. - solved
 
 
 

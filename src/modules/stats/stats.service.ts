@@ -1,6 +1,7 @@
 import { Map } from '../map/map.model'
 import { Place } from '../place/place.model'
 import { Offer } from '../offer/offer.model'
+import { OfferRedemption } from '../offer/offerRedemption.model'
 import { User } from '../user/user.model'
 import { Business } from '../business/business.model'
 import { Payment } from '../payment/payment.model'
@@ -131,13 +132,16 @@ const getDateRangeQuery = (timeFilter?: string) => {
 const isObjectId = (id?: string) =>
   typeof id === 'string' && /^[a-fA-F0-9]{24}$/.test(id)
 
+const escapeRegex = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
 const searchReportEntities = async (
   searchTerm?: string,
 ): Promise<ISearchMatchItem[]> => {
   const q = searchTerm?.trim()
   if (!q || q.length < 2) return []
 
-  const searchRegex = { $regex: q, $options: 'i' }
+  const searchRegex = { $regex: escapeRegex(q), $options: 'i' }
   const [matchedPlaces, matchedBusinesses, matchedMaps, matchedOffers] =
     await Promise.all([
       Place.find({ name: searchRegex })
@@ -181,15 +185,20 @@ const searchReportEntities = async (
   ]
 }
 
+type EntityFilterResult = {
+  mapIds: string[]
+  usagePlace?: IUsageItem
+}
+
 const applySelectedEntity = async (
   query: Record<string, any>,
   mapFilter: Record<string, any>,
   placeFilter: Record<string, any>,
   offerFilter: Record<string, any>,
-): Promise<string[]> => {
+): Promise<EntityFilterResult> => {
   const entityType = String(query.entityType || '')
   const entityId = String(query.entityId || '')
-  if (!isObjectId(entityId)) return []
+  if (!isObjectId(entityId)) return { mapIds: [] }
 
   const oid = new mongoose.Types.ObjectId(entityId)
 
@@ -199,17 +208,23 @@ const applySelectedEntity = async (
     offerFilter.place = oid
     if (place?.map) {
       mapFilter._id = place.map
-      return [String(place.map)]
+      return { mapIds: [String(place.map)] }
     }
     mapFilter._id = { $in: [] }
-    return []
+    return { mapIds: [] }
   }
 
   if (entityType === 'business') {
     offerFilter.business = oid
     placeFilter._id = { $in: [] }
     mapFilter._id = { $in: [] }
-    return []
+    const business = await Business.findById(oid).select('name viewCount').lean()
+    return {
+      mapIds: [],
+      usagePlace: business
+        ? { name: business.name, count: (business as any).viewCount || 0 }
+        : undefined,
+    }
   }
 
   if (entityType === 'map') {
@@ -217,27 +232,39 @@ const applySelectedEntity = async (
     placeFilter.map = oid
     const placesOnMap = await Place.find({ map: oid }, '_id').lean()
     offerFilter.$or = [{ place: { $in: placesOnMap.map(p => p._id) } }]
-    return [entityId]
+    return { mapIds: [entityId] }
   }
 
   if (entityType === 'offer') {
     offerFilter._id = oid
-    const offer = await Offer.findById(oid).select('place').lean()
+    const offer = await Offer.findById(oid).select('place business').lean()
     if (offer?.place) {
       placeFilter._id = offer.place
       const place = await Place.findById(offer.place).select('map').lean()
       if (place?.map) {
         mapFilter._id = place.map
-        return [String(place.map)]
+        return { mapIds: [String(place.map)] }
+      }
+    } else if (offer?.business) {
+      placeFilter._id = { $in: [] }
+      mapFilter._id = { $in: [] }
+      const business = await Business.findById(offer.business)
+        .select('name viewCount')
+        .lean()
+      return {
+        mapIds: [],
+        usagePlace: business
+          ? { name: business.name, count: (business as any).viewCount || 0 }
+          : undefined,
       }
     } else {
       placeFilter._id = { $in: [] }
       mapFilter._id = { $in: [] }
     }
-    return []
+    return { mapIds: [] }
   }
 
-  return []
+  return { mapIds: [] }
 }
 
 const getReportsData = async (query: Record<string, any> = {}): Promise<IReportsData> => {
@@ -245,16 +272,9 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
   const mapFilter: Record<string, any> = {}
   const placeFilter: Record<string, any> = {}
   const offerFilter: Record<string, any> = {}
-
-  // A. Time Filter (Date Range)
-  if (query.timeFilter) {
-    const dateRange = getDateRangeQuery(query.timeFilter)
-    if (dateRange) {
-      mapFilter.updatedAt = dateRange
-      placeFilter.updatedAt = dateRange
-      offerFilter.updatedAt = dateRange
-    }
-  }
+  // Time filter applies to sales (payment.createdAt) and offer redemptions.
+  // Map/place visit totals are lifetime counters — do not filter by updatedAt.
+  const dateRange = query.timeFilter ? getDateRangeQuery(query.timeFilter) : null
 
   const hasEntity = isObjectId(String(query.entityId || '')) && !!query.entityType
 
@@ -298,7 +318,7 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
   }
 
   // B. Selected place / business / map / offer (applied last so it is not overwritten)
-  const entityMapIds = await applySelectedEntity(
+  const { mapIds: entityMapIds, usagePlace } = await applySelectedEntity(
     query,
     mapFilter,
     placeFilter,
@@ -314,9 +334,8 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
     // Construct real database payment filter
     const paymentFilter: Record<string, any> = { status: 'succeeded' }
 
-    if (query.timeFilter) {
-      const dateRange = getDateRangeQuery(query.timeFilter)
-      if (dateRange) paymentFilter.createdAt = dateRange
+    if (dateRange) {
+      paymentFilter.createdAt = dateRange
     }
 
     if (query.country) {
@@ -371,13 +390,10 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
     // Filter the mock payments in-memory matching selected filters
     payments = mockPayments.filter(p => {
       // 1. Time Filter
-      if (query.timeFilter) {
-        const dateRange = getDateRangeQuery(query.timeFilter)
-        if (dateRange) {
-          const time = p.createdAt.getTime()
-          if (time < dateRange.$gte.getTime() || (dateRange.$lte && time > dateRange.$lte.getTime())) {
-            return false
-          }
+      if (dateRange) {
+        const time = p.createdAt.getTime()
+        if (time < dateRange.$gte.getTime() || (dateRange.$lte && time > dateRange.$lte.getTime())) {
+          return false
         }
       }
 
@@ -459,19 +475,54 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
     .sort({ openCount: -1 })
     .limit(5)
     .select('name openCount')
-  const mostOpenedPlaces: IUsageItem[] = mostOpenedPlacesRaw.map(p => ({
+  let mostOpenedPlaces: IUsageItem[] = mostOpenedPlacesRaw.map(p => ({
     name: p.name,
     count: (p as any).openCount || 0,
   }))
+  if (usagePlace) {
+    mostOpenedPlaces = [usagePlace]
+  }
 
-  const mostRedeemedOffersRaw = await Offer.find(offerFilter)
-    .sort({ redemptionsCount: -1 })
-    .limit(5)
-    .select('title redemptionsCount')
-  const mostRedeemedOffers: IUsageItem[] = mostRedeemedOffersRaw.map(o => ({
-    name: o.title,
-    count: o.redemptionsCount || 0,
-  }))
+  let mostRedeemedOffers: IUsageItem[] = []
+  if (dateRange) {
+    const scopedOffers = await Offer.find(offerFilter).select('_id title').lean()
+    const scopedIds = scopedOffers.map(o => o._id)
+    const redemptionMatch: Record<string, any> = { redemptionTime: dateRange }
+    if (Object.keys(offerFilter).length > 0) {
+      redemptionMatch.offer = { $in: scopedIds }
+    }
+    const redemptionAgg = await OfferRedemption.aggregate([
+      { $match: redemptionMatch },
+      { $group: { _id: '$offer', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 },
+    ])
+    const titleById = new Map(
+      scopedOffers.map((o: any) => [String(o._id), o.title]),
+    )
+    const missingIds = redemptionAgg
+      .map((r: any) => r._id)
+      .filter((id: any) => !titleById.has(String(id)))
+    if (missingIds.length) {
+      const extra = await Offer.find({ _id: { $in: missingIds } })
+        .select('_id title')
+        .lean()
+      extra.forEach((o: any) => titleById.set(String(o._id), o.title))
+    }
+    mostRedeemedOffers = redemptionAgg.map((r: any) => ({
+      name: titleById.get(String(r._id)) || 'Unknown offer',
+      count: r.count || 0,
+    }))
+  } else {
+    const mostRedeemedOffersRaw = await Offer.find(offerFilter)
+      .sort({ redemptionsCount: -1 })
+      .limit(5)
+      .select('title redemptionsCount')
+    mostRedeemedOffers = mostRedeemedOffersRaw.map(o => ({
+      name: o.title,
+      count: o.redemptionsCount || 0,
+    }))
+  }
 
   return {
     salesAndTaxes: {

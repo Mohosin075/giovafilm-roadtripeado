@@ -497,7 +497,7 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
       { $sort: { count: -1 } },
       { $limit: 5 },
     ])
-    const titleById = new Map(
+    const titleById = new globalThis.Map<string, string>(
       scopedOffers.map((o: any) => [String(o._id), o.title]),
     )
     const missingIds = redemptionAgg

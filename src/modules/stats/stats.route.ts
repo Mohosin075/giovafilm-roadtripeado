@@ -12,6 +12,12 @@ router.get(
 )
 
 router.get(
+  '/reports/search',
+  auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
+  StatsController.searchReportEntities,
+)
+
+router.get(
   '/reports',
   auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
   StatsController.getReportsData,

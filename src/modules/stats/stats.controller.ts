@@ -26,7 +26,21 @@ const getReportsData = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const searchReportEntities = catchAsync(async (req: Request, res: Response) => {
+  const result = await StatsService.searchReportEntities(
+    String(req.query.searchTerm || ''),
+  )
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Report search suggestions fetched successfully',
+    data: result,
+  })
+})
+
 export const StatsController = {
   getDashboardData,
   getReportsData,
+  searchReportEntities,
 }

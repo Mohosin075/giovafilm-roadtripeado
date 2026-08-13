@@ -10,6 +10,7 @@ import {
   IRecentActivity,
   IReportsData,
   ISalesAndTaxesMonthly,
+  ISearchMatchItem,
   IUsageItem,
 } from './stats.interface'
 
@@ -127,6 +128,118 @@ const getDateRangeQuery = (timeFilter?: string) => {
   return null
 }
 
+const isObjectId = (id?: string) =>
+  typeof id === 'string' && /^[a-fA-F0-9]{24}$/.test(id)
+
+const searchReportEntities = async (
+  searchTerm?: string,
+): Promise<ISearchMatchItem[]> => {
+  const q = searchTerm?.trim()
+  if (!q || q.length < 2) return []
+
+  const searchRegex = { $regex: q, $options: 'i' }
+  const [matchedPlaces, matchedBusinesses, matchedMaps, matchedOffers] =
+    await Promise.all([
+      Place.find({ name: searchRegex })
+        .select('name country address')
+        .limit(6)
+        .lean(),
+      Business.find({ name: searchRegex })
+        .select('name location.country location.city location.address')
+        .limit(6)
+        .lean(),
+      Map.find({ name: searchRegex }).select('name country').limit(5).lean(),
+      Offer.find({ title: searchRegex }).select('title').limit(5).lean(),
+    ])
+
+  return [
+    ...matchedPlaces.map((p: any) => ({
+      type: 'place' as const,
+      id: String(p._id),
+      name: p.name,
+      location: [p.address, p.country].filter(Boolean).join(', '),
+    })),
+    ...matchedBusinesses.map((b: any) => ({
+      type: 'business' as const,
+      id: String(b._id),
+      name: b.name,
+      location: [b.location?.address || b.location?.city, b.location?.country]
+        .filter(Boolean)
+        .join(', '),
+    })),
+    ...matchedMaps.map((m: any) => ({
+      type: 'map' as const,
+      id: String(m._id),
+      name: m.name,
+      location: m.country || '',
+    })),
+    ...matchedOffers.map((o: any) => ({
+      type: 'offer' as const,
+      id: String(o._id),
+      name: o.title,
+    })),
+  ]
+}
+
+const applySelectedEntity = async (
+  query: Record<string, any>,
+  mapFilter: Record<string, any>,
+  placeFilter: Record<string, any>,
+  offerFilter: Record<string, any>,
+): Promise<string[]> => {
+  const entityType = String(query.entityType || '')
+  const entityId = String(query.entityId || '')
+  if (!isObjectId(entityId)) return []
+
+  const oid = new mongoose.Types.ObjectId(entityId)
+
+  if (entityType === 'place') {
+    const place = await Place.findById(oid).select('map').lean()
+    placeFilter._id = oid
+    offerFilter.place = oid
+    if (place?.map) {
+      mapFilter._id = place.map
+      return [String(place.map)]
+    }
+    mapFilter._id = { $in: [] }
+    return []
+  }
+
+  if (entityType === 'business') {
+    offerFilter.business = oid
+    placeFilter._id = { $in: [] }
+    mapFilter._id = { $in: [] }
+    return []
+  }
+
+  if (entityType === 'map') {
+    mapFilter._id = oid
+    placeFilter.map = oid
+    const placesOnMap = await Place.find({ map: oid }, '_id').lean()
+    offerFilter.$or = [{ place: { $in: placesOnMap.map(p => p._id) } }]
+    return [entityId]
+  }
+
+  if (entityType === 'offer') {
+    offerFilter._id = oid
+    const offer = await Offer.findById(oid).select('place').lean()
+    if (offer?.place) {
+      placeFilter._id = offer.place
+      const place = await Place.findById(offer.place).select('map').lean()
+      if (place?.map) {
+        mapFilter._id = place.map
+        return [String(place.map)]
+      }
+    } else {
+      placeFilter._id = { $in: [] }
+      mapFilter._id = { $in: [] }
+    }
+    return []
+  }
+
+  return []
+}
+
 const getReportsData = async (query: Record<string, any> = {}): Promise<IReportsData> => {
   // Construct filters for Usage lists
   const mapFilter: Record<string, any> = {}
@@ -143,49 +256,54 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
     }
   }
 
-  // B. Search Term (search places/maps by name, offers by title)
-  if (query.searchTerm) {
-    const searchRegex = { $regex: query.searchTerm, $options: 'i' }
-    placeFilter.name = searchRegex
-    mapFilter.name = searchRegex
-    offerFilter.title = searchRegex
-  }
+  const hasEntity = isObjectId(String(query.entityId || '')) && !!query.entityType
 
   // C. Country Filter
   if (query.country) {
     placeFilter.country = query.country
     mapFilter.country = query.country
 
-    // Find offers tied to places/businesses in this country
-    const [placesInCountry, businessesInCountry] = await Promise.all([
-      Place.find({ country: query.country }, '_id'),
-      Business.find({ 'location.country': query.country }, '_id')
-    ])
-    offerFilter.$or = [
-      { place: { $in: placesInCountry.map(p => p._id) } },
-      { business: { $in: businessesInCountry.map(b => b._id) } }
-    ]
+    if (!hasEntity) {
+      const [placesInCountry, businessesInCountry] = await Promise.all([
+        Place.find({ country: query.country }, '_id'),
+        Business.find({ 'location.country': query.country }, '_id'),
+      ])
+      offerFilter.$or = [
+        { place: { $in: placesInCountry.map(p => p._id) } },
+        { business: { $in: businessesInCountry.map(b => b._id) } },
+      ]
+    }
   }
 
   // D. Category Filter
   if (query.category) {
     placeFilter.category = query.category
 
-    // Find maps that contain at least one place in this category
-    const placesInCat = await Place.find({ category: query.category }, 'map')
-    const mapIds = Array.from(new Set(placesInCat.map(p => p.map?.toString()).filter(Boolean)))
-    mapFilter._id = { $in: mapIds }
+    if (!hasEntity) {
+      const placesInCat = await Place.find({ category: query.category }, 'map')
+      const mapIds = Array.from(
+        new Set(placesInCat.map(p => p.map?.toString()).filter(Boolean)),
+      )
+      mapFilter._id = { $in: mapIds }
 
-    // Find offers tied to places/businesses in this category
-    const [placesInCatForOffer, businessesInCatForOffer] = await Promise.all([
-      Place.find({ category: query.category }, '_id'),
-      Business.find({ category: query.category }, '_id')
-    ])
-    offerFilter.$or = [
-      { place: { $in: placesInCatForOffer.map(p => p._id) } },
-      { business: { $in: businessesInCatForOffer.map(b => b._id) } }
-    ]
+      const [placesInCatForOffer, businessesInCatForOffer] = await Promise.all([
+        Place.find({ category: query.category }, '_id'),
+        Business.find({ category: query.category }, '_id'),
+      ])
+      offerFilter.$or = [
+        { place: { $in: placesInCatForOffer.map(p => p._id) } },
+        { business: { $in: businessesInCatForOffer.map(b => b._id) } },
+      ]
+    }
   }
+
+  // B. Selected place / business / map / offer (applied last so it is not overwritten)
+  const entityMapIds = await applySelectedEntity(
+    query,
+    mapFilter,
+    placeFilter,
+    offerFilter,
+  )
 
   // ==================== SALES & TAXES CALCULATION ====================
   // Check if we have real payment transactions
@@ -212,9 +330,8 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
       paymentFilter.mapId = { $in: mapIds }
     }
 
-    if (query.searchTerm) {
-      const mapsMatchingSearch = await Map.find({ name: { $regex: query.searchTerm, $options: 'i' } }, '_id')
-      paymentFilter.mapId = { $in: mapsMatchingSearch.map(m => m._id) }
+    if (query.entityType && query.entityId) {
+      paymentFilter.mapId = { $in: entityMapIds }
     }
 
     payments = await Payment.find(paymentFilter).lean()
@@ -279,10 +396,9 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
         }
       }
 
-      // 4. Search Term
-      if (query.searchTerm && p.mapId) {
-        const map = allMaps.find(m => m._id.toString() === p.mapId)
-        if (!map || !map.name.toLowerCase().includes(query.searchTerm.toLowerCase())) return false
+      // 4. Selected entity (map-linked sales only)
+      if (query.entityType && query.entityId) {
+        if (!p.mapId || !entityMapIds.includes(String(p.mapId))) return false
       }
 
       return true
@@ -375,4 +491,5 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
 export const StatsService = {
   getDashboardData,
   getReportsData,
+  searchReportEntities,
 }

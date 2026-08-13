@@ -49,6 +49,13 @@ export interface IUsageStats {
   mostRedeemedOffers: IUsageItem[];
 }
 
+export interface ISearchMatchItem {
+  type: 'place' | 'business' | 'map' | 'offer';
+  id: string;
+  name: string;
+  location?: string;
+}
+
 export interface IReportsData {
   salesAndTaxes: ISalesAndTaxesStats;
   usage: IUsageStats;

@@ -43,6 +43,8 @@ class QueryBuilder<T> {
       'withLocked',
       'showHidden',
       'download',
+      'lat',
+      'lng',
     ]
     excludeFields.forEach(el => delete queryObj[el])
 

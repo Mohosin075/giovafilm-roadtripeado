@@ -116,7 +116,7 @@ the icon, so that the icon is more visible.
 are not related to rivers or the word itself
 7. The 'Filters' button on the Places is not working. You can change the filter button to a button
 where you select different categories or •all cate@ries•.
-
+solved
 
 
 
@@ -128,9 +128,14 @@ S. The photos of the places are still not displaying.
 are not related to rivers or the word itself
 7. The "Filters* button on the Places pae is not working. You can change the filter button to a button
 where you select different categories or •all cate@riest
-8. If they haven't yet logged in or created an account, they can't see the map or any other page, only
-the landing
+
+solved
+
+
+8. If they haven't yet logged in or created an account, they can't see the map or any other page, only the landing - not solved need to clearify
+
 giovafilm
+
 Batch F: Business
 l. When adding an offer as a user in the "My Business" section, it doesn't allow you to add a photo of
 the offer.

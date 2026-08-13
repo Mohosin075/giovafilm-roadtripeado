@@ -8,6 +8,7 @@ import { Map } from '../map/map.model'
 import ApiError from '../../errors/ApiError'
 import { getCoordinatesFromUrl } from '../../utils/mapHelper'
 import { USER_ROLES } from '../../enum/user'
+import { toStringArray } from '../../utils/media'
 
 const createPlace = catchAsync(async (req: Request, res: Response) => {
   const user = await getUserFromToken(req.headers.authorization)
@@ -17,11 +18,19 @@ const createPlace = catchAsync(async (req: Request, res: Response) => {
     await verifyEditorEditAccess(user, req.body.map)
   }
 
-  if (req.body.images) {
-    req.body.media = [...(req.body.media || []), ...req.body.images]
+  const uploadedImages = toStringArray(req.body.images)
+  const uploadedDocs = toStringArray(req.body.documents)
+  if (uploadedImages.length || req.body.media) {
+    req.body.media = [
+      ...toStringArray(req.body.media),
+      ...uploadedImages,
+    ]
   }
-  if (req.body.documents) {
-    req.body.menuImages = [...(req.body.menuImages || []), ...req.body.documents]
+  if (uploadedDocs.length || req.body.menuImages) {
+    req.body.menuImages = [
+      ...toStringArray(req.body.menuImages),
+      ...uploadedDocs,
+    ]
   }
   const result = await PlaceService.createPlace(req.body)
   sendResponse(res, {
@@ -137,11 +146,19 @@ const updatePlace = catchAsync(async (req: Request, res: Response) => {
     await verifyEditorEditAccess(user, req.body.map)
   }
 
-  if (req.body.images) {
-    req.body.media = [...(req.body.media || []), ...req.body.images]
+  const uploadedImages = toStringArray(req.body.images)
+  const uploadedDocs = toStringArray(req.body.documents)
+  if (uploadedImages.length || req.body.media) {
+    req.body.media = [
+      ...toStringArray(req.body.media),
+      ...uploadedImages,
+    ]
   }
-  if (req.body.documents) {
-    req.body.menuImages = [...(req.body.menuImages || []), ...req.body.documents]
+  if (uploadedDocs.length || req.body.menuImages) {
+    req.body.menuImages = [
+      ...toStringArray(req.body.menuImages),
+      ...uploadedDocs,
+    ]
   }
   console.log(req.body)
   const result = await PlaceService.updatePlace(id, req.body)

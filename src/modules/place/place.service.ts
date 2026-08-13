@@ -2,11 +2,19 @@ import { StatusCodes } from 'http-status-codes'
 import ApiError from '../../errors/ApiError'
 import { IPlace } from './place.interface'
 import { Place } from './place.model'
-import QueryBuilder from '../../builder/QueryBuilder'
-import { placeSearchableFields } from './place.constants'
 import { Map } from '../map/map.model'
+import { Category } from '../category/category.model'
 import mongoose from 'mongoose'
 import { getCountryFromCoordinates } from '../../utils/reverseGeocoding'
+
+const escapeRegex = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+const toNumber = (value: unknown): number => {
+  const parsed =
+    typeof value === 'string' || typeof value === 'number' ? Number(value) : NaN
+  return Number.isFinite(parsed) ? parsed : NaN
+}
 
 const createPlace = async (payload: IPlace): Promise<IPlace> => {
   const session = await mongoose.startSession()
@@ -59,27 +67,79 @@ const createPlace = async (payload: IPlace): Promise<IPlace> => {
 const getAllPlaces = async (
   query: Record<string, unknown>
 ) => {
-  let baseQuery = Place.find()
+  const searchTerm =
+    typeof query.searchTerm === 'string' ? query.searchTerm.trim() : ''
+  const lat = toNumber(query.lat)
+  const lng = toNumber(query.lng)
+  const hasGeo = Number.isFinite(lat) && Number.isFinite(lng)
+  const sort =
+    typeof query.sort === 'string' && query.sort.trim()
+      ? query.sort.trim()
+      : '-createdAt'
+  const limit = Number(query.limit) || 10
+  const page = Number(query.page) || 1
+  const skip = (page - 1) * limit
 
-  const placeQuery = new QueryBuilder(
-    baseQuery
-      .populate('category', 'name color icon status')
-      .populate('map', 'name country status isPaid')
-      .lean(),
-    query
+  const match: Record<string, unknown> = {}
+
+  for (const key of ['status', 'map', 'country', 'category', 'type'] as const) {
+    const value = query[key]
+    if (typeof value === 'string' && value.trim() && value !== 'undefined') {
+      match[key] = value.includes(',') ? { $in: value.split(',') } : value
+    }
+  }
+
+  if (searchTerm) {
+    const regex = new RegExp(escapeRegex(searchTerm), 'i')
+    const matchingCategories = await Category.find({ name: regex })
+      .select('_id')
+      .lean()
+
+    const or: Record<string, unknown>[] = [
+      { name: regex },
+      { address: regex },
+      { country: regex },
+    ]
+
+    if (matchingCategories.length > 0) {
+      or.push({ category: { $in: matchingCategories.map(c => c._id) } })
+    }
+
+    match.$or = or
+  }
+
+  const total = await Place.countDocuments(match)
+
+  let findQuery = Place.find(
+    hasGeo
+      ? {
+          ...match,
+          location: {
+            $nearSphere: {
+              $geometry: { type: 'Point', coordinates: [lng, lat] },
+            },
+          },
+        }
+      : match,
   )
-    .search(placeSearchableFields)
-    .filter()
-    .sort()
-    .paginate()
-    .fields()
+    .populate('category', 'name color icon status')
+    .populate('map', 'name country status isPaid')
+    .lean()
 
-  const result = await placeQuery.modelQuery
-  const meta = await placeQuery.getPaginationInfo()
+  if (!hasGeo) {
+    findQuery = findQuery.sort(sort)
+  }
+
+  const data = await findQuery.skip(skip).limit(limit)
 
   return {
-    meta,
-    data: result,
+    meta: {
+      total,
+      page,
+      limit,
+      totalPage: Math.ceil(total / limit) || 0,
+    },
+    data,
   }
 }
 

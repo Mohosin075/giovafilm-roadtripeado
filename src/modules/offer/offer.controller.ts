@@ -36,9 +36,35 @@ const sanitizeLockedOffer = (offer: any) => {
   }
 }
 
+const assertUserOwnsBusiness = async (user: any, businessId?: string) => {
+  if (!businessId) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'You can only manage offers for your own business',
+    )
+  }
+  const business = await Business.findById(businessId)
+  if (!business) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Business not found')
+  }
+  const ownerId = (business.user as any)?._id?.toString() || business.user?.toString()
+  if (ownerId !== user._id.toString()) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      'You can only manage offers for your own business',
+    )
+  }
+  return business
+}
+
 const createOffer = catchAsync(async (req: Request, res: Response) => {
   const { images, ...offerData } = req.body
   const user = await getUserFromToken(req.headers.authorization)
+
+  if (user && user.role === USER_ROLES.USER) {
+    await assertUserOwnsBusiness(user, offerData.business)
+    delete offerData.place
+  }
 
   // Verify access for Map Editors
   if (user && user.role === USER_ROLES.MAP_EDITOR) {
@@ -175,6 +201,12 @@ const updateOffer = catchAsync(async (req: Request, res: Response) => {
     (existingOffer as any).business?._id?.toString() ||
     (existingOffer as any).business?.toString() ||
     null
+
+  if (user && user.role === USER_ROLES.USER) {
+    await assertUserOwnsBusiness(user, existingBusinessId || offerData.business)
+    delete offerData.business
+    delete offerData.place
+  }
 
   if (user && user.role === USER_ROLES.MAP_EDITOR) {
     // Check existing offer's place/business

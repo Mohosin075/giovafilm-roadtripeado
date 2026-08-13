@@ -1,5 +1,5 @@
 import { Model, Types } from 'mongoose'
-import { OFFER_STATUS, DISCOUNT_TYPE } from '../../enum/offer'
+import { OFFER_STATUS, DISCOUNT_TYPE, BOGO_SECOND_TYPE } from '../../enum/offer'
 
 export interface IOffer {
   _id: Types.ObjectId
@@ -10,6 +10,7 @@ export interface IOffer {
   description: string
   discountType: DISCOUNT_TYPE
   discountValue?: string | number
+  bogoSecondType?: BOGO_SECOND_TYPE
   validFrom?: Date
   validUntil?: Date
   noExpiration?: boolean

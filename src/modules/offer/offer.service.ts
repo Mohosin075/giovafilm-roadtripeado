@@ -5,9 +5,12 @@ import { Offer } from './offer.model'
 import { OfferRedemption } from './offerRedemption.model'
 import QueryBuilder from '../../builder/QueryBuilder'
 import { offerSearchableFields } from './offer.constants'
-import { DISCOUNT_TYPE, OFFER_STATUS } from '../../enum/offer'
+import { BOGO_SECOND_TYPE, DISCOUNT_TYPE, OFFER_STATUS } from '../../enum/offer'
 
 const createOffer = async (payload: IOffer): Promise<IOffer> => {
+  if (payload.discountType === DISCOUNT_TYPE.BOGO && !payload.bogoSecondType) {
+    payload.bogoSecondType = BOGO_SECOND_TYPE.FREE
+  }
   const status = payload.status || OFFER_STATUS.ACTIVE
   if (status === OFFER_STATUS.ACTIVE && (payload.place || payload.business)) {
     const query: any[] = []
@@ -78,6 +81,10 @@ const updateOffer = async (
   const targetStatus = payload.status || isExist.status
   const targetPlace = payload.place || isExist.place
   const targetBusiness = payload.business || isExist.business
+
+  if (payload.discountType === DISCOUNT_TYPE.BOGO && !payload.bogoSecondType) {
+    payload.bogoSecondType = isExist.bogoSecondType || BOGO_SECOND_TYPE.FREE
+  }
 
   if (targetStatus === OFFER_STATUS.ACTIVE && (targetPlace || targetBusiness)) {
     const query: any[] = []

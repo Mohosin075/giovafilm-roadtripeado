@@ -10,3 +10,8 @@ export enum DISCOUNT_TYPE {
   FREE_ITEM = 'Free item',
   BOGO = 'BOGO',
 }
+
+export enum BOGO_SECOND_TYPE {
+  FREE = 'free',
+  PERCENTAGE = 'percentage',
+}

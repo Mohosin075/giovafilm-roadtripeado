@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose'
 import { IOffer, OfferModel } from './offer.interface'
-import { OFFER_STATUS, DISCOUNT_TYPE } from '../../enum/offer'
+import { OFFER_STATUS, DISCOUNT_TYPE, BOGO_SECOND_TYPE } from '../../enum/offer'
 
 const OfferSchema = new Schema<IOffer, OfferModel>(
   {
@@ -15,6 +15,10 @@ const OfferSchema = new Schema<IOffer, OfferModel>(
       required: true,
     },
     discountValue: { type: Schema.Types.Mixed }, // String or Number
+    bogoSecondType: {
+      type: String,
+      enum: Object.values(BOGO_SECOND_TYPE),
+    },
     validFrom: { type: Date, required: false },
     validUntil: { type: Date, required: false },
     noExpiration: { type: Boolean, default: false },

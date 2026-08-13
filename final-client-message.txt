@@ -148,6 +148,7 @@ MOBILE VERSION:
 Users:
 1. On the "Maps" page, when selecting a pin, if that pin has a very long description, the image is cut
 off and it doesn't allow you to tap the if necessary. the user wants to do something else.
+solved
 
 
 

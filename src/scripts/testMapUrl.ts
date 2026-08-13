@@ -1,26 +1,26 @@
 import { getCoordinatesFromUrl } from '../utils/mapHelper'
 
-async function runTest() {
-  console.log('--- TESTING GOOGLE MAPS URL PARSER ---')
+const tests = [
+  'https://maps.app.goo.gl/BvmCgmNtgYRAE7Ki6',
+  'https://www.google.com/maps/search/23.764717,+90.319324?entry=tts',
+  'https://www.google.com/maps/place/Dhaka/@23.7808875,90.2680875,12z/data=!4m6!3m5!1s0x3755b8b087026b81:0x8fa563bbd5d8c9d2!8m2!3d23.810332!4d90.4125181',
+  'https://www.google.com/maps?q=23.8103,90.4125',
+  'https://www.google.com/maps?q=18.4861,-69.9312',
+  'https://maps.google.com/?q=18.486058,-69.931212',
+  'https://www.google.com/maps/dir/23.8103,90.4125/',
+  'https://www.google.com/maps/place/Santo+Domingo/@18.4861,-69.9312,12z',
+  'maps.app.goo.gl/BvmCgmNtgYRAE7Ki6',
+]
 
-  const testUrls = [
-    // 1. Full URL with @lat,lng
-    'https://www.google.com/maps/place/Dhaka/@23.7808875,90.2680875,12z/data=!4m6!3m5!1s0x3755b8b087026b81:0x8fa563bbd5d8c9d2!8m2!3d23.810332!4d90.4125181!16zL20vMGZzMHk?entry=ttu',
-    // 2. Full URL with query param q=lat,lng
-    'https://www.google.com/maps?q=23.8103,90.4125',
-    // 3. Mock redirect URL (simulates a shortened URL redirecting to a long URL)
-    'https://httpbin.org/redirect-to?url=https%3A%2F%2Fwww.google.com%2Fmaps%2Fplace%2FDhaka%2F%4023.7808875%2C90.2680875%2C12z&status_code=302'
-  ]
-
-  for (const url of testUrls) {
-    console.log(`\nInput URL: ${url}`)
-    const result = await getCoordinatesFromUrl(url)
-    if (result) {
-      console.log(`✅ Success! Latitude: ${result.lat}, Longitude: ${result.lng}`)
-    } else {
-      console.log('❌ Failed to extract coordinates.')
+async function run() {
+  for (const url of tests) {
+    try {
+      const result = await getCoordinatesFromUrl(url)
+      console.log(result ? `OK  ${result.lat}, ${result.lng}` : 'FAIL', '-', url)
+    } catch (error: any) {
+      console.log('ERROR', error.message, '-', url)
     }
   }
 }
 
-runTest()
+run()

@@ -78,10 +78,19 @@ export const updateBusinessZodSchema = z.object({
       contactEmail: z.string().email().optional(),
     }).optional(),
     plan: z.string().optional(),
+    isAccuracyVerified: z.boolean().optional(),
+    adminReview: z
+      .object({
+        phoneVerified: z.boolean().optional(),
+        websiteFunctional: z.boolean().optional(),
+        locationPinVerified: z.boolean().optional(),
+        mediaUploaded: z.boolean().optional(),
+        internalNotes: z.string().optional(),
+      })
+      .optional(),
     images: z.array(z.string()).optional().or(z.string().optional()),
     documents: z.array(z.string()).optional().or(z.string().optional()),
   }),
-  isAccuracyVerified: z.boolean().optional(),
 })
 
 export const updateBusinessStatusZodSchema = z.object({

@@ -42,6 +42,13 @@ export interface IBusiness {
   plan?: Types.ObjectId // Reference to SubscriptionPlan
   status: BusinessStatus
   isAccuracyVerified: boolean
+  adminReview?: {
+    phoneVerified?: boolean
+    websiteFunctional?: boolean
+    locationPinVerified?: boolean
+    mediaUploaded?: boolean
+    internalNotes?: string
+  }
   viewCount: number
   hasActiveSubscription: boolean
   rating?: number

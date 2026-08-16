@@ -8,6 +8,9 @@ import ApiError from '../../errors/ApiError'
 import { USER_ROLES } from '../../enum/user'
 import { getUserFromToken } from '../../helpers/mapAccessHelper'
 
+const resolveUserRole = (user: any): string | undefined =>
+  user?.role || user?.user?.role || user?.data?.role
+
 const isAdminRole = (role?: string) =>
   !!role && [USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN].includes(role as any)
 
@@ -21,6 +24,7 @@ const stripPrivateInfo = (business: any) => {
   const obj =
     typeof business.toObject === 'function' ? business.toObject() : { ...business }
   delete obj.privateInfo
+  delete obj.adminReview
   return obj
 }
 
@@ -131,7 +135,7 @@ const updateBusiness = catchAsync(async (req: Request, res: Response) => {
   }
 
   const ownerId = getBusinessOwnerId(existing)
-  const admin = isAdminRole(authUser?.role)
+  const admin = isAdminRole(resolveUserRole(authUser))
   if (!admin && ownerId !== authUser?.authId?.toString()) {
     throw new ApiError(
       StatusCodes.FORBIDDEN,
@@ -141,10 +145,37 @@ const updateBusiness = catchAsync(async (req: Request, res: Response) => {
 
   const businessData = { ...req.body }
 
-  // Users cannot self-approve or toggle subscription
+  // Users cannot self-approve, self-verify, or toggle subscription
   if (!admin) {
     delete businessData.status
     delete businessData.hasActiveSubscription
+    delete businessData.isAccuracyVerified
+    delete businessData.adminReview
+  }
+
+  const existingReview =
+    (existing as any).adminReview &&
+    typeof (existing as any).adminReview === 'object'
+      ? (existing as any).adminReview
+      : {}
+
+  if (businessData.adminReview) {
+    businessData.adminReview = {
+      ...existingReview,
+      ...businessData.adminReview,
+    }
+    if (typeof businessData.adminReview.locationPinVerified === 'boolean') {
+      businessData.isAccuracyVerified =
+        businessData.adminReview.locationPinVerified
+    }
+  }
+
+  if (typeof businessData.isAccuracyVerified === 'boolean') {
+    businessData.adminReview = {
+      ...existingReview,
+      ...businessData.adminReview,
+      locationPinVerified: businessData.isAccuracyVerified,
+    }
   }
 
   // Handle image upload from disk storage
@@ -199,7 +230,7 @@ const deleteBusiness = catchAsync(async (req: Request, res: Response) => {
   }
 
   const ownerId = getBusinessOwnerId(existing)
-  const admin = isAdminRole(authUser?.role)
+  const admin = isAdminRole(resolveUserRole(authUser))
   if (!admin && ownerId !== authUser?.authId?.toString()) {
     throw new ApiError(
       StatusCodes.FORBIDDEN,

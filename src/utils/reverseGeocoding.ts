@@ -26,6 +26,7 @@ export const getCountryFromCoordinates = async (
           key: API_KEY,
         },
         httpsAgent: agent,
+        timeout: 4000,
       },
     )
 

@@ -58,10 +58,69 @@ const MIME_EXTENSION: Record<string, string> = {
   'application/pdf': 'pdf',
 }
 
+const MAX_IMAGE_WIDTH = 800
+const SKIP_OPTIMIZE_MIME = new Set(['image/gif'])
+
 const getUploadExtension = (file: Express.Multer.File): string => {
   const fromName = path.extname(file.originalname).replace('.', '').toLowerCase()
   if (fromName && /^[a-z0-9]{1,8}$/.test(fromName)) return fromName
   return MIME_EXTENSION[file.mimetype] || file.mimetype.split('/')[1] || 'bin'
+}
+
+const applyFormat = (instance: sharp.Sharp, mimetype: string) => {
+  if (mimetype === 'image/png') return instance.png({ quality: 80, compressionLevel: 6 })
+  if (mimetype === 'image/webp') return instance.webp({ quality: 80 })
+  return instance.jpeg({ quality: 80, mozjpeg: true })
+}
+
+const shouldOptimizeImage = (fieldName: string, mimetype: string) =>
+  ['images', 'icon', 'media'].includes(fieldName) &&
+  mimetype.startsWith('image/') &&
+  !SKIP_OPTIMIZE_MIME.has(mimetype)
+
+const optimizeImageBuffer = async (
+  buffer: Buffer,
+  mimetype: string,
+): Promise<Buffer> => {
+  const meta = await sharp(buffer).metadata()
+  if ((meta.width || 0) <= MAX_IMAGE_WIDTH) return buffer
+
+  return applyFormat(
+    sharp(buffer).resize({
+      width: MAX_IMAGE_WIDTH,
+      withoutEnlargement: true,
+    }),
+    mimetype,
+  ).toBuffer()
+}
+
+const optimizeImageOnDisk = async (
+  fullPath: string,
+  mimetype: string,
+): Promise<void> => {
+  const meta = await sharp(fullPath).metadata()
+  if ((meta.width || 0) <= MAX_IMAGE_WIDTH) return
+
+  const optimizedPath = `${fullPath}.optimized`
+  await applyFormat(
+    sharp(fullPath).resize({
+      width: MAX_IMAGE_WIDTH,
+      withoutEnlargement: true,
+    }),
+    mimetype,
+  ).toFile(optimizedPath)
+
+  fs.unlinkSync(fullPath)
+  fs.renameSync(optimizedPath, fullPath)
+}
+
+const isMultipart = (req: Request) =>
+  String(req.headers['content-type'] || '').includes('multipart/form-data')
+
+const parseEmbeddedJsonData = (req: Request) => {
+  if (typeof req.body?.data === 'string') {
+    req.body = JSON.parse(req.body.data)
+  }
 }
 
 const handleMulterError = (error: any, next: NextFunction) => {
@@ -160,14 +219,20 @@ export const fileAndBodyProcessor = () => {
   }).fields(uploadFields)
 
   return (req: Request, res: Response, next: NextFunction) => {
+    if (!isMultipart(req)) {
+      try {
+        parseEmbeddedJsonData(req)
+        return next()
+      } catch (err) {
+        return next(err)
+      }
+    }
+
     upload(req, res, async error => {
       if (error) return handleMulterError(error, next)
 
       try {
-        // Parse JSON data if exists
-        if (req.body?.data) {
-          req.body = JSON.parse(req.body.data)
-        }
+        parseEmbeddedJsonData(req)
 
         // Process uploaded files
         if (req.files) {
@@ -182,49 +247,36 @@ export const fileAndBodyProcessor = () => {
             const fileArray = files as Express.Multer.File[]
             const paths: string[] = []
 
-            // Process each file - with image optimization for image types
-            for (const file of fileArray) {
-              const extension = getUploadExtension(file)
-              const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`
-              const filePath = `/uploads/${fieldName}/${filename}`
-
-              // Apply Sharp optimization for images
-              if (
-                ['images', 'icon', 'media'].includes(fieldName) &&
-                file.mimetype.startsWith('image/')
-              ) {
-                try {
-                  // Create Sharp instance
-                  let sharpInstance = sharp(file.buffer).resize(800)
-
-                  // Preserve original format
-                  if (file.mimetype === 'image/png') {
-                    sharpInstance = sharpInstance.png({ quality: 80 })
-                  } else {
-                    sharpInstance = sharpInstance.jpeg({ quality: 80 })
-                  }
-
-                  const optimizedBuffer = await sharpInstance.toBuffer()
-
-                  // Replace the original buffer with optimized one
-                  file.buffer = optimizedBuffer
-                } catch (err) {
-                  console.error('Image optimization failed:', err)
-                }
-              }
-
-              // Save file to disk
-              const uploadsDir = path.join(process.cwd(), 'uploads', fieldName)
-              if (!fs.existsSync(uploadsDir)) {
-                fs.mkdirSync(uploadsDir, { recursive: true })
-              }
-              fs.writeFileSync(
-                path.join(process.cwd(), 'uploads', fieldName, filename),
-                file.buffer,
-              )
-
-              paths.push(filePath)
+            const uploadsDir = path.join(process.cwd(), 'uploads', fieldName)
+            if (!fs.existsSync(uploadsDir)) {
+              fs.mkdirSync(uploadsDir, { recursive: true })
             }
+
+            const savedPaths = await Promise.all(
+              fileArray.map(async file => {
+                const extension = getUploadExtension(file)
+                const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`
+                const filePath = `/uploads/${fieldName}/${filename}`
+
+                if (shouldOptimizeImage(fieldName, file.mimetype)) {
+                  try {
+                    file.buffer = await optimizeImageBuffer(
+                      file.buffer,
+                      file.mimetype,
+                    )
+                  } catch (err) {
+                    console.error('Image optimization failed:', err)
+                  }
+                }
+
+                fs.writeFileSync(
+                  path.join(uploadsDir, filename),
+                  file.buffer,
+                )
+                return filePath
+              }),
+            )
+            paths.push(...savedPaths)
 
             // Store as array or single value based on maxCount
             processedFiles[fieldName] = maxCount > 1 ? paths : paths[0]
@@ -353,14 +405,20 @@ export const fileAndBodyProcessorUsingDiskStorage = () => {
   }).fields(uploadFields)
 
   return (req: Request, res: Response, next: NextFunction) => {
+    if (!isMultipart(req)) {
+      try {
+        parseEmbeddedJsonData(req)
+        return next()
+      } catch (err) {
+        return next(err)
+      }
+    }
+
     upload(req, res, async error => {
       if (error) return handleMulterError(error, next)
 
       try {
-        // Parse JSON data if exists
-        if (req.body?.data) {
-          req.body = JSON.parse(req.body.data)
-        }
+        parseEmbeddedJsonData(req)
 
         // Process uploaded files
         if (req.files) {
@@ -375,47 +433,25 @@ export const fileAndBodyProcessorUsingDiskStorage = () => {
             const fileArray = files as Express.Multer.File[]
             const paths: string[] = []
 
-            // Process each file - with image optimization for image types
-            for (const file of fileArray) {
-              const filePath = `/uploads/${fieldName}/${file.filename}`
+            const savedPaths = await Promise.all(
+              fileArray.map(async file => {
+                const filePath = `/uploads/${fieldName}/${file.filename}`
 
-              // Apply Sharp optimization for images
-              if (
-                ['images', 'icon', 'media'].includes(fieldName) &&
-                file.mimetype.startsWith('image/')
-              ) {
-                try {
-                  const fullPath = path.join(
-                    uploadsDir,
-                    fieldName,
-                    file.filename,
-                  )
-
-                  // Create Sharp instance
-                  let sharpInstance = sharp(fullPath).resize(800)
-
-                  // Preserve original format
-                  if (file.mimetype === 'image/png') {
-                    sharpInstance = sharpInstance.png({ quality: 80 })
-                  } else if (file.mimetype === 'image/webp') {
-                    sharpInstance = sharpInstance.webp({ quality: 80 })
-                  } else {
-                    sharpInstance = sharpInstance.jpeg({ quality: 80 })
+                if (shouldOptimizeImage(fieldName, file.mimetype)) {
+                  try {
+                    await optimizeImageOnDisk(
+                      path.join(uploadsDir, fieldName, file.filename),
+                      file.mimetype,
+                    )
+                  } catch (err) {
+                    console.error('Image optimization failed:', err)
                   }
-
-                  // Optimize the image file
-                  await sharpInstance.toFile(fullPath + '.optimized')
-
-                  // Replace original with optimized version
-                  fs.unlinkSync(fullPath)
-                  fs.renameSync(fullPath + '.optimized', fullPath)
-                } catch (err) {
-                  console.error('Image optimization failed:', err)
                 }
-              }
 
-              paths.push(filePath)
-            }
+                return filePath
+              }),
+            )
+            paths.push(...savedPaths)
 
             // Store as array or single value based on maxCount
             processedFiles[fieldName] = maxCount > 1 ? paths : paths[0]

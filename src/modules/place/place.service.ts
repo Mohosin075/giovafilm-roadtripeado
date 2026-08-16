@@ -176,9 +176,18 @@ const updatePlace = async (
   try {
     session.startTransaction()
 
-    // Auto-populate country if coordinates are updated but country is not
-    if (payload.location?.coordinates && !payload.country) {
-      const [lng, lat] = payload.location.coordinates
+    const nextCoords = payload.location?.coordinates
+    const prevCoords = isExist.location?.coordinates
+    const COORD_EPSILON = 1e-6
+    const coordsChanged =
+      !!nextCoords &&
+      (!prevCoords ||
+        Math.abs(nextCoords[0] - prevCoords[0]) > COORD_EPSILON ||
+        Math.abs(nextCoords[1] - prevCoords[1]) > COORD_EPSILON)
+
+    // Only hit Google when the pin actually moved
+    if (coordsChanged && !payload.country) {
+      const [lng, lat] = nextCoords
       const country = await getCountryFromCoordinates(lat, lng)
       if (country) {
         payload.country = country

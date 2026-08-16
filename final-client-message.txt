@@ -158,7 +158,7 @@ I. It doesn't allow uploading or viewing videos: it says they are too long. solv
 or •Regular Place" is not saved- solved
 4. On the Business page. when you access a business's information. check that section. as many
 things on that page are not working such as the place verification. the business's website link.
-among other things.
+among other things. solved
 5. When I save a change to a place with a lot of information or photos. it takes a long time to save.
 
 

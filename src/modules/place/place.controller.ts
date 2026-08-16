@@ -160,7 +160,6 @@ const updatePlace = catchAsync(async (req: Request, res: Response) => {
       ...uploadedDocs,
     ]
   }
-  console.log(req.body)
   const result = await PlaceService.updatePlace(id, req.body)
   sendResponse(res, {
     statusCode: StatusCodes.OK,

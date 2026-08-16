@@ -11,12 +11,77 @@ interface ProcessedFiles {
   [key: string]: string | string[] | undefined
 }
 
+const MAX_UPLOAD_SIZE_MB = Number(process.env.SERVER_UPLOAD_MAX_FILE_SIZE_MB || '200')
+const MAX_UPLOAD_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024
+
+const VIDEO_MIME_TYPES = [
+  'video/mp4',
+  'video/webm',
+  'video/ogg',
+  'video/quicktime',
+  'video/3gpp',
+  'video/3gpp2',
+  'video/x-matroska',
+  'video/x-msvideo',
+  'video/avi',
+  'video/mpeg',
+  'video/x-ms-wmv',
+  'video/x-flv',
+]
+
+const IMAGE_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/jpg',
+  'image/webp',
+  'image/gif',
+]
+
+const MIME_EXTENSION: Record<string, string> = {
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
+  'video/ogg': 'ogv',
+  'video/quicktime': 'mov',
+  'video/3gpp': '3gp',
+  'video/3gpp2': '3g2',
+  'video/x-matroska': 'mkv',
+  'video/x-msvideo': 'avi',
+  'video/avi': 'avi',
+  'video/mpeg': 'mpeg',
+  'video/x-ms-wmv': 'wmv',
+  'video/x-flv': 'flv',
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/jpg': 'jpg',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+  'application/pdf': 'pdf',
+}
+
+const getUploadExtension = (file: Express.Multer.File): string => {
+  const fromName = path.extname(file.originalname).replace('.', '').toLowerCase()
+  if (fromName && /^[a-z0-9]{1,8}$/.test(fromName)) return fromName
+  return MIME_EXTENSION[file.mimetype] || file.mimetype.split('/')[1] || 'bin'
+}
+
+const handleMulterError = (error: any, next: NextFunction) => {
+  if (error?.code === 'LIMIT_FILE_SIZE') {
+    return next(
+      new ApiError(
+        StatusCodes.BAD_REQUEST,
+        `File too large. Images and videos can be up to ${MAX_UPLOAD_SIZE_MB}MB.`,
+      ),
+    )
+  }
+  return next(error)
+}
+
 // Define upload configuration with maxCount information
 const uploadFields = [
-  { name: 'images', maxCount: 5 },
+  { name: 'images', maxCount: 10 },
   { name: 'icon', maxCount: 1 },
-  { name: 'media', maxCount: 3 },
-  { name: 'documents', maxCount: 3 },
+  { name: 'media', maxCount: 10 },
+  { name: 'documents', maxCount: 5 },
 ] as const
 
 export const fileAndBodyProcessor = () => {
@@ -30,29 +95,43 @@ export const fileAndBodyProcessor = () => {
   ) => {
     try {
       const allowedTypes = {
-        images: ['image/jpeg', 'image/png', 'image/jpg'],
-        icon: ['image/jpeg', 'image/png', 'image/jpg'],
+        images: [...IMAGE_MIME_TYPES, ...VIDEO_MIME_TYPES],
+        icon: IMAGE_MIME_TYPES,
         media: [
-          'image/jpeg',
-          'image/png',
-          'image/jpg',
-          'image/webp',
-          'video/mp4',
-          'video/webm',
-          'video/ogg',
-          'video/quicktime',
-          'video/3gpp',
-          'video/x-matroska',
+          ...IMAGE_MIME_TYPES,
+          ...VIDEO_MIME_TYPES,
           'audio/mpeg',
           'audio/mp3',
           'audio/wav',
           'audio/ogg',
         ],
-        documents: ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'],
+        documents: ['application/pdf', ...IMAGE_MIME_TYPES],
       }
 
       const fieldType = file.fieldname as IFolderName
-      if (!allowedTypes[fieldType]?.includes(file.mimetype)) {
+      const ext = path.extname(file.originalname).toLowerCase()
+      const isVideoByExt = [
+        '.mp4',
+        '.mov',
+        '.webm',
+        '.mkv',
+        '.avi',
+        '.wmv',
+        '.flv',
+        '.m4v',
+        '.3gp',
+        '.ogv',
+        '.mpeg',
+        '.mpg',
+      ].includes(ext)
+      const mimeOk = allowedTypes[fieldType]?.includes(file.mimetype)
+      const videoFallback =
+        (fieldType === 'images' || fieldType === 'media') &&
+        isVideoByExt &&
+        (!file.mimetype ||
+          file.mimetype === 'application/octet-stream' ||
+          file.mimetype.startsWith('video/'))
+      if (!mimeOk && !videoFallback) {
         return cb(
           new ApiError(
             StatusCodes.BAD_REQUEST,
@@ -75,14 +154,14 @@ export const fileAndBodyProcessor = () => {
     storage,
     fileFilter,
     limits: {
-      fileSize: 10 * 1024 * 1024,
-      files: 10,
+      fileSize: MAX_UPLOAD_BYTES,
+      files: 20,
     },
   }).fields(uploadFields)
 
   return (req: Request, res: Response, next: NextFunction) => {
     upload(req, res, async error => {
-      if (error) return next(error)
+      if (error) return handleMulterError(error, next)
 
       try {
         // Parse JSON data if exists
@@ -105,7 +184,7 @@ export const fileAndBodyProcessor = () => {
 
             // Process each file - with image optimization for image types
             for (const file of fileArray) {
-              const extension = file.mimetype.split('/')[1]
+              const extension = getUploadExtension(file)
               const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`
               const filePath = `/uploads/${fieldName}/${filename}`
 
@@ -195,9 +274,8 @@ export const fileAndBodyProcessorUsingDiskStorage = () => {
       cb(null, folderPath)
     },
     filename: (req, file, cb) => {
-      const extension =
-        path.extname(file.originalname) || `.${file.mimetype.split('/')[1]}`
-      const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${extension}`
+      const extension = getUploadExtension(file)
+      const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`
       cb(null, filename)
     },
   })
@@ -210,29 +288,43 @@ export const fileAndBodyProcessorUsingDiskStorage = () => {
   ) => {
     try {
       const allowedTypes = {
-        images: ['image/jpeg', 'image/png', 'image/jpg'],
-        icon: ['image/jpeg', 'image/png', 'image/jpg'],
+        images: [...IMAGE_MIME_TYPES, ...VIDEO_MIME_TYPES],
+        icon: IMAGE_MIME_TYPES,
         media: [
-          'image/jpeg',
-          'image/png',
-          'image/jpg',
-          'image/webp',
-          'video/mp4',
-          'video/webm',
-          'video/ogg',
-          'video/quicktime',
-          'video/3gpp',
-          'video/x-matroska',
+          ...IMAGE_MIME_TYPES,
+          ...VIDEO_MIME_TYPES,
           'audio/mpeg',
           'audio/mp3',
           'audio/wav',
           'audio/ogg',
         ],
-        documents: ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'],
+        documents: ['application/pdf', ...IMAGE_MIME_TYPES],
       }
 
       const fieldType = file.fieldname as IFolderName
-      if (!allowedTypes[fieldType]?.includes(file.mimetype)) {
+      const ext = path.extname(file.originalname).toLowerCase()
+      const isVideoByExt = [
+        '.mp4',
+        '.mov',
+        '.webm',
+        '.mkv',
+        '.avi',
+        '.wmv',
+        '.flv',
+        '.m4v',
+        '.3gp',
+        '.ogv',
+        '.mpeg',
+        '.mpg',
+      ].includes(ext)
+      const mimeOk = allowedTypes[fieldType]?.includes(file.mimetype)
+      const videoFallback =
+        (fieldType === 'images' || fieldType === 'media') &&
+        isVideoByExt &&
+        (!file.mimetype ||
+          file.mimetype === 'application/octet-stream' ||
+          file.mimetype.startsWith('video/'))
+      if (!mimeOk && !videoFallback) {
         return cb(
           new ApiError(
             StatusCodes.BAD_REQUEST,
@@ -255,14 +347,14 @@ export const fileAndBodyProcessorUsingDiskStorage = () => {
     storage,
     fileFilter,
     limits: {
-      fileSize: 10 * 1024 * 1024, // 10MB
-      files: 10,
+      fileSize: MAX_UPLOAD_BYTES,
+      files: 20,
     },
   }).fields(uploadFields)
 
   return (req: Request, res: Response, next: NextFunction) => {
     upload(req, res, async error => {
-      if (error) return next(error)
+      if (error) return handleMulterError(error, next)
 
       try {
         // Parse JSON data if exists

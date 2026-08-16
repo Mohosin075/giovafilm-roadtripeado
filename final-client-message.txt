@@ -146,14 +146,64 @@ Users:
 1. On the "Maps" page, when selecting a pin, if that pin has a very long description, the image is cut
 off and it doesn't allow you to tap the if necessary. the user wants to do something else. - solved
 
+solved
 
 
 
+GENERAL VERSION:
+Batch F: Dashboard
+I. It doesn't allow uploading or viewing videos: it says they are too long. solved
+2. The visit count for places or maps on the "Reports and Statistics" page is not working.
+3. When editing a place on the map on the "Places• page. the selection of whether it is a •Business"
+or •Regular Place" is not saved-
+4. On the Business page. when you access a business's information. check that section. as many
+things on that page are not working such as the place verification. the business's website link.
+among other things.
+5. When I save a change to a place with a lot of information or photos. it takes a long time to save.
 
 
+Batch F: Users
+1. On the Places page. I would remove the "Reviews" button that is next to the •Directions• and •View
+on Map• buttons, as it clutters the area, and the reviews section belongs in the area below.
+2. The map icons are still the same. I would remove the colored line and only leave the existing white
+line next to the icon so that the icon is more visible.
+3. The photos of the places are still not visible.
+4. If they haven't logged in or created an account. they can't see the map or any other page. only the
+landing page.
+5. When you type something into the search bar and click search or simply press "entera anywhere
+on the website. I want a message to appear indicating that the search is loading or that a change is
+being made.
+6. I need the platform to provide options for the possible location as the user types a place. as if
+completing the words.
+7. On the "Places" and Offers" pages. there are two search boxes. I need there to be only one search
+box to avoid confusion for users. 9. On the Places page. remove the paragraph that says "discover
+the most breathtaking: and replace "explore places" with the name of the Places page.
+8. On the "Offers" page. add the name of the "Offers" page at the top where the •Places" page
+currently has its name.
 
+9. On the page displaying information for individual places. I would like to see the section with the
+small images at the bottom removed. as they take up unnecessary space.
+10. In the •Maps" page search bar. when you search for and select a place. it should redirect you to
+the pin pop-up on the map.
+11. On the place description page. in the 'Hours. Entry Cost. Difficulty and Walking Time• section.
+place these terms directly next to their corresponding icons to reduce the amount of space they
 
+Batch F: Business
+1. When I add a business and set up a trial payment. the business in 'My Business" appears as if the
+payment wasn't completed. Therefore. I can't verify everything.
+2. When adding a discount from the •My Business" option. accessing the offer from the •Offer" page
+redirects you to the map instead of the location's information page.
 
+MOBILE VERSION:
+Users:
+I. In the mobile version. I want the "Places• and •Offers" pages to display the list of locations in pairs.
+side by side. instead of individually. This would allow us to maximize the device screen.
+2. On the location description page. in the "Hours. Entry Cost. Difficulty. and Walking Time" section.
+please place these terms next to their corresponding icons so they don't take up so much space-
+This should be done in both the mobile and large-screen versions. 3. On the location description
+page. place the "view on map• and •directions" buttons side by side to save screen space.
+3. The profile section. where you edit your photo. name. and view your rating and level. is missing
+from the mobile version
 
 
 

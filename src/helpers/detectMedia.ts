@@ -22,10 +22,19 @@ export function detectMediaType(mediaUrl: string): 'photo' | 'video' {
     '.flv',
     '.wmv',
     '.m4v',
+    '.ogv',
+    '.3gp',
+    '.3gpp',
+    '.mpeg',
+    '.mpg',
   ]
 
-  const isImage = imageExtensions.some(ext => url.includes(ext))
-  const isVideo = videoExtensions.some(ext => url.includes(ext))
+  const isImage = imageExtensions.some(ext =>
+    url.split('?')[0].endsWith(ext),
+  )
+  const isVideo = videoExtensions.some(ext =>
+    url.split('?')[0].endsWith(ext),
+  )
 
   if (isImage) return 'photo'
   if (isVideo) return 'video'

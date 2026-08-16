@@ -27,6 +27,8 @@ router.post(
   PlaceController.extractCoordinates,
 )
 
+router.post('/:id/view', PlaceController.incrementOpenCount)
+
 router
   .route('/:id')
   .get(PlaceController.getPlaceById)

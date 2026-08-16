@@ -26,6 +26,7 @@ router.get(
 
 router.get('/available-countries', MapController.getAvailableCountries)
 router.get('/discovery', MapController.getDiscoveryData)
+router.post('/:id/view', MapController.incrementViewCount)
 
 router
   .route('/:id')

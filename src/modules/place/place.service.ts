@@ -144,11 +144,19 @@ const getAllPlaces = async (
 }
 
 const getPlaceById = async (id: string): Promise<IPlace | null> => {
+  const result = await Place.findById(id).populate('category').populate('map')
+  if (!result) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
+  }
+  return result
+}
+
+const incrementOpenCount = async (id: string) => {
   const result = await Place.findByIdAndUpdate(
     id,
     { $inc: { openCount: 1 } },
-    { new: true }
-  ).populate('category').populate('map')
+    { new: true },
+  ).select('name openCount')
   if (!result) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
   }
@@ -246,6 +254,7 @@ export const PlaceService = {
   createPlace,
   getAllPlaces,
   getPlaceById,
+  incrementOpenCount,
   updatePlace,
   deletePlace,
 }

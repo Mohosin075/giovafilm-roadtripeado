@@ -153,7 +153,7 @@ solved
 GENERAL VERSION:
 Batch F: Dashboard
 I. It doesn't allow uploading or viewing videos: it says they are too long. solved
-2. The visit count for places or maps on the "Reports and Statistics" page is not working.
+2. The visit count for places or maps on the "Reports and Statistics" page is not working. - solved
 3. When editing a place on the map on the "Places• page. the selection of whether it is a •Business"
 or •Regular Place" is not saved-
 4. On the Business page. when you access a business's information. check that section. as many

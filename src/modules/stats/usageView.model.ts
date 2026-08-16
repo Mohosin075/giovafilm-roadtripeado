@@ -1,0 +1,19 @@
+import { Schema, model } from 'mongoose'
+
+const UsageViewSchema = new Schema(
+  {
+    viewerKey: { type: String, required: true },
+    type: {
+      type: String,
+      required: true,
+      enum: ['map', 'place', 'business'],
+    },
+    entityId: { type: String, required: true },
+    lastSeenAt: { type: Date, required: true, default: Date.now },
+  },
+  { timestamps: true },
+)
+
+UsageViewSchema.index({ viewerKey: 1, type: 1, entityId: 1 }, { unique: true })
+
+export const UsageView = model('UsageView', UsageViewSchema)

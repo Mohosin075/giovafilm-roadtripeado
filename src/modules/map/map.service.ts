@@ -84,15 +84,23 @@ const getAllMaps = async (query: Record<string, unknown>) => {
 
 const getMapById = async (id: string): Promise<any | null> => {
   // Catalog / purchase UI only needs map summary — places come from discovery
-  const result = await Map.findByIdAndUpdate(
-    id,
-    { $inc: { viewCount: 1 } },
-    { new: true }
-  ).select('-places').lean()
+  const result = await Map.findById(id).select('-places').lean()
   if (!result) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')
   }
 
+  return result
+}
+
+const incrementViewCount = async (id: string) => {
+  const result = await Map.findByIdAndUpdate(
+    id,
+    { $inc: { viewCount: 1 } },
+    { new: true },
+  ).select('name viewCount')
+  if (!result) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')
+  }
   return result
 }
 
@@ -334,6 +342,7 @@ export const MapService = {
   createMap,
   getAllMaps,
   getMapById,
+  incrementViewCount,
   updateMap,
   deleteMap,
   purchaseMap,

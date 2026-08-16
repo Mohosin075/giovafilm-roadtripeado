@@ -125,6 +125,16 @@ const getPurchasedMaps = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const incrementViewCount = catchAsync(async (req: Request, res: Response) => {
+  const result = await MapService.incrementViewCount(req.params.id)
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Map view recorded',
+    data: { viewCount: (result as any).viewCount || 0 },
+  })
+})
+
 const getAvailableCountries = catchAsync(async (req: Request, res: Response) => {
   const result = await MapService.getAvailableCountries()
   sendResponse(res, {
@@ -166,6 +176,7 @@ export const MapController = {
   deleteMap,
   purchaseMap,
   getPurchasedMaps,
+  incrementViewCount,
   getAvailableCountries,
   getDiscoveryData,
 }

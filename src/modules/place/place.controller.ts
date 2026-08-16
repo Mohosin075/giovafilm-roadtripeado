@@ -181,6 +181,16 @@ const deletePlace = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const incrementOpenCount = catchAsync(async (req: Request, res: Response) => {
+  const result = await PlaceService.incrementOpenCount(req.params.id)
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Place view recorded',
+    data: { openCount: (result as any).openCount || 0 },
+  })
+})
+
 const extractCoordinates = catchAsync(async (req: Request, res: Response) => {
   const { url } = req.body
   if (!url) {
@@ -209,5 +219,6 @@ export const PlaceController = {
   getPlaceById,
   updatePlace,
   deletePlace,
+  incrementOpenCount,
   extractCoordinates,
 }

@@ -225,6 +225,24 @@ class WebhookService {
       })
 
       if (existingSubscription) {
+        const existingBusinessId =
+          businessId || existingSubscription.businessId?.toString()
+        const isActive = ['active', 'trialing'].includes(
+          stripeSubscription.status,
+        )
+        if (existingBusinessId) {
+          const priceId =
+            typeof stripeSubscription.items.data[0].price === 'string'
+              ? stripeSubscription.items.data[0].price
+              : stripeSubscription.items.data[0].price.id
+          const existingPlan = await SubscriptionPlan.findOne({
+            stripePriceId: priceId,
+          })
+          await Business.findByIdAndUpdate(existingBusinessId, {
+            hasActiveSubscription: isActive,
+            ...(existingPlan ? { plan: existingPlan._id } : {}),
+          })
+        }
         console.log(`Subscription already exists: ${stripeSubscription.id}`)
         return
       }

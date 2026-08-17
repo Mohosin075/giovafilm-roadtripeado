@@ -177,6 +177,28 @@ const createCheckoutSession = catchAsync(
   },
 )
 
+const verifyCheckoutSession = catchAsync(
+  async (req: Request, res: Response) => {
+    const user = req.user as JwtPayload
+    const userId = user.authId!.toString()
+    const sessionId = req.query.sessionId as string
+
+    const result = await subscriptionService.verifyCheckoutSession(
+      userId,
+      sessionId,
+    )
+
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: result.hasActiveSubscription
+        ? 'Subscription verified successfully'
+        : 'Checkout verified, but subscription is not active yet',
+      data: result,
+    })
+  },
+)
+
 // Handle Stripe webhooks
 const handleWebhook = catchAsync(async (req: Request, res: Response) => {
   console.log('hitting webhook handler')
@@ -418,6 +440,7 @@ export const SubscriptionController = {
   cancelSubscription,
   getSubscriptionStatus,
   createCheckoutSession,
+  verifyCheckoutSession,
   reactivateSubscription,
   pauseSubscription,
   resumeSubscription,

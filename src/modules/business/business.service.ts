@@ -6,6 +6,7 @@ import { Offer } from '../offer/offer.model'
 import QueryBuilder from '../../builder/QueryBuilder'
 import { businessSearchableFields } from './business.constants'
 import { OFFER_STATUS } from '../../enum/offer'
+import { Subscription } from '../subscription/subscription.model'
 
 /**
  * Creates a new business listing and sets it as Pending.
@@ -77,6 +78,42 @@ const getMyBusinesses = async (userId: string, query: Record<string, unknown>) =
 
   const result = await businessQuery.modelQuery
   const meta = await businessQuery.getPaginationInfo()
+
+  const unpaidIds = (result as any[])
+    .filter((business) => !business.hasActiveSubscription)
+    .map((business) => business._id)
+
+  if (unpaidIds.length > 0) {
+    const paidSubs = await Subscription.find({
+      businessId: { $in: unpaidIds },
+      status: { $in: ['active', 'trialing'] },
+    })
+      .select('businessId planId')
+      .lean()
+
+    if (paidSubs.length > 0) {
+      const paidByBusiness = new Map(
+        paidSubs.map((sub) => [String(sub.businessId), sub]),
+      )
+
+      await Promise.all(
+        paidSubs.map((sub) =>
+          Business.findByIdAndUpdate(sub.businessId, {
+            hasActiveSubscription: true,
+            ...(sub.planId ? { plan: sub.planId } : {}),
+          }),
+        ),
+      )
+
+      for (const business of result as any[]) {
+        const paid = paidByBusiness.get(String(business._id))
+        if (paid) {
+          business.hasActiveSubscription = true
+          if (paid.planId) business.plan = paid.planId
+        }
+      }
+    }
+  }
 
   return {
     meta,

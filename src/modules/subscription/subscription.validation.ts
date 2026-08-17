@@ -103,6 +103,12 @@ export const createCheckoutSessionSchema = z.object({
   }),
 })
 
+export const verifyCheckoutSessionSchema = z.object({
+  query: z.object({
+    sessionId: z.string().min(1, 'Checkout session ID is required'),
+  }),
+})
+
 // Query Validation
 export const getPlansQuerySchema = z.object({
   query: z.object({}),
@@ -199,6 +205,7 @@ export const subscriptionValidation = {
   createSubscription: createSubscriptionSchema,
   updateSubscription: updateSubscriptionSchema,
   createCheckoutSession: createCheckoutSessionSchema,
+  verifyCheckoutSession: verifyCheckoutSessionSchema,
   getPlansQuery: getPlansQuerySchema,
   subscriptionParams: subscriptionParamsSchema,
   planParams: planParamsSchema,

@@ -210,6 +210,20 @@ const updatePlace = async (
       )
     }
 
+    const nextMedia = Array.isArray(payload.media)
+      ? payload.media.filter(Boolean)
+      : undefined
+    if (nextMedia) {
+      payload.media = nextMedia.length > 0 ? nextMedia : isExist.media
+    }
+
+    const nextMenu = Array.isArray(payload.menuImages)
+      ? payload.menuImages.filter(Boolean)
+      : undefined
+    if (nextMenu) {
+      payload.menuImages = nextMenu.length > 0 ? nextMenu : isExist.menuImages
+    }
+
     const result = await Place.findByIdAndUpdate(id, payload, {
       new: true,
       runValidators: true,

@@ -11,6 +11,10 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import axios from 'axios';
+import {
+  downloadImageToUploads,
+  isRemoteManagedImage,
+} from '../utils/remoteImage';
 
 dotenv.config();
 
@@ -38,7 +42,7 @@ const Place = mongoose.model('Place', PlaceSchema, 'places');
  */
 function isGooglePrivateUrl(url: string): boolean {
   return (
-    url.includes('mymaps.usercontent.google.com') ||
+    isRemoteManagedImage(url) ||
     url.includes('authuser=') ||
     url.includes('fife=s') ||
     url.startsWith('/images/')
@@ -53,13 +57,31 @@ function needsFix(media: string[]): boolean {
   return media.some((url) => isGooglePrivateUrl(url));
 }
 
+/** দুই coordinate এর দূরত্ব (km) — haversine */
+function distanceKm(
+  [lng1, lat1]: [number, number],
+  [lng2, lat2]: [number, number],
+): number {
+  const toRad = (value: number) => (value * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 6371 * 2 * Math.asin(Math.sqrt(a));
+}
+
+/** এর বেশি দূরের Google result নিলে অন্য জায়গার ছবি ঢুকে যেতে পারে */
+const MAX_MATCH_DISTANCE_KM = 3;
+
 /**
  * Google Places API → Text Search → Place Photos
- * Place এর নাম দিয়ে search করে photo URL return করে
+ * Place এর নাম দিয়ে search করে photo download করে local path return করে
  */
 async function fetchGooglePlacePhotos(
   placeName: string,
   country: string,
+  coordinates: [number, number] | null,
   maxPhotos = 3,
 ): Promise<string[]> {
   try {
@@ -70,6 +92,9 @@ async function fetchGooglePlacePhotos(
         params: {
           query: `${placeName} ${country}`,
           key: GOOGLE_API_KEY,
+          ...(coordinates
+            ? { location: `${coordinates[1]},${coordinates[0]}`, radius: 20000 }
+            : {}),
         },
         timeout: 10000,
       },
@@ -81,7 +106,27 @@ async function fetchGooglePlacePhotos(
       return [];
     }
 
-    const placeId = results[0].place_id;
+    // Coordinate থাকলে কাছের result-ই নেব, নইলে ভুল জায়গার ছবি বসে যাবে
+    let match = results[0];
+    if (coordinates) {
+      match = results.find((result: any) => {
+        const point = result?.geometry?.location;
+        if (!point) return false;
+        return (
+          distanceKm(coordinates, [point.lng, point.lat]) <=
+          MAX_MATCH_DISTANCE_KM
+        );
+      });
+
+      if (!match) {
+        console.log(
+          `  ⚠️  Nearest Google result is too far for: "${placeName}"`,
+        );
+        return [];
+      }
+    }
+
+    const placeId = match.place_id;
 
     // Step 2: Place Details দিয়ে photos নিই
     const detailsRes = await axios.get(
@@ -102,13 +147,18 @@ async function fetchGooglePlacePhotos(
       return [];
     }
 
-    // Step 3: Photo Reference থেকে actual photo URL তৈরি করি
+    // Step 3: Photo download করে নিজের server এ রাখি।
+    // Google photo URL সরাসরি DB তে রাখলে browser এ load হয় না —
+    // ওই link এ server API key থাকে আর photo_reference expire করে।
     const photoUrls: string[] = [];
     const photosToFetch = photos.slice(0, maxPhotos);
 
     for (const photo of photosToFetch) {
       const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${photo.photo_reference}&key=${GOOGLE_API_KEY}`;
-      photoUrls.push(photoUrl);
+      const localPath = await downloadImageToUploads(photoUrl);
+      if (localPath) {
+        photoUrls.push(localPath);
+      }
     }
 
     return photoUrls;
@@ -156,12 +206,17 @@ async function fixPlaceImages() {
     const place = placesNeedingFix[i];
     const name = place.name as string;
     const country = (place.country as string) || 'Puerto Rico';
+    const rawCoordinates = (place as any).location?.coordinates;
+    const coordinates =
+      Array.isArray(rawCoordinates) && rawCoordinates.length === 2
+        ? ([rawCoordinates[0], rawCoordinates[1]] as [number, number])
+        : null;
 
     console.log(
       `[${i + 1}/${placesNeedingFix.length}] 🔍 Searching: "${name}"`,
     );
 
-    const photoUrls = await fetchGooglePlacePhotos(name, country, 3);
+    const photoUrls = await fetchGooglePlacePhotos(name, country, coordinates, 3);
 
     if (photoUrls.length > 0) {
       await Place.findByIdAndUpdate(place._id, {

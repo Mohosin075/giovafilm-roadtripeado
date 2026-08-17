@@ -745,10 +745,15 @@ class SubscriptionService {
         stripeCustomerId = stripeCustomer.id
       }
 
+      const sessionIdJoin = successUrl.includes('?') ? '&' : '?'
+      const successUrlWithSession = successUrl.includes('{CHECKOUT_SESSION_ID}')
+        ? successUrl
+        : `${successUrl}${sessionIdJoin}session_id={CHECKOUT_SESSION_ID}`
+
       const session = await stripeService.createCheckoutSession({
         customerId: stripeCustomerId,
         priceId: plan.stripePriceId,
-        successUrl,
+        successUrl: successUrlWithSession,
         cancelUrl,
         trialPeriodDays: trialInfo.isEligible
           ? plan.trialPeriodDays
@@ -770,6 +775,146 @@ class SubscriptionService {
       throw new ApiError(
         StatusCodes.INTERNAL_SERVER_ERROR,
         'Failed to create checkout session',
+      )
+    }
+  }
+
+  async verifyCheckoutSession(userId: string, sessionId: string) {
+    try {
+      const session = await stripeService.getCheckoutSession(sessionId)
+
+      if (session.mode !== 'subscription') {
+        throw new ApiError(
+          StatusCodes.BAD_REQUEST,
+          'This checkout is not a business subscription',
+        )
+      }
+
+      const sessionUserId = session.metadata?.userId
+      if (sessionUserId && sessionUserId !== userId) {
+        throw new ApiError(
+          StatusCodes.FORBIDDEN,
+          'This checkout does not belong to you',
+        )
+      }
+
+      if (session.status !== 'complete') {
+        throw new ApiError(
+          StatusCodes.BAD_REQUEST,
+          'Checkout is not complete yet',
+        )
+      }
+
+      if (!session.subscription) {
+        throw new ApiError(
+          StatusCodes.BAD_REQUEST,
+          'No subscription was created for this checkout',
+        )
+      }
+
+      const stripeSubscription = await stripeService.getSubscription(
+        session.subscription as string,
+      )
+
+      const businessId =
+        stripeSubscription.metadata?.businessId || session.metadata?.businessId
+      if (!businessId) {
+        throw new ApiError(
+          StatusCodes.BAD_REQUEST,
+          'No business is attached to this checkout',
+        )
+      }
+
+      const business = await Business.findOne({
+        _id: businessId,
+        user: userId,
+      })
+      if (!business) {
+        throw new ApiError(
+          StatusCodes.NOT_FOUND,
+          'Business not found or does not belong to you',
+        )
+      }
+
+      const priceId =
+        typeof stripeSubscription.items.data[0].price === 'string'
+          ? stripeSubscription.items.data[0].price
+          : stripeSubscription.items.data[0].price.id
+
+      const plan =
+        (await SubscriptionPlan.findOne({ stripePriceId: priceId })) ||
+        (session.metadata?.planId
+          ? await SubscriptionPlan.findById(session.metadata.planId)
+          : null)
+
+      if (!plan) {
+        throw new ApiError(
+          StatusCodes.NOT_FOUND,
+          'Subscription plan not found for this checkout',
+        )
+      }
+
+      const subscriptionItem = stripeSubscription.items.data[0]
+      const currentPeriodStart =
+        (stripeSubscription as any).current_period_start ||
+        (subscriptionItem as any).current_period_start
+      const currentPeriodEnd =
+        (stripeSubscription as any).current_period_end ||
+        (subscriptionItem as any).current_period_end
+
+      const isActive =
+        ['active', 'trialing'].includes(stripeSubscription.status) ||
+        session.payment_status === 'no_payment_required' ||
+        session.payment_status === 'paid'
+
+      await Subscription.findOneAndUpdate(
+        { stripeSubscriptionId: stripeSubscription.id },
+        {
+          userId: new Types.ObjectId(userId),
+          businessId: new Types.ObjectId(businessId),
+          planId: plan._id,
+          stripeCustomerId: stripeSubscription.customer as string,
+          stripeSubscriptionId: stripeSubscription.id,
+          stripePriceId: priceId,
+          status: stripeSubscription.status,
+          currentPeriodStart: currentPeriodStart
+            ? new Date(currentPeriodStart * 1000)
+            : new Date(),
+          currentPeriodEnd: currentPeriodEnd
+            ? new Date(currentPeriodEnd * 1000)
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          trialStart: stripeSubscription.trial_start
+            ? new Date(stripeSubscription.trial_start * 1000)
+            : null,
+          trialEnd: stripeSubscription.trial_end
+            ? new Date(stripeSubscription.trial_end * 1000)
+            : null,
+          hasUsedTrial: !!stripeSubscription.trial_start,
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true },
+      )
+
+      await Business.findByIdAndUpdate(businessId, {
+        hasActiveSubscription: isActive,
+        plan: plan._id,
+      })
+
+      await User.findByIdAndUpdate(userId, {
+        stripeCustomerId: session.customer as string,
+        ...(stripeSubscription.trial_start ? { trialUsed: true } : {}),
+      })
+
+      return {
+        businessId,
+        status: stripeSubscription.status,
+        hasActiveSubscription: isActive,
+      }
+    } catch (error) {
+      if (error instanceof ApiError) throw error
+      console.error('Error verifying checkout session:', error)
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to verify checkout session',
       )
     }
   }

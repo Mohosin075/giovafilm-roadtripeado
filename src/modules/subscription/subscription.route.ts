@@ -72,6 +72,13 @@ router.post(
   SubscriptionController.createCheckoutSession,
 )
 
+router.get(
+  '/verify-checkout',
+  auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN),
+  validateRequest(subscriptionValidation.verifyCheckoutSession),
+  SubscriptionController.verifyCheckoutSession,
+)
+
 router.post(
   '/:subscriptionId/reactivate',
   auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN),

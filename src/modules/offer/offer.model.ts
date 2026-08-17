@@ -23,6 +23,7 @@ const OfferSchema = new Schema<IOffer, OfferModel>(
     validUntil: { type: Date, required: false },
     noExpiration: { type: Boolean, default: false },
     maxRedemptions: { type: Number },
+    totalRedemptionLimit: { type: Number },
     redemptionRules: { type: [String], default: [] },
     buttonLabel: { type: String, default: 'Redeem Offer' },
     redemptionDuration: { type: Number, default: 5 }, // Default to 5 minutes

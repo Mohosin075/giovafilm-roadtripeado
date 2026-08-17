@@ -159,12 +159,31 @@ const redeemOffer = async (id: string, userId: string) => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Offer is not active')
   }
 
-  // Check if maxRedemptions is reached
-  if (offer.maxRedemptions && offer.redemptionsCount >= offer.maxRedemptions) {
+  // Optional cap across every user
+  if (
+    offer.totalRedemptionLimit &&
+    offer.redemptionsCount >= offer.totalRedemptionLimit
+  ) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
       'Offer redemption limit reached',
     )
+  }
+
+  // maxRedemptions is per user, not global
+  if (offer.maxRedemptions) {
+    const userRedemptions = await OfferRedemption.countDocuments({
+      user: userId,
+      offer: id,
+    })
+    if (userRedemptions >= offer.maxRedemptions) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        offer.maxRedemptions === 1
+          ? 'You have already redeemed this offer'
+          : `You can redeem this offer only ${offer.maxRedemptions} times`,
+      )
+    }
   }
 
   // Check expiration date

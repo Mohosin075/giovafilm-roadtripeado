@@ -67,7 +67,9 @@ const getUploadExtension = (file: Express.Multer.File): string => {
   return MIME_EXTENSION[file.mimetype] || file.mimetype.split('/')[1] || 'bin'
 }
 
-const applyFormat = (instance: sharp.Sharp, mimetype: string) => {
+type SharpInstance = ReturnType<typeof sharp>
+
+const applyFormat = (instance: SharpInstance, mimetype: string) => {
   if (mimetype === 'image/png') return instance.png({ quality: 80, compressionLevel: 6 })
   if (mimetype === 'image/webp') return instance.webp({ quality: 80 })
   return instance.jpeg({ quality: 80, mozjpeg: true })

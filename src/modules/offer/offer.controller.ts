@@ -166,10 +166,17 @@ const getOfferById = catchAsync(async (req: Request, res: Response) => {
       expiresAt: { $gt: new Date() },
     })
 
+    // Lets the client disable the button before the user hits a rejected redeem
+    const userRedemptionCount = await OfferRedemption.countDocuments({
+      user: user._id,
+      offer: id,
+    })
+
     const offerObj = typeof result.toObject === 'function' ? result.toObject() : result
     result = {
       ...offerObj,
       activeRedemption,
+      userRedemptionCount,
     }
   }
 

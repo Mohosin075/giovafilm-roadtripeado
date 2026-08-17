@@ -14,7 +14,8 @@ export interface IOffer {
   validFrom?: Date
   validUntil?: Date
   noExpiration?: boolean
-  maxRedemptions?: number
+  maxRedemptions?: number // How many times a single user may redeem
+  totalRedemptionLimit?: number // Optional cap across all users
   redemptionRules?: string[]
   buttonLabel?: string
   redemptionDuration?: number // Duration in minutes, e.g., 15

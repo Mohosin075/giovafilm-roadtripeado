@@ -167,7 +167,7 @@ Batch F: Users
 on Map• buttons, as it clutters the area, and the reviews section belongs in the area below. solved
 2. The map icons are still the same. I would remove the colored line and only leave the existing white
 line next to the icon so that the icon is more visible. solved
-3. The photos of the places are still not visible.
+3. The photos of the places are still not visible. solved
 4. If they haven't logged in or created an account. they can't see the map or any other page. only the
 landing page. solved
 5. When you type something into the search bar and click search or simply press "entera anywhere

@@ -1,0 +1,607 @@
+[
+  {
+    "_id": "69ebd7c8668604cc975235ce",
+    "name": "Pa Onde Sea",
+    "map": "69e912c3668604cc97522d2a",
+    "category": "69e908033c17a1b9794349e3",
+    "description": "El mejor restaurante de Carolina",
+    "media": [
+      "/uploads/images/1786943753669-r7k6rxyz46m.jpg",
+      "/uploads/images/1786943757479-hqfvyrh0voc.png",
+      "/uploads/images/1786943758302-kkiev1155ud.jpg"
+    ],
+    "address": "Carolina, Puerto Rico",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -65.96554038187807,
+        18.394553828761193
+      ]
+    },
+    "accessibility": {
+      "features": [],
+      "notes": ""
+    },
+    "services": [],
+    "status": "Published",
+    "rating": 0,
+    "totalReview": 0,
+    "openCount": 1,
+    "createdAt": "2026-04-24T20:51:20.174Z",
+    "updatedAt": "2026-08-17T05:23:15.045Z",
+    "__v": 0,
+    "type": "Business",
+    "difficulty": "Easy",
+    "menuImages": []
+  },
+  {
+    "_id": "6a400ffe4f5c84ad3becfa2b",
+    "name": "Playa Escambron",
+    "map": "69e912c3668604cc97522d2a",
+    "category": "69dbca53351b45d201a4bec8",
+    "type": "Regular",
+    "country": "Puerto Rico",
+    "description": "Descripcion corta de escambron",
+    "media": [
+      "/uploads/images/1786943784652-3bvi15cqvuh.jpg",
+      "/uploads/images/1786943785362-orqsg9v5vs.jpg",
+      "/uploads/images/1786943785938-6mosszfcbe.jpg"
+    ],
+    "address": "San Juan, Puerto Rico",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -66.0897634866516,
+        18.467030921979312
+      ]
+    },
+    "access": "Long description of Escambron",
+    "accessibility": {
+      "features": [
+        "wheelchair",
+        "children",
+        "pets",
+        "senior"
+      ],
+      "notes": "Notas de Escambron"
+    },
+    "recommendations": {
+      "tips": "Description of recommendations"
+    },
+    "services": [
+      "Parking",
+      "Restrooms",
+      "Family Friendly",
+      "Pet Friendly",
+      "Food Nearby"
+    ],
+    "schedules": "Always open",
+    "entryCost": "0",
+    "difficulty": "Easy",
+    "hikeTime": "0",
+    "atmosphere": "Relax",
+    "status": "Published",
+    "rating": 0,
+    "totalReview": 0,
+    "openCount": 0,
+    "createdAt": "2026-06-27T18:01:34.333Z",
+    "updatedAt": "2026-08-09T09:25:05.087Z",
+    "__v": 0,
+    "menuImages": []
+  },
+  {
+    "_id": "6a024a76d5f1a69dce5ad51c",
+    "name": "Ruinas de Caparra",
+    "map": "69e912c3668604cc97522d2a",
+    "category": "6a024a70d5f1a69dce5ad4bd",
+    "country": "Puerto Rico",
+    "description": "Desde la verja podras ver lo que fue una de las primera fortificacion espanola en Puerto Rico. Lamentablemente lo que queda es una tristeza.",
+    "media": [
+      "/uploads/images/1786939741508-2w7ivp6q8ds.jpg",
+      "/uploads/images/1786939741976-snyy64yl2lp.jpg",
+      "/uploads/images/1786939742277-uwn9sgedy1r.jpg"
+    ],
+    "address": "Puerto Rico",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -66.1137673,
+        18.4051404
+      ]
+    },
+    "status": "Published",
+    "difficulty": "Easy",
+    "createdAt": "2026-05-11T21:30:30.322Z",
+    "updatedAt": "2026-08-09T09:06:51.334Z",
+    "__v": 0,
+    "type": "Regular",
+    "services": [],
+    "rating": 0,
+    "totalReview": 0,
+    "openCount": 0,
+    "accessibility": {
+      "features": [],
+      "notes": ""
+    },
+    "access": "El lugar siempre esta cerrado pero lo puedes ver desde la calle.",
+    "recommendations": {
+      "tips": "Cuidado con los vehiculos en la avenida."
+    }
+  },
+  {
+    "_id": "69fce9ae847bc2c2f6a87f9e",
+    "name": "Manantial de Guayaney",
+    "map": "69e912c3668604cc97522d2a",
+    "category": "69d802e4805480b37ddf6c84",
+    "country": "Puerto Rico",
+    "description": "Podras respirar pura naturaleza mientras caminas por la vereda y al llegar al manantial, te sorprendera ver las aguas cristalinas.",
+    "media": [
+      "/uploads/images/1778182572372-8ghcbi.jpg"
+    ],
+    "address": "Manati, Puerto Rico",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -66.4445222,
+        18.4530586
+      ]
+    },
+    "accessibility": {
+      "features": [
+        "children",
+        "pets",
+        "senior"
+      ],
+      "notes": ""
+    },
+    "services": [],
+    "schedules": "Always open",
+    "entryCost": "0",
+    "difficulty": "Easy",
+    "hikeTime": "15",
+    "atmosphere": "Relajado",
+    "status": "Published",
+    "rating": 0,
+    "totalReview": 0,
+    "openCount": 0,
+    "createdAt": "2026-05-07T19:36:14.467Z",
+    "updatedAt": "2026-08-09T09:14:29.647Z",
+    "__v": 0,
+    "type": "Regular",
+    "access": "Hay un pequeno espacio de estacionamiento donde caben 2 a 3 vehiculos y para llegar caminas unos 15 a 20 minutos por una vereda llana que queda literalmente al lado de la carretera. Entras por la vereda y en la \"Y\" giras a la derecha, continuas directo y luego de unos 12 minutos aproximadamente, doblaras al primer camino a la derecha donde veras el manantial desde arriba.",
+    "recommendations": {
+      "tips": "Cuidado al Bajar al manantial y no tiren basura, mantengan el area limpia."
+    }
+  },
+  {
+    "_id": "6a024a1cd5f1a69dce5acf44",
+    "name": "Playa Brava",
+    "map": "69e912c3668604cc97522d2a",
+    "category": "6a0249fdd5f1a69dce5acd1d",
+    "country": "Puerto Rico",
+    "description": "AVISO: Este lugar aun no tiene informacion disponible en el mapa de Roadtripeado. Pronto estaremos actualizando los detalles. Si decides visitarlo, te recomendamos orientarte bien antes de ir. La visita es bajo tu propio riesgo y responsabilidad.",
+    "media": [
+      "/uploads/images/1786943012500-ihzyhjyge9.jpg",
+      "/uploads/images/1786943013066-iq60i3mwwqg.jpg",
+      "/uploads/images/1786943013567-e4c1bnu308k.jpg"
+    ],
+    "address": "Puerto Rico",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -65.2857131,
+        18.3305111
+      ]
+    },
+    "status": "Published",
+    "difficulty": "Easy",
+    "createdAt": "2026-05-11T21:29:00.766Z",
+    "updatedAt": "2026-08-09T09:11:56.869Z",
+    "__v": 0,
+    "type": "Regular",
+    "services": [],
+    "rating": 0,
+    "totalReview": 0,
+    "openCount": 0,
+    "accessibility": {
+      "features": [],
+      "notes": ""
+    },
+    "menuImages": []
+  },
+  {
+    "_id": "6a024a21d5f1a69dce5acf94",
+    "name": "Playa Sardinera",
+    "map": "69e912c3668604cc97522d2a",
+    "category": "6a0249fdd5f1a69dce5acd1d",
+    "country": "Puerto Rico",
+    "description": "La playa cuenta con bohios, banquitos y zafacones, perfecta para disfrutar en familia ya que tiene un muro natural de piedra que cubre de olas y corrientes fuertes.",
+    "media": [
+      "/uploads/images/1786938655237-hwlijdgv3rf.jpg",
+      "/uploads/images/1786938655717-88f0cnl4kpy.jpg",
+      "/uploads/images/1786938656028-v967m98j5to.jpg"
+    ],
+    "address": "Puerto Rico",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -66.7934203,
+        18.4919313
+      ]
+    },
+    "status": "Published",
+    "difficulty": "Easy",
+    "createdAt": "2026-05-11T21:29:05.371Z",
+    "updatedAt": "2026-08-09T09:11:37.305Z",
+    "__v": 0,
+    "type": "Regular",
+    "services": [],
+    "rating": 0,
+    "totalReview": 0,
+    "openCount": 0,
+    "accessibility": {
+      "features": [],
+      "notes": ""
+    },
+    "access": "Cuenta con estacionamiento y acceso para impedidos.",
+    "recommendations": {
+      "tips": "Cuida el lugar y llevate tu basura."
+    }
+  },
+  {
+    "_id": "6a024a28d5f1a69dce5ad00f",
+    "name": "Cueva de las Golondrinas",
+    "map": "69e912c3668604cc97522d2a",
+    "category": "6a024a21d5f1a69dce5acf98",
+    "country": "Puerto Rico",
+    "description": "AVISO: Este lugar aun no tiene informacion disponible en el mapa de Roadtripeado. Pronto estaremos actualizando los detalles. Si decides visitarlo, te recomendamos orientarte bien antes de ir. La visita es bajo tu propio riesgo y responsabilidad.",
+    "media": [
+      "/uploads/images/1786943024628-ohuoyaai08l.jpg",
+      "/uploads/images/1786943025030-ukjko76zdr.jpg",
+      "/uploads/images/1786943025432-6wko7b00psg.jpg"
+    ],
+    "address": "Puerto Rico",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -66.5188184,
+        18.3180934
+      ]
+    },
+    "status": "Published",
+    "difficulty": "Easy",
+    "createdAt": "2026-05-11T21:29:12.352Z",
+    "updatedAt": "2026-08-09T09:11:06.676Z",
+    "__v": 0,
+    "type": "Regular",
+    "services": [],
+    "rating": 0,
+    "totalReview": 0,
+    "openCount": 0,
+    "accessibility": {
+      "features": [],
+      "notes": ""
+    },
+    "menuImages": []
+  },
+  {
+    "_id": "6a024a44d5f1a69dce5ad1d2",
+    "name": "Explotion Pizza #2",
+    "map": "69e912c3668604cc97522d2a",
+    "category": "69d802fe805480b37ddf6c89",
+    "country": "Puerto Rico",
+    "description": "NOTA: Este pin es una recomendacion incluida en el mapa de Roadtripeado. Para ver fotos, menu, horarios o resenas actualizadas, te recomendamos visitar directamente el pin oficial del restaurante en Google Maps.",
+    "media": [
+      "/uploads/images/1786939108615-u0t94bx5pnp.jpg",
+      "/uploads/images/1786939109366-rdwbcgv507.jpg",
+      "/uploads/images/1786939110111-bewrhspavqo.jpg"
+    ],
+    "address": "Puerto Rico",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -66.031214,
+        18.4118572
+      ]
+    },
+    "status": "Published",
+    "difficulty": "Easy",
+    "createdAt": "2026-05-11T21:29:40.024Z",
+    "updatedAt": "2026-08-09T09:09:09.331Z",
+    "__v": 0,
+    "access": "",
+    "accessibility": {
+      "features": [],
+      "notes": ""
+    },
+    "atmosphere": "relax",
+    "entryCost": "",
+    "hikeTime": "",
+    "recommendations": {
+      "tips": ""
+    },
+    "schedules": "",
+    "services": [],
+    "type": "Regular",
+    "rating": 0,
+    "totalReview": 0,
+    "openCount": 0
+  },
+  {
+    "_id": "6a024a96d5f1a69dce5ad750",
+    "name": "Iglesia vieja",
+    "map": "69e912c3668604cc97522d2a",
+    "category": "6a024a70d5f1a69dce5ad4bd",
+    "country": "Puerto Rico",
+    "description": "Esta iglesia, construida en 1931, es una estructura abandonada que ha sido parcialmente cubierta por la vegetacion del bosque seco subtropical. Su arquitectura y estado actual le confieren un aspecto mistico y pintoresco, atrayendo a fotografos y exploradores urbanos. El sitio es parte de un area que ha sido revitalizada por voluntarios y entusiastas del ciclismo de montana.",
+    "media": [
+      "/uploads/images/1786940181287-078kloxwu95a.jpg",
+      "/uploads/images/1786940181600-zc8ok3xwr3f.jpg",
+      "/uploads/images/1786940182079-ktopbnji9yo.jpg"
+    ],
+    "address": "Puerto Rico",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -67.1817137,
+        18.1656578
+      ]
+    },
+    "status": "Published",
+    "difficulty": "Easy",
+    "createdAt": "2026-05-11T21:31:02.760Z",
+    "updatedAt": "2026-08-09T09:25:29.704Z",
+    "__v": 0,
+    "type": "Regular",
+    "services": [],
+    "rating": 0,
+    "totalReview": 0,
+    "openCount": 0,
+    "accessibility": {
+      "features": [],
+      "notes": ""
+    },
+    "access": "The church is located within the Monte Pirata Bike Park, on the grounds of the former Juvenile Correctional Prison. Access is by vehicle to a nearby point, followed by a moderate walk along natural trails. It is recommended to wear appropriate footwear and water.",
+    "recommendations": {
+      "tips": "Ideal for lovers of history, photography and exploration. It is recommended to visit during the day and with caution, as the terrain can be uneven and slippery, especially after rain. Bringing a camera to capture the uniqueness of the place is highly recommended."
+    }
+  },
+  {
+    "_id": "6a024a86d5f1a69dce5ad634",
+    "name": "Parroquia San Germán de Auxerre",
+    "map": "69e912c3668604cc97522d2a",
+    "category": "6a024a70d5f1a69dce5ad4bd",
+    "country": "Puerto Rico",
+    "description": "Encontre la Parroquia San German de Auxerre gracias a este mapa de roadtrips, y es uno de esos lugares que se sienten sagrados desde que los ves. Esta iglesia fue fundada en 1511 y es considerada la segunda parroquia mas antigua de Puerto Rico. Su estructura actual data del siglo XVIII, y al entrar, todo te habla de",
+    "media": [
+      "/uploads/images/1786939958822-2zgik26cgj4.jpg",
+      "/uploads/images/1786939959227-iacsgl1nmne.jpg",
+      "/uploads/images/1786939959618-8wtb2orhox6.jpg"
+    ],
+    "address": "Puerto Rico",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -67.043888,
+        18.082353
+      ]
+    },
+    "status": "Published",
+    "difficulty": "Easy",
+    "createdAt": "2026-05-11T21:30:46.433Z",
+    "updatedAt": "2026-08-09T09:39:20.419Z",
+    "__v": 0,
+    "type": "Regular",
+    "services": [],
+    "rating": 0,
+    "totalReview": 0,
+    "openCount": 0,
+    "accessibility": {
+      "features": [],
+      "notes": ""
+    },
+    "access": "It is right in front of the main square of San German. You can easily get there by car and park nearby. Admission is free and normally open to the public.",
+    "recommendations": {
+      "tips": "He enters quietly and observes every corner. If you like history or colonial architecture, this is a must."
+    }
+  },
+  {
+    "_id": "6a024a88d5f1a69dce5ad658",
+    "name": "Parroquia San Antonio de Padua",
+    "map": "69e912c3668604cc97522d2a",
+    "category": "6a024a70d5f1a69dce5ad4bd",
+    "country": "Puerto Rico",
+    "description": "Entrar a esta iglesia es como viajar al pasado. Desde los bancos de madera hasta los vitrales y su campanario, todo tiene historia. Muchas fueron construidas en los siglos XVIII o XIX, y han sido testigo de generaciones de bautizos, bodas y tradiciones. El ambiente es solemne y lleno de detalles arquitectonicos que te transportan.",
+    "media": [
+      "/uploads/images/1786939982735-jmjbjb4udp.jpg",
+      "/uploads/images/1786939983051-5f70sryu7ol.jpg",
+      "/uploads/images/1786939983358-n4orrrfw7t.jpg"
+    ],
+    "address": "Puerto Rico",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -67.023078,
+        18.501031
+      ]
+    },
+    "status": "Published",
+    "difficulty": "Easy",
+    "createdAt": "2026-05-11T21:30:48.508Z",
+    "updatedAt": "2026-08-09T09:38:59.986Z",
+    "__v": 0,
+    "type": "Regular",
+    "services": [],
+    "rating": 0,
+    "totalReview": 0,
+    "openCount": 0,
+    "accessibility": {
+      "features": [],
+      "notes": ""
+    },
+    "access": "This church is located right in front of the town's main square, so you can get there by car and park nearby. Access is free, though sometimes only open during mass hours or special activities.",
+    "recommendations": {
+      "tips": "Visit with respect, even if you're not religious. It is perfect for photos, reflection or simply to appreciate the living history of the town. And since you're here, take the opportunity to walk through the square, which is usually full of local culture."
+    }
+  },
+  {
+    "_id": "6a024a88d5f1a69dce5ad650",
+    "name": "Parroquia San Antonio de Padua",
+    "map": "69e912c3668604cc97522d2a",
+    "category": "6a024a70d5f1a69dce5ad4bd",
+    "country": "Puerto Rico",
+    "description": "Entrar a esta iglesia es como viajar al pasado. Desde los bancos de madera hasta los vitrales y su campanario, todo tiene historia. Muchas fueron construidas en los siglos XVIII o XIX, y han sido testigo de generaciones de bautizos, bodas y tradiciones. El ambiente es solemne y lleno de detalles arquitectonicos que te transportan.",
+    "media": [
+      "/uploads/images/1786939980233-8idab8rmsc8.jpg",
+      "/uploads/images/1786939980625-mhqbxvutbvf.jpg",
+      "/uploads/images/1786939980937-t830cfl2sl.jpg"
+    ],
+    "address": "Puerto Rico",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -67.023078,
+        18.501031
+      ]
+    },
+    "status": "Published",
+    "difficulty": "Easy",
+    "createdAt": "2026-05-11T21:30:48.035Z",
+    "updatedAt": "2026-08-09T09:39:03.945Z",
+    "__v": 0,
+    "type": "Regular",
+    "services": [],
+    "rating": 0,
+    "totalReview": 0,
+    "openCount": 0,
+    "accessibility": {
+      "features": [],
+      "notes": ""
+    },
+    "access": "This church is located right in front of the town's main square, so you can get there by car and park nearby. Access is free, though sometimes only open during mass hours or special activities.",
+    "recommendations": {
+      "tips": "Visit with respect, even if you're not religious. It is perfect for photos, reflection or simply to appreciate the living history of the town. And since you're here, take the opportunity to walk through the square, which is usually full of local culture."
+    }
+  },
+  {
+    "_id": "6a024a8bd5f1a69dce5ad694",
+    "name": "Parroquia Nuestra Señora del Carmen",
+    "map": "69e912c3668604cc97522d2a",
+    "category": "6a024a70d5f1a69dce5ad4bd",
+    "country": "Puerto Rico",
+    "description": "Podras apreciar la arquitectura de esta estructura historica junto a la plaza del pueblo y su ambiente segun el dia que la visites.",
+    "media": [
+      "/uploads/images/1786940033730-00stap4xjpcnf.jpg",
+      "/uploads/images/1786940034035-9teypn5c9o4.jpg",
+      "/uploads/images/1786940034332-4l4wgooodz2.jpg"
+    ],
+    "address": "Puerto Rico",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -65.8295417,
+        18.380755
+      ]
+    },
+    "status": "Published",
+    "difficulty": "Easy",
+    "createdAt": "2026-05-11T21:30:51.988Z",
+    "updatedAt": "2026-08-09T09:38:28.002Z",
+    "__v": 0,
+    "type": "Regular",
+    "services": [],
+    "rating": 0,
+    "totalReview": 0,
+    "openCount": 0,
+    "accessibility": {
+      "features": [],
+      "notes": ""
+    },
+    "access": "The Church is in the same town square and you are looking for parking in a white line.",
+    "recommendations": {
+      "tips": "Do not park in a yellow line to avoid fines and take care of the place."
+    }
+  },
+  {
+    "_id": "6a65ab485e37b71d1ca72df6",
+    "name": "sdf",
+    "map": "69e93d53668604cc97522f47",
+    "category": "6a024a6ad5f1a69dce5ad44a",
+    "type": "Business",
+    "country": "Dominican Republic",
+    "description": "sdf",
+    "media": [
+      "/uploads/images/1785047879949-6yxg6o.jpg"
+    ],
+    "address": "7J82+3C El Dajou, Dominican Republic",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -71.39897589843751,
+        19.265210066553514
+      ]
+    },
+    "access": "",
+    "accessibility": {
+      "features": [],
+      "notes": ""
+    },
+    "recommendations": {
+      "tips": ""
+    },
+    "services": [],
+    "schedules": "",
+    "entryCost": "",
+    "difficulty": "Easy",
+    "hikeTime": "",
+    "atmosphere": "",
+    "status": "Published",
+    "rating": 0,
+    "totalReview": 0,
+    "openCount": 1,
+    "createdAt": "2026-07-26T06:38:00.403Z",
+    "updatedAt": "2026-08-15T09:03:37.459Z",
+    "__v": 0
+  },
+  {
+    "_id": "6a65ac6a5e37b71d1ca72e50",
+    "name": "sdf",
+    "map": "69e93d53668604cc97522f47",
+    "category": "69ecfef107e42b9b2e865e7d",
+    "type": "Business",
+    "country": "Dominican Republic",
+    "description": "sdfsd",
+    "media": [
+      "/uploads/images/1785048170005-bfl9ft.jpg"
+    ],
+    "address": "PGRR+74 Banilejo, Dominican Republic",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -70.45964484375001,
+        18.74063879876727
+      ]
+    },
+    "access": "",
+    "accessibility": {
+      "features": [],
+      "notes": ""
+    },
+    "recommendations": {
+      "tips": ""
+    },
+    "services": [],
+    "schedules": "",
+    "entryCost": "",
+    "difficulty": "Easy",
+    "hikeTime": "",
+    "atmosphere": "",
+    "status": "Published",
+    "rating": 0,
+    "totalReview": 0,
+    "openCount": 4,
+    "createdAt": "2026-07-26T06:42:50.425Z",
+    "updatedAt": "2026-08-16T03:35:11.315Z",
+    "__v": 0
+  }
+]

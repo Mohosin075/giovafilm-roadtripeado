@@ -220,7 +220,8 @@ const DISCOVERY_MAX_FETCH = 2000
 
 const getDiscoveryData = async (
   query: Record<string, unknown>,
-  lockedMapIds?: string[]
+  lockedMapIds?: string[],
+  isAdminOrEditor = false
 ) => {
   const page = Number(query.page) || 1
   const limit = Number(query.limit) || 10
@@ -245,11 +246,17 @@ const getDiscoveryData = async (
   }
 
   // 3. Handle "status" default if not provided
-  if (!placeQueryObj.status) placeQueryObj.status = 'Published'
-  if (!businessQueryObj.status) businessQueryObj.status = 'Approved'
+  if (!placeQueryObj.status) {
+    placeQueryObj.status = isAdminOrEditor ? { $in: ['Draft', 'Published'] } : 'Published'
+  }
+  if (!businessQueryObj.status) {
+    businessQueryObj.status = isAdminOrEditor ? { $in: ['Pending', 'Approved', 'Rejected'] } : 'Approved'
+  }
   
   // 4. Enforce that businesses must have an active subscription to show on the map
-  businessQueryObj.hasActiveSubscription = true
+  if (!isAdminOrEditor) {
+    businessQueryObj.hasActiveSubscription = true
+  }
 
   // Marker/list fields only — detail (media/hours/privateInfo) comes from place/business by id
   const placeQuery = new QueryBuilder(

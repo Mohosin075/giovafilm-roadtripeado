@@ -11,6 +11,7 @@ const offer_model_1 = require("../offer/offer.model");
 const QueryBuilder_1 = __importDefault(require("../../builder/QueryBuilder"));
 const business_constants_1 = require("./business.constants");
 const offer_1 = require("../../enum/offer");
+const subscription_model_1 = require("../subscription/subscription.model");
 /**
  * Creates a new business listing and sets it as Pending.
  * @param payload The business data to be created
@@ -68,6 +69,32 @@ const getMyBusinesses = async (userId, query) => {
         .fields();
     const result = await businessQuery.modelQuery;
     const meta = await businessQuery.getPaginationInfo();
+    const unpaidIds = result
+        .filter((business) => !business.hasActiveSubscription)
+        .map((business) => business._id);
+    if (unpaidIds.length > 0) {
+        const paidSubs = await subscription_model_1.Subscription.find({
+            businessId: { $in: unpaidIds },
+            status: { $in: ['active', 'trialing'] },
+        })
+            .select('businessId planId')
+            .lean();
+        if (paidSubs.length > 0) {
+            const paidByBusiness = new Map(paidSubs.map((sub) => [String(sub.businessId), sub]));
+            await Promise.all(paidSubs.map((sub) => business_model_1.Business.findByIdAndUpdate(sub.businessId, {
+                hasActiveSubscription: true,
+                ...(sub.planId ? { plan: sub.planId } : {}),
+            })));
+            for (const business of result) {
+                const paid = paidByBusiness.get(String(business._id));
+                if (paid) {
+                    business.hasActiveSubscription = true;
+                    if (paid.planId)
+                        business.plan = paid.planId;
+                }
+            }
+        }
+    }
     return {
         meta,
         data: result,

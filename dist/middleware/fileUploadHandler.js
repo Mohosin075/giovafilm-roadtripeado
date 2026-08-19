@@ -13,14 +13,19 @@ const fileUploadHandler = () => {
     // File filter: synchronous function expected by multer
     const validateFile = (req, file, cb) => {
         try {
-            const allowedImageTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+            const allowedImageTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
             const allowedMediaTypes = [
                 'video/mp4',
                 'video/webm',
                 'video/ogg',
                 'video/quicktime',
                 'video/3gpp',
+                'video/3gpp2',
                 'video/x-matroska',
+                'video/x-msvideo',
+                'video/avi',
+                'video/mpeg',
+                'video/x-ms-wmv',
                 'audio/mpeg',
                 'audio/mp3',
                 'audio/wav',
@@ -64,14 +69,14 @@ const fileUploadHandler = () => {
         storage: storage,
         fileFilter: validateFile,
         limits: {
-            fileSize: 30 * 1024 * 1024, // 30 MB per file (adjust as needed)
-            files: 10, // Maximum number of files allowed
+            fileSize: Number(process.env.SERVER_UPLOAD_MAX_FILE_SIZE_MB || '200') * 1024 * 1024,
+            files: 20,
         },
     }).fields([
-        { name: 'image', maxCount: 5 },
-        { name: 'media', maxCount: 3 },
-        { name: 'doc', maxCount: 3 },
-        { name: 'clips', maxCount: 3 },
+        { name: 'image', maxCount: 10 },
+        { name: 'media', maxCount: 10 },
+        { name: 'doc', maxCount: 5 },
+        { name: 'clips', maxCount: 10 },
     ]);
     // Process uploaded images with Sharp
     const processImages = async (req, res, next) => {
@@ -118,24 +123,12 @@ const fileUploadHandler = () => {
     // Return middleware chain
     return (req, res, next) => {
         upload(req, res, err => {
-            var _a, _b;
-            if (err)
-                return next(err);
-            // If uploaded videos exceed server-side accepted size, reject and recommend using presigned URL
-            try {
-                const mediaFiles = (_a = req.files) === null || _a === void 0 ? void 0 : _a.media;
-                const clipsFiles = (_b = req.files) === null || _b === void 0 ? void 0 : _b.clips;
-                const MAX_VIDEO_SIZE_MB = Number(process.env.SERVER_UPLOAD_MAX_VIDEO_SIZE_MB || '10');
-                const maxBytes = MAX_VIDEO_SIZE_MB * 1024 * 1024;
-                const tooLarge = (mediaFiles || [])
-                    .concat(clipsFiles || [])
-                    .some(f => f && f.size > maxBytes);
-                if (tooLarge) {
-                    return next(new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `Video too large for server-side upload; please use presigned S3 upload (limit ${MAX_VIDEO_SIZE_MB} MB)`));
+            if (err) {
+                if ((err === null || err === void 0 ? void 0 : err.code) === 'LIMIT_FILE_SIZE') {
+                    const maxMb = Number(process.env.SERVER_UPLOAD_MAX_FILE_SIZE_MB || '200');
+                    return next(new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `File too large. Images and videos can be up to ${maxMb}MB.`));
                 }
-            }
-            catch (sizeCheckErr) {
-                // ignore size check errors -- not critical
+                return next(err);
             }
             processImages(req, res, next);
         });

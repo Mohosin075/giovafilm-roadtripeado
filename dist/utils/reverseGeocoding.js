@@ -24,6 +24,7 @@ const getCountryFromCoordinates = async (lat, lng) => {
                 key: API_KEY,
             },
             httpsAgent: agent,
+            timeout: 4000,
         });
         if (response.data.status === 'OK' && response.data.results.length > 0) {
             // Loop through all results to find a country component

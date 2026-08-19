@@ -75,6 +75,13 @@ const BusinessSchema = new mongoose_1.Schema({
         type: Boolean,
         default: false,
     },
+    adminReview: {
+        phoneVerified: { type: Boolean, default: false },
+        websiteFunctional: { type: Boolean, default: false },
+        locationPinVerified: { type: Boolean, default: false },
+        mediaUploaded: { type: Boolean, default: false },
+        internalNotes: { type: String, default: '' },
+    },
     viewCount: {
         type: Number,
         default: 0,

@@ -11,6 +11,7 @@ const business_service_1 = require("./business.service");
 const ApiError_1 = __importDefault(require("../../errors/ApiError"));
 const user_1 = require("../../enum/user");
 const mapAccessHelper_1 = require("../../helpers/mapAccessHelper");
+const resolveUserRole = (user) => { var _a, _b; return (user === null || user === void 0 ? void 0 : user.role) || ((_a = user === null || user === void 0 ? void 0 : user.user) === null || _a === void 0 ? void 0 : _a.role) || ((_b = user === null || user === void 0 ? void 0 : user.data) === null || _b === void 0 ? void 0 : _b.role); };
 const isAdminRole = (role) => !!role && [user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN].includes(role);
 const getBusinessOwnerId = (business) => {
     if (!(business === null || business === void 0 ? void 0 : business.user))
@@ -22,6 +23,7 @@ const stripPrivateInfo = (business) => {
         return business;
     const obj = typeof business.toObject === 'function' ? business.toObject() : { ...business };
     delete obj.privateInfo;
+    delete obj.adminReview;
     return obj;
 };
 /**
@@ -121,15 +123,38 @@ const updateBusiness = (0, catchAsync_1.default)(async (req, res) => {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Business not found');
     }
     const ownerId = getBusinessOwnerId(existing);
-    const admin = isAdminRole(authUser === null || authUser === void 0 ? void 0 : authUser.role);
+    const admin = isAdminRole(resolveUserRole(authUser));
     if (!admin && ownerId !== ((_a = authUser === null || authUser === void 0 ? void 0 : authUser.authId) === null || _a === void 0 ? void 0 : _a.toString())) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'You are not authorized to update this business');
     }
     const businessData = { ...req.body };
-    // Users cannot self-approve or toggle subscription
+    // Users cannot self-approve, self-verify, or toggle subscription
     if (!admin) {
         delete businessData.status;
         delete businessData.hasActiveSubscription;
+        delete businessData.isAccuracyVerified;
+        delete businessData.adminReview;
+    }
+    const existingReview = existing.adminReview &&
+        typeof existing.adminReview === 'object'
+        ? existing.adminReview
+        : {};
+    if (businessData.adminReview) {
+        businessData.adminReview = {
+            ...existingReview,
+            ...businessData.adminReview,
+        };
+        if (typeof businessData.adminReview.locationPinVerified === 'boolean') {
+            businessData.isAccuracyVerified =
+                businessData.adminReview.locationPinVerified;
+        }
+    }
+    if (typeof businessData.isAccuracyVerified === 'boolean') {
+        businessData.adminReview = {
+            ...existingReview,
+            ...businessData.adminReview,
+            locationPinVerified: businessData.isAccuracyVerified,
+        };
     }
     // Handle image upload from disk storage
     if (req.body.images) {
@@ -181,7 +206,7 @@ const deleteBusiness = (0, catchAsync_1.default)(async (req, res) => {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Business not found');
     }
     const ownerId = getBusinessOwnerId(existing);
-    const admin = isAdminRole(authUser === null || authUser === void 0 ? void 0 : authUser.role);
+    const admin = isAdminRole(resolveUserRole(authUser));
     if (!admin && ownerId !== ((_a = authUser === null || authUser === void 0 ? void 0 : authUser.authId) === null || _a === void 0 ? void 0 : _a.toString())) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'You are not authorized to delete this business');
     }

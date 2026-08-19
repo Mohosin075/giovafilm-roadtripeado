@@ -6,6 +6,7 @@ import { Map } from '../map/map.model'
 import { Category } from '../category/category.model'
 import mongoose from 'mongoose'
 import { getCountryFromCoordinates } from '../../utils/reverseGeocoding'
+import { Business } from '../business/business.model'
 
 const escapeRegex = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -17,22 +18,22 @@ const toNumber = (value: unknown): number => {
 }
 
 const createPlace = async (payload: IPlace): Promise<IPlace> => {
+  // Auto-populate country if not provided (run before transaction/session to prevent locks)
+  if (!payload.country && payload.location?.coordinates) {
+    const [lng, lat] = payload.location.coordinates
+    // MongoDB stores [lng, lat], but Google API needs (lat, lng)
+    const country = await getCountryFromCoordinates(lat, lng)
+    console.log('country', country)
+    if (country) {
+      payload.country = country
+    } else {
+      payload.country = 'Unknown' // Fallback
+    }
+  }
+
   const session = await mongoose.startSession()
   try {
     session.startTransaction()
-
-    // Auto-populate country if not provided
-    if (!payload.country && payload.location?.coordinates) {
-      const [lng, lat] = payload.location.coordinates
-      // MongoDB stores [lng, lat], but Google API needs (lat, lng)
-      const country = await getCountryFromCoordinates(lat, lng)
-      console.log('country', country)
-      if (country) {
-        payload.country = country
-      } else {
-        payload.country = 'Unknown' // Fallback
-      }
-    }
 
     // Check if map exists
     const map = await Map.findById(payload.map).session(session)
@@ -143,12 +144,30 @@ const getAllPlaces = async (
   }
 }
 
-const getPlaceById = async (id: string): Promise<IPlace | null> => {
+const getPlaceById = async (id: string): Promise<any | null> => {
   const result = await Place.findById(id).populate('category').populate('map')
-  if (!result) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
+  if (result) return result
+
+  // Fallback to checking Business collection
+  const business = await Business.findById(id).populate('category')
+  if (business) {
+    // Map Business fields to Place schema so frontend doesn't break
+    return {
+      ...business.toObject(),
+      type: 'Business',
+      placeType: 'Business',
+      media: business.media?.photos || [],
+      menuImages: business.media?.menu ? [business.media.menu] : [],
+      address: business.location?.address || '',
+      country: business.location?.country || '',
+      location: {
+        type: 'Point',
+        coordinates: business.location?.mapLocation?.coordinates || [],
+      },
+      map: { name: business.location?.country },
+    }
   }
-  return result
+  throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
 }
 
 const incrementOpenCount = async (id: string) => {
@@ -166,33 +185,113 @@ const incrementOpenCount = async (id: string) => {
 const updatePlace = async (
   id: string,
   payload: Partial<IPlace>,
-): Promise<IPlace | null> => {
+): Promise<any | null> => {
   const isExist = await Place.findById(id)
   if (!isExist) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
+    // Fallback: Check and update Business collection
+    const isBusiness = await Business.findById(id)
+    if (!isBusiness) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
+    }
+
+    // Map payload from Place structure back to Business schema format
+    const businessPayload: any = {}
+    if (payload.name) businessPayload.name = payload.name
+    if (payload.category) businessPayload.category = payload.category
+    if (payload.description) businessPayload.description = payload.description
+    
+    // Address & coordinates mapping
+    if (payload.address || payload.location?.coordinates) {
+      businessPayload.location = {
+        ...(isBusiness.location || {}),
+        ...(payload.address && { address: payload.address }),
+        ...(payload.location?.coordinates && {
+          mapLocation: {
+            type: 'Point',
+            coordinates: payload.location.coordinates,
+          },
+        }),
+      }
+    }
+
+    // Media mapping
+    if (payload.media) {
+      businessPayload.media = {
+        ...(isBusiness.media || {}),
+        photos: payload.media,
+      }
+    }
+    if (payload.menuImages && payload.menuImages.length > 0) {
+      businessPayload.media = {
+        ...(businessPayload.media || isBusiness.media || {}),
+        menu: payload.menuImages[0], // Business schema holds a single string for menu
+      }
+    }
+
+    // Phone, website, instagram
+    if (payload.phone || payload.website || payload.instagram) {
+      businessPayload.contact = {
+        ...(isBusiness.contact || {}),
+        ...(payload.phone && { phone: payload.phone }),
+        ...(payload.website && { website: payload.website }),
+        ...(payload.instagram && { instagram: payload.instagram }),
+      }
+    }
+
+    // Hours / Schedule
+    if (payload.operatingHours) {
+      businessPayload.hours = {
+        customHours: true,
+        schedule: payload.operatingHours,
+      }
+    }
+
+    const updatedBusiness = await Business.findByIdAndUpdate(id, businessPayload, {
+      new: true,
+      runValidators: true,
+    }).populate('category')
+
+    // Return mapped to Place schema format
+    if (updatedBusiness) {
+      return {
+        ...updatedBusiness.toObject(),
+        type: 'Business',
+        placeType: 'Business',
+        media: updatedBusiness.media?.photos || [],
+        menuImages: updatedBusiness.media?.menu ? [updatedBusiness.media.menu] : [],
+        address: updatedBusiness.location?.address || '',
+        country: updatedBusiness.location?.country || '',
+        location: {
+          type: 'Point',
+          coordinates: updatedBusiness.location?.mapLocation?.coordinates || [],
+        },
+        map: { name: updatedBusiness.location?.country },
+      }
+    }
+    return null
+  }
+
+  const nextCoords = payload.location?.coordinates
+  const prevCoords = isExist.location?.coordinates
+  const COORD_EPSILON = 1e-6
+  const coordsChanged =
+    !!nextCoords &&
+    (!prevCoords ||
+      Math.abs(nextCoords[0] - prevCoords[0]) > COORD_EPSILON ||
+      Math.abs(nextCoords[1] - prevCoords[1]) > COORD_EPSILON)
+
+  // Only hit Google when the pin actually moved (run before transaction/session to prevent locks)
+  if (coordsChanged && !payload.country) {
+    const [lng, lat] = nextCoords
+    const country = await getCountryFromCoordinates(lat, lng)
+    if (country) {
+      payload.country = country
+    }
   }
 
   const session = await mongoose.startSession()
   try {
     session.startTransaction()
-
-    const nextCoords = payload.location?.coordinates
-    const prevCoords = isExist.location?.coordinates
-    const COORD_EPSILON = 1e-6
-    const coordsChanged =
-      !!nextCoords &&
-      (!prevCoords ||
-        Math.abs(nextCoords[0] - prevCoords[0]) > COORD_EPSILON ||
-        Math.abs(nextCoords[1] - prevCoords[1]) > COORD_EPSILON)
-
-    // Only hit Google when the pin actually moved
-    if (coordsChanged && !payload.country) {
-      const [lng, lat] = nextCoords
-      const country = await getCountryFromCoordinates(lat, lng)
-      if (country) {
-        payload.country = country
-      }
-    }
 
     // Handle map change
     if (payload.map && payload.map.toString() !== isExist.map.toString()) {
@@ -242,10 +341,14 @@ const updatePlace = async (
   }
 }
 
-const deletePlace = async (id: string): Promise<IPlace | null> => {
+const deletePlace = async (id: string): Promise<any | null> => {
   const isExist = await Place.findById(id)
   if (!isExist) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
+    const isBusiness = await Business.findById(id)
+    if (!isBusiness) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
+    }
+    return await Business.findByIdAndDelete(id)
   }
 
   const session = await mongoose.startSession()

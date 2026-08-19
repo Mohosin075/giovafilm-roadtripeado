@@ -136,6 +136,20 @@ const createCheckoutSession = (0, catchAsync_1.default)(async (req, res) => {
         data: session,
     });
 });
+const verifyCheckoutSession = (0, catchAsync_1.default)(async (req, res) => {
+    const user = req.user;
+    const userId = user.authId.toString();
+    const sessionId = req.query.sessionId;
+    const result = await subscription_service_1.subscriptionService.verifyCheckoutSession(userId, sessionId);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: result.hasActiveSubscription
+            ? 'Subscription verified successfully'
+            : 'Checkout verified, but subscription is not active yet',
+        data: result,
+    });
+});
 // Handle Stripe webhooks
 const handleWebhook = (0, catchAsync_1.default)(async (req, res) => {
     console.log('hitting webhook handler');
@@ -316,6 +330,7 @@ exports.SubscriptionController = {
     cancelSubscription,
     getSubscriptionStatus,
     createCheckoutSession,
+    verifyCheckoutSession,
     reactivateSubscription,
     pauseSubscription,
     resumeSubscription,

@@ -107,6 +107,15 @@ const getPurchasedMaps = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const incrementViewCount = (0, catchAsync_1.default)(async (req, res) => {
+    const result = await map_service_1.MapService.incrementViewCount(req.params.id);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Map view recorded',
+        data: { viewCount: result.viewCount || 0 },
+    });
+});
 const getAvailableCountries = (0, catchAsync_1.default)(async (req, res) => {
     const result = await map_service_1.MapService.getAvailableCountries();
     (0, sendResponse_1.default)(res, {
@@ -126,7 +135,8 @@ const getDiscoveryData = (0, catchAsync_1.default)(async (req, res) => {
     ]);
     const paidMapIds = paidMaps.map(m => m._id.toString());
     const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id));
-    const result = await map_service_1.MapService.getDiscoveryData(req.query, lockedMapIds);
+    const isAdminOrEditor = !!(user && (user.role === 'admin' || user.role === 'map_editor'));
+    const result = await map_service_1.MapService.getDiscoveryData(req.query, lockedMapIds, isAdminOrEditor);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -142,6 +152,7 @@ exports.MapController = {
     deleteMap,
     purchaseMap,
     getPurchasedMaps,
+    incrementViewCount,
     getAvailableCountries,
     getDiscoveryData,
 };

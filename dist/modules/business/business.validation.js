@@ -78,10 +78,19 @@ exports.updateBusinessZodSchema = zod_1.z.object({
             contactEmail: zod_1.z.string().email().optional(),
         }).optional(),
         plan: zod_1.z.string().optional(),
+        isAccuracyVerified: zod_1.z.boolean().optional(),
+        adminReview: zod_1.z
+            .object({
+            phoneVerified: zod_1.z.boolean().optional(),
+            websiteFunctional: zod_1.z.boolean().optional(),
+            locationPinVerified: zod_1.z.boolean().optional(),
+            mediaUploaded: zod_1.z.boolean().optional(),
+            internalNotes: zod_1.z.string().optional(),
+        })
+            .optional(),
         images: zod_1.z.array(zod_1.z.string()).optional().or(zod_1.z.string().optional()),
         documents: zod_1.z.array(zod_1.z.string()).optional().or(zod_1.z.string().optional()),
     }),
-    isAccuracyVerified: zod_1.z.boolean().optional(),
 });
 exports.updateBusinessStatusZodSchema = zod_1.z.object({
     body: zod_1.z.object({

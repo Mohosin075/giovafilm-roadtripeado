@@ -43,10 +43,12 @@ async function main() {
             }
         });
         // Socket.IO setup — align CORS with API config (no open *)
+        const corsOrigins = (config_1.default.cors_origins || []).map((origin) => origin.trim());
         exports.io = new socket_io_1.Server(server, {
+            path: '/socket.io',
             pingTimeout: 60000,
             cors: {
-                origin: config_1.default.cors_origins,
+                origin: corsOrigins,
                 credentials: true,
             },
         });

@@ -440,14 +440,13 @@ export const fileAndBodyProcessorUsingDiskStorage = () => {
                 const filePath = `/uploads/${fieldName}/${file.filename}`
 
                 if (shouldOptimizeImage(fieldName, file.mimetype)) {
-                  try {
-                    await optimizeImageOnDisk(
-                      path.join(uploadsDir, fieldName, file.filename),
-                      file.mimetype,
-                    )
-                  } catch (err) {
-                    console.error('Image optimization failed:', err)
-                  }
+                  // Optimize in background so the request doesn't wait
+                  optimizeImageOnDisk(
+                    path.join(uploadsDir, fieldName, file.filename),
+                    file.mimetype,
+                  ).catch(err => {
+                    console.error('Background image optimization failed:', err)
+                  })
                 }
 
                 return filePath

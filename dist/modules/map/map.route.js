@@ -19,6 +19,7 @@ router
 router.get('/purchased/all', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), map_controller_1.MapController.getPurchasedMaps);
 router.get('/available-countries', map_controller_1.MapController.getAvailableCountries);
 router.get('/discovery', map_controller_1.MapController.getDiscoveryData);
+router.post('/:id/view', map_controller_1.MapController.incrementViewCount);
 router
     .route('/:id')
     .get(map_controller_1.MapController.getMapById)

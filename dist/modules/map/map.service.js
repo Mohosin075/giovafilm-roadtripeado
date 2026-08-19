@@ -74,7 +74,14 @@ const getAllMaps = async (query) => {
 };
 const getMapById = async (id) => {
     // Catalog / purchase UI only needs map summary — places come from discovery
-    const result = await map_model_1.Map.findByIdAndUpdate(id, { $inc: { viewCount: 1 } }, { new: true }).select('-places').lean();
+    const result = await map_model_1.Map.findById(id).select('-places').lean();
+    if (!result) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Map not found');
+    }
+    return result;
+};
+const incrementViewCount = async (id) => {
+    const result = await map_model_1.Map.findByIdAndUpdate(id, { $inc: { viewCount: 1 } }, { new: true }).select('name viewCount');
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Map not found');
     }
@@ -162,7 +169,7 @@ const getAvailableCountries = async () => {
 const DISCOVERY_PLACE_FIELDS = 'name type status category map country address rating totalReview location';
 const DISCOVERY_BUSINESS_FIELDS = 'name status category location rating totalReview hasActiveSubscription';
 const DISCOVERY_MAX_FETCH = 2000;
-const getDiscoveryData = async (query, lockedMapIds) => {
+const getDiscoveryData = async (query, lockedMapIds, isAdminOrEditor = false) => {
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 10;
     // Prepare separate queries because Place and Business have different schemas
@@ -182,12 +189,16 @@ const getDiscoveryData = async (query, lockedMapIds) => {
         delete businessQueryObj.country;
     }
     // 3. Handle "status" default if not provided
-    if (!placeQueryObj.status)
-        placeQueryObj.status = 'Published';
-    if (!businessQueryObj.status)
-        businessQueryObj.status = 'Approved';
+    if (!placeQueryObj.status) {
+        placeQueryObj.status = isAdminOrEditor ? { $in: ['Draft', 'Published'] } : 'Published';
+    }
+    if (!businessQueryObj.status) {
+        businessQueryObj.status = isAdminOrEditor ? { $in: ['Pending', 'Approved', 'Rejected'] } : 'Approved';
+    }
     // 4. Enforce that businesses must have an active subscription to show on the map
-    businessQueryObj.hasActiveSubscription = true;
+    if (!isAdminOrEditor) {
+        businessQueryObj.hasActiveSubscription = true;
+    }
     // Marker/list fields only — detail (media/hours/privateInfo) comes from place/business by id
     const placeQuery = new QueryBuilder_1.default(place_model_1.Place.find()
         .select(DISCOVERY_PLACE_FIELDS)
@@ -266,6 +277,7 @@ exports.MapService = {
     createMap,
     getAllMaps,
     getMapById,
+    incrementViewCount,
     updateMap,
     deleteMap,
     purchaseMap,

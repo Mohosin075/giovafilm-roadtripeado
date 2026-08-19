@@ -47,6 +47,13 @@ const defaultConfigs = [
     },
 ];
 const seedAwardConfigs = async () => {
+    try {
+        await awardConfig_model_1.AwardConfig.collection.dropIndex('type_1');
+        console.log('Successfully dropped unique index type_1 on awardconfigs');
+    }
+    catch (error) {
+        // Index might not exist, ignore error
+    }
     for (const config of defaultConfigs) {
         const exists = await awardConfig_model_1.AwardConfig.findOne({ type: config.type });
         if (!exists) {

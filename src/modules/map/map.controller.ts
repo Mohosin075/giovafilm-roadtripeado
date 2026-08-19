@@ -158,7 +158,8 @@ const getDiscoveryData = catchAsync(async (req: Request, res: Response) => {
   const paidMapIds = paidMaps.map(m => m._id.toString())
   const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id))
 
-  const result = await MapService.getDiscoveryData(req.query, lockedMapIds)
+  const isAdminOrEditor = !!(user && (user.role === 'admin' || user.role === 'map_editor'))
+  const result = await MapService.getDiscoveryData(req.query, lockedMapIds, isAdminOrEditor)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,

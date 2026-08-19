@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.subscriptionValidation = exports.createBillingPortalSchema = exports.applyCouponSchema = exports.attachPaymentMethodSchema = exports.subscriptionAnalyticsSchema = exports.bulkUpdatePlansSchema = exports.checkTrialEligibilitySchema = exports.webhookHeaderSchema = exports.planParamsSchema = exports.subscriptionParamsSchema = exports.getPlansQuerySchema = exports.createCheckoutSessionSchema = exports.updateSubscriptionSchema = exports.createSubscriptionSchema = exports.updateSubscriptionPlanSchema = exports.createSubscriptionPlanSchema = void 0;
+exports.subscriptionValidation = exports.createBillingPortalSchema = exports.applyCouponSchema = exports.attachPaymentMethodSchema = exports.subscriptionAnalyticsSchema = exports.bulkUpdatePlansSchema = exports.checkTrialEligibilitySchema = exports.webhookHeaderSchema = exports.planParamsSchema = exports.subscriptionParamsSchema = exports.getPlansQuerySchema = exports.verifyCheckoutSessionSchema = exports.createCheckoutSessionSchema = exports.updateSubscriptionSchema = exports.createSubscriptionSchema = exports.updateSubscriptionPlanSchema = exports.createSubscriptionPlanSchema = void 0;
 const zod_1 = require("zod");
 // Subscription Plan Validation
 exports.createSubscriptionPlanSchema = zod_1.z.object({
@@ -100,6 +100,11 @@ exports.createCheckoutSessionSchema = zod_1.z.object({
         cancelUrl: zod_1.z.string().url('Invalid cancel URL'),
     }),
 });
+exports.verifyCheckoutSessionSchema = zod_1.z.object({
+    query: zod_1.z.object({
+        sessionId: zod_1.z.string().min(1, 'Checkout session ID is required'),
+    }),
+});
 // Query Validation
 exports.getPlansQuerySchema = zod_1.z.object({
     query: zod_1.z.object({}),
@@ -186,6 +191,7 @@ exports.subscriptionValidation = {
     createSubscription: exports.createSubscriptionSchema,
     updateSubscription: exports.updateSubscriptionSchema,
     createCheckoutSession: exports.createCheckoutSessionSchema,
+    verifyCheckoutSession: exports.verifyCheckoutSessionSchema,
     getPlansQuery: exports.getPlansQuerySchema,
     subscriptionParams: exports.subscriptionParamsSchema,
     planParams: exports.planParamsSchema,

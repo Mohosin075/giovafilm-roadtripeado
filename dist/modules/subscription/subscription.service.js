@@ -567,10 +567,14 @@ class SubscriptionService {
                 const stripeCustomer = await stripe_service_1.stripeService.createCustomer(user.email, user.fullName || user.name, { userId: userId.toString() });
                 stripeCustomerId = stripeCustomer.id;
             }
+            const sessionIdJoin = successUrl.includes('?') ? '&' : '?';
+            const successUrlWithSession = successUrl.includes('{CHECKOUT_SESSION_ID}')
+                ? successUrl
+                : `${successUrl}${sessionIdJoin}session_id={CHECKOUT_SESSION_ID}`;
             const session = await stripe_service_1.stripeService.createCheckoutSession({
                 customerId: stripeCustomerId,
                 priceId: plan.stripePriceId,
-                successUrl,
+                successUrl: successUrlWithSession,
                 cancelUrl,
                 trialPeriodDays: trialInfo.isEligible
                     ? plan.trialPeriodDays
@@ -591,6 +595,96 @@ class SubscriptionService {
                 throw error;
             console.error('Error creating checkout session:', error);
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to create checkout session');
+        }
+    }
+    async verifyCheckoutSession(userId, sessionId) {
+        var _a, _b, _c, _d;
+        try {
+            const session = await stripe_service_1.stripeService.getCheckoutSession(sessionId);
+            if (session.mode !== 'subscription') {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'This checkout is not a business subscription');
+            }
+            const sessionUserId = (_a = session.metadata) === null || _a === void 0 ? void 0 : _a.userId;
+            if (sessionUserId && sessionUserId !== userId) {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'This checkout does not belong to you');
+            }
+            if (session.status !== 'complete') {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Checkout is not complete yet');
+            }
+            if (!session.subscription) {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'No subscription was created for this checkout');
+            }
+            const stripeSubscription = await stripe_service_1.stripeService.getSubscription(session.subscription);
+            const businessId = ((_b = stripeSubscription.metadata) === null || _b === void 0 ? void 0 : _b.businessId) || ((_c = session.metadata) === null || _c === void 0 ? void 0 : _c.businessId);
+            if (!businessId) {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'No business is attached to this checkout');
+            }
+            const business = await business_model_1.Business.findOne({
+                _id: businessId,
+                user: userId,
+            });
+            if (!business) {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Business not found or does not belong to you');
+            }
+            const priceId = typeof stripeSubscription.items.data[0].price === 'string'
+                ? stripeSubscription.items.data[0].price
+                : stripeSubscription.items.data[0].price.id;
+            const plan = (await subscription_plan_model_1.SubscriptionPlan.findOne({ stripePriceId: priceId })) ||
+                (((_d = session.metadata) === null || _d === void 0 ? void 0 : _d.planId)
+                    ? await subscription_plan_model_1.SubscriptionPlan.findById(session.metadata.planId)
+                    : null);
+            if (!plan) {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Subscription plan not found for this checkout');
+            }
+            const subscriptionItem = stripeSubscription.items.data[0];
+            const currentPeriodStart = stripeSubscription.current_period_start ||
+                subscriptionItem.current_period_start;
+            const currentPeriodEnd = stripeSubscription.current_period_end ||
+                subscriptionItem.current_period_end;
+            const isActive = ['active', 'trialing'].includes(stripeSubscription.status) ||
+                session.payment_status === 'no_payment_required' ||
+                session.payment_status === 'paid';
+            await subscription_model_1.Subscription.findOneAndUpdate({ stripeSubscriptionId: stripeSubscription.id }, {
+                userId: new mongoose_1.Types.ObjectId(userId),
+                businessId: new mongoose_1.Types.ObjectId(businessId),
+                planId: plan._id,
+                stripeCustomerId: stripeSubscription.customer,
+                stripeSubscriptionId: stripeSubscription.id,
+                stripePriceId: priceId,
+                status: stripeSubscription.status,
+                currentPeriodStart: currentPeriodStart
+                    ? new Date(currentPeriodStart * 1000)
+                    : new Date(),
+                currentPeriodEnd: currentPeriodEnd
+                    ? new Date(currentPeriodEnd * 1000)
+                    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                trialStart: stripeSubscription.trial_start
+                    ? new Date(stripeSubscription.trial_start * 1000)
+                    : null,
+                trialEnd: stripeSubscription.trial_end
+                    ? new Date(stripeSubscription.trial_end * 1000)
+                    : null,
+                hasUsedTrial: !!stripeSubscription.trial_start,
+            }, { upsert: true, new: true, setDefaultsOnInsert: true });
+            await business_model_1.Business.findByIdAndUpdate(businessId, {
+                hasActiveSubscription: isActive,
+                plan: plan._id,
+            });
+            await user_model_1.User.findByIdAndUpdate(userId, {
+                stripeCustomerId: session.customer,
+                ...(stripeSubscription.trial_start ? { trialUsed: true } : {}),
+            });
+            return {
+                businessId,
+                status: stripeSubscription.status,
+                hasActiveSubscription: isActive,
+            };
+        }
+        catch (error) {
+            if (error instanceof ApiError_1.default)
+                throw error;
+            console.error('Error verifying checkout session:', error);
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to verify checkout session');
         }
     }
     // Admin: Create subscription plan

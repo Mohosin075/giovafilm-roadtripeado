@@ -81,6 +81,15 @@ class StripeService {
             throw error;
         }
     }
+    async getCheckoutSession(sessionId) {
+        try {
+            return await this.stripe.checkout.sessions.retrieve(sessionId);
+        }
+        catch (error) {
+            console.error(`Error retrieving Stripe checkout session ${sessionId}:`, error);
+            throw error;
+        }
+    }
     async getSubscription(subscriptionId) {
         try {
             const subscription = await this.stripe.subscriptions.retrieve(subscriptionId, {

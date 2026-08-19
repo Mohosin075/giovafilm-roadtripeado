@@ -11,6 +11,7 @@ const offerRedemption_model_1 = require("../offer/offerRedemption.model");
 const user_model_1 = require("../user/user.model");
 const business_model_1 = require("../business/business.model");
 const payment_model_1 = require("../payment/payment.model");
+const usageView_model_1 = require("./usageView.model");
 const mongoose_1 = __importDefault(require("mongoose"));
 const getDashboardData = async () => {
     // Run all DB queries in parallel
@@ -392,22 +393,74 @@ const getReportsData = async (query = {}) => {
         };
     });
     // 2. Usage Stats (Top 5 for each)
-    const mostViewedMapsRaw = await map_model_1.Map.find(mapFilter)
-        .sort({ viewCount: -1 })
-        .limit(5)
-        .select('name viewCount');
-    const mostViewedMaps = mostViewedMapsRaw.map(m => ({
-        name: m.name,
-        count: m.viewCount || 0,
-    }));
-    const mostOpenedPlacesRaw = await place_model_1.Place.find(placeFilter)
-        .sort({ openCount: -1 })
-        .limit(5)
-        .select('name openCount');
-    let mostOpenedPlaces = mostOpenedPlacesRaw.map(p => ({
-        name: p.name,
-        count: p.openCount || 0,
-    }));
+    let mostViewedMaps = [];
+    const allowedMapDocs = await map_model_1.Map.find(mapFilter).select('_id').lean();
+    const allowedMapIds = allowedMapDocs.map(m => m._id.toString());
+    if (dateRange) {
+        const mapAgg = await usageView_model_1.UsageView.aggregate([
+            {
+                $match: {
+                    type: 'map',
+                    entityId: { $in: allowedMapIds },
+                    lastSeenAt: dateRange,
+                },
+            },
+            { $group: { _id: '$entityId', count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 5 },
+        ]);
+        const mapIds = mapAgg.map(r => new mongoose_1.default.Types.ObjectId(r._id));
+        const maps = await map_model_1.Map.find({ _id: { $in: mapIds } }).select('name').lean();
+        const nameMap = new globalThis.Map(maps.map(m => [m._id.toString(), m.name]));
+        mostViewedMaps = mapAgg.map(r => ({
+            name: nameMap.get(String(r._id)) || 'Unknown Map',
+            count: r.count || 0,
+        }));
+    }
+    else {
+        const mostViewedMapsRaw = await map_model_1.Map.find(mapFilter)
+            .sort({ viewCount: -1 })
+            .limit(5)
+            .select('name viewCount');
+        mostViewedMaps = mostViewedMapsRaw.map(m => ({
+            name: m.name,
+            count: m.viewCount || 0,
+        }));
+    }
+    let mostOpenedPlaces = [];
+    const allowedPlaceDocs = await place_model_1.Place.find(placeFilter).select('_id').lean();
+    const allowedPlaceIds = allowedPlaceDocs.map(p => p._id.toString());
+    if (dateRange) {
+        const placeAgg = await usageView_model_1.UsageView.aggregate([
+            {
+                $match: {
+                    type: 'place',
+                    entityId: { $in: allowedPlaceIds },
+                    lastSeenAt: dateRange,
+                },
+            },
+            { $group: { _id: '$entityId', count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 5 },
+        ]);
+        const placeIds = placeAgg.map(r => new mongoose_1.default.Types.ObjectId(r._id));
+        const places = await place_model_1.Place.find({ _id: { $in: placeIds } }).select('name').lean();
+        const nameMap = new globalThis.Map(places.map(p => [p._id.toString(), p.name]));
+        mostOpenedPlaces = placeAgg.map(r => ({
+            name: nameMap.get(String(r._id)) || 'Unknown Place',
+            count: r.count || 0,
+        }));
+    }
+    else {
+        const mostOpenedPlacesRaw = await place_model_1.Place.find(placeFilter)
+            .sort({ openCount: -1 })
+            .limit(5)
+            .select('name openCount');
+        mostOpenedPlaces = mostOpenedPlacesRaw.map(p => ({
+            name: p.name,
+            count: p.openCount || 0,
+        }));
+    }
     if (usagePlace) {
         mostOpenedPlaces = [usagePlace];
     }

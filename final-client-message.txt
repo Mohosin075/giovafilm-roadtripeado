@@ -216,6 +216,35 @@ solved
 
 
 
+GENERAL VERSION:
+Batch G: Dashboard
+1. The visit count for places or maps on the "reports and statistics" page is not working. solved
+2. When I save a change to a place with a lot of information or photos, it takes a long time to save. - solved
+3. On the "places" page map, when dragging a pin to change its location, the drag option should be enabled after pressing and holding for 2 to 3 seconds to prevent accidentally dragging the pin.
+4. On the rewards page, when you try to edit or save, an error appears and it doesn't allow you to.
+5. On the rewards page, when a map is given away, the user chooses which map they want for free.
+ 
+Batch G: Users
+1. The map icons are still the same; I would remove the colored line and only leave the existing white line next to the icon so that the icon is more visible. 2. When you watch the video, I want the video image to be visible in the background, blurred but frozen, so there isn't a black background.
+ 
+Batch G: Users - Offers
+1. Remove the disclaimer on the ".offers" page.
+2. Put the "validity period" and "rules" information together in a dropdown "Information" section that opens and closes to maximize screen space.
+ 
+Batch G: Users - Catalog
+1. When you click "view details" on the Puerto Rico map, the description doesn't display correctly in terms of organization or spacing as written in that section.
+ 
+Batch G: Business
+1. When you add a business alongside the price or menu photos, the menu photo doesn't appear on the page with all the business information.
+2. When you add a business, it appears on the "offers" page but not on the "places" page. 3. In the sections at the bottom of each page where road trip networks, etc., are located, there's a button that says "Pricing Plan." It should display the details and prices, but when users click "Get Started," they should be directed to fill out their business information. Currently, it sends them directly to payment without creating a business profile.
+3. When a user adds their business, I, as the administrator or editor, should be able to edit all the information and offers for that business/place, just like any place I add myself. Businesses added by users seem to be invisible to administrators on the "Places" page map.
+
+
+
+
+
+
+
 
 
 

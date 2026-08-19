@@ -5,6 +5,7 @@ import { OfferRedemption } from '../offer/offerRedemption.model'
 import { User } from '../user/user.model'
 import { Business } from '../business/business.model'
 import { Payment } from '../payment/payment.model'
+import { UsageView } from './usageView.model'
 import mongoose from 'mongoose'
 import {
   IDashboardData,
@@ -462,23 +463,75 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
   })
 
   // 2. Usage Stats (Top 5 for each)
-  const mostViewedMapsRaw = await Map.find(mapFilter)
-    .sort({ viewCount: -1 })
-    .limit(5)
-    .select('name viewCount')
-  const mostViewedMaps: IUsageItem[] = mostViewedMapsRaw.map(m => ({
-    name: m.name,
-    count: (m as any).viewCount || 0,
-  }))
+  let mostViewedMaps: IUsageItem[] = []
+  const allowedMapDocs = await Map.find(mapFilter).select('_id').lean()
+  const allowedMapIds = allowedMapDocs.map(m => m._id.toString())
 
-  const mostOpenedPlacesRaw = await Place.find(placeFilter)
-    .sort({ openCount: -1 })
-    .limit(5)
-    .select('name openCount')
-  let mostOpenedPlaces: IUsageItem[] = mostOpenedPlacesRaw.map(p => ({
-    name: p.name,
-    count: (p as any).openCount || 0,
-  }))
+  if (dateRange) {
+    const mapAgg = await UsageView.aggregate([
+      {
+        $match: {
+          type: 'map',
+          entityId: { $in: allowedMapIds },
+          lastSeenAt: dateRange,
+        },
+      },
+      { $group: { _id: '$entityId', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 },
+    ])
+    const mapIds = mapAgg.map(r => new mongoose.Types.ObjectId(r._id))
+    const maps = await Map.find({ _id: { $in: mapIds } }).select('name').lean()
+    const nameMap = new globalThis.Map<string, string>(maps.map(m => [m._id.toString(), m.name]))
+    mostViewedMaps = mapAgg.map(r => ({
+      name: nameMap.get(String(r._id)) || 'Unknown Map',
+      count: r.count || 0,
+    }))
+  } else {
+    const mostViewedMapsRaw = await Map.find(mapFilter)
+      .sort({ viewCount: -1 })
+      .limit(5)
+      .select('name viewCount')
+    mostViewedMaps = mostViewedMapsRaw.map(m => ({
+      name: m.name,
+      count: (m as any).viewCount || 0,
+    }))
+  }
+
+  let mostOpenedPlaces: IUsageItem[] = []
+  const allowedPlaceDocs = await Place.find(placeFilter).select('_id').lean()
+  const allowedPlaceIds = allowedPlaceDocs.map(p => p._id.toString())
+
+  if (dateRange) {
+    const placeAgg = await UsageView.aggregate([
+      {
+        $match: {
+          type: 'place',
+          entityId: { $in: allowedPlaceIds },
+          lastSeenAt: dateRange,
+        },
+      },
+      { $group: { _id: '$entityId', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 },
+    ])
+    const placeIds = placeAgg.map(r => new mongoose.Types.ObjectId(r._id))
+    const places = await Place.find({ _id: { $in: placeIds } }).select('name').lean()
+    const nameMap = new globalThis.Map<string, string>(places.map(p => [p._id.toString(), p.name]))
+    mostOpenedPlaces = placeAgg.map(r => ({
+      name: nameMap.get(String(r._id)) || 'Unknown Place',
+      count: r.count || 0,
+    }))
+  } else {
+    const mostOpenedPlacesRaw = await Place.find(placeFilter)
+      .sort({ openCount: -1 })
+      .limit(5)
+      .select('name openCount')
+    mostOpenedPlaces = mostOpenedPlacesRaw.map(p => ({
+      name: p.name,
+      count: (p as any).openCount || 0,
+    }))
+  }
   if (usagePlace) {
     mostOpenedPlaces = [usagePlace]
   }

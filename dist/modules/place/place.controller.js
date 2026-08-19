@@ -143,7 +143,6 @@ const updatePlace = (0, catchAsync_1.default)(async (req, res) => {
             ...uploadedDocs,
         ];
     }
-    console.log(req.body);
     const result = await place_service_1.PlaceService.updatePlace(id, req.body);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
@@ -160,6 +159,15 @@ const deletePlace = (0, catchAsync_1.default)(async (req, res) => {
         success: true,
         message: 'Place deleted successfully',
         data: result,
+    });
+});
+const incrementOpenCount = (0, catchAsync_1.default)(async (req, res) => {
+    const result = await place_service_1.PlaceService.incrementOpenCount(req.params.id);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Place view recorded',
+        data: { openCount: result.openCount || 0 },
     });
 });
 const extractCoordinates = (0, catchAsync_1.default)(async (req, res) => {
@@ -184,5 +192,6 @@ exports.PlaceController = {
     getPlaceById,
     updatePlace,
     deletePlace,
+    incrementOpenCount,
     extractCoordinates,
 };

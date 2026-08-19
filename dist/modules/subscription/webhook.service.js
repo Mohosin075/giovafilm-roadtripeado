@@ -146,7 +146,7 @@ class WebhookService {
     }
     // Handle subscription created
     async handleSubscriptionCreated(stripeSubscription, eventId) {
-        var _a, _b;
+        var _a, _b, _c;
         try {
             const userId = (_a = stripeSubscription.metadata) === null || _a === void 0 ? void 0 : _a.userId;
             const businessId = (_b = stripeSubscription.metadata) === null || _b === void 0 ? void 0 : _b.businessId;
@@ -159,6 +159,20 @@ class WebhookService {
                 stripeSubscriptionId: stripeSubscription.id,
             });
             if (existingSubscription) {
+                const existingBusinessId = businessId || ((_c = existingSubscription.businessId) === null || _c === void 0 ? void 0 : _c.toString());
+                const isActive = ['active', 'trialing'].includes(stripeSubscription.status);
+                if (existingBusinessId) {
+                    const priceId = typeof stripeSubscription.items.data[0].price === 'string'
+                        ? stripeSubscription.items.data[0].price
+                        : stripeSubscription.items.data[0].price.id;
+                    const existingPlan = await subscription_plan_model_1.SubscriptionPlan.findOne({
+                        stripePriceId: priceId,
+                    });
+                    await business_model_1.Business.findByIdAndUpdate(existingBusinessId, {
+                        hasActiveSubscription: isActive,
+                        ...(existingPlan ? { plan: existingPlan._id } : {}),
+                    });
+                }
                 console.log(`Subscription already exists: ${stripeSubscription.id}`);
                 return;
             }

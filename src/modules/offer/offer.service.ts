@@ -6,6 +6,7 @@ import { OfferRedemption } from './offerRedemption.model'
 import QueryBuilder from '../../builder/QueryBuilder'
 import { offerSearchableFields } from './offer.constants'
 import { BOGO_SECOND_TYPE, DISCOUNT_TYPE, OFFER_STATUS } from '../../enum/offer'
+import { Business } from '../business/business.model'
 
 const createOffer = async (payload: IOffer): Promise<IOffer> => {
   if (payload.discountType === DISCOUNT_TYPE.BOGO && !payload.bogoSecondType) {
@@ -37,8 +38,23 @@ const createOffer = async (payload: IOffer): Promise<IOffer> => {
 }
 
 const getAllOffers = async (query: Record<string, unknown>) => {
+  // Find all approved businesses with active subscriptions
+  const activeBusinesses = await Business.find({
+    status: 'Approved',
+    hasActiveSubscription: true,
+  }).select('_id').lean()
+  const activeBusinessIds = activeBusinesses.map(b => b._id)
+
+  // Filter offers: must either belong to a place or to an active/approved business
+  const filterQuery = {
+    $or: [
+      { place: { $exists: true, $ne: null } },
+      { business: { $in: activeBusinessIds } },
+    ],
+  }
+
   const offerQuery = new QueryBuilder(
-    Offer.find()
+    Offer.find(filterQuery)
       .populate('business', 'name location media status category map country')
       .populate('place', 'name location media status category map country')
       .lean(),

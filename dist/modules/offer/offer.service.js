@@ -11,6 +11,7 @@ const offerRedemption_model_1 = require("./offerRedemption.model");
 const QueryBuilder_1 = __importDefault(require("../../builder/QueryBuilder"));
 const offer_constants_1 = require("./offer.constants");
 const offer_1 = require("../../enum/offer");
+const business_model_1 = require("../business/business.model");
 const createOffer = async (payload) => {
     if (payload.discountType === offer_1.DISCOUNT_TYPE.BOGO && !payload.bogoSecondType) {
         payload.bogoSecondType = offer_1.BOGO_SECOND_TYPE.FREE;
@@ -36,7 +37,20 @@ const createOffer = async (payload) => {
     return result;
 };
 const getAllOffers = async (query) => {
-    const offerQuery = new QueryBuilder_1.default(offer_model_1.Offer.find()
+    // Find all approved businesses with active subscriptions
+    const activeBusinesses = await business_model_1.Business.find({
+        status: 'Approved',
+        hasActiveSubscription: true,
+    }).select('_id').lean();
+    const activeBusinessIds = activeBusinesses.map(b => b._id);
+    // Filter offers: must either belong to a place or to an active/approved business
+    const filterQuery = {
+        $or: [
+            { place: { $exists: true, $ne: null } },
+            { business: { $in: activeBusinessIds } },
+        ],
+    };
+    const offerQuery = new QueryBuilder_1.default(offer_model_1.Offer.find(filterQuery)
         .populate('business', 'name location media status category map country')
         .populate('place', 'name location media status category map country')
         .lean(), query)
@@ -136,9 +150,22 @@ const redeemOffer = async (id, userId) => {
     if (offer.status !== offer_1.OFFER_STATUS.ACTIVE) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Offer is not active');
     }
-    // Check if maxRedemptions is reached
-    if (offer.maxRedemptions && offer.redemptionsCount >= offer.maxRedemptions) {
+    // Optional cap across every user
+    if (offer.totalRedemptionLimit &&
+        offer.redemptionsCount >= offer.totalRedemptionLimit) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Offer redemption limit reached');
+    }
+    // maxRedemptions is per user, not global
+    if (offer.maxRedemptions) {
+        const userRedemptions = await offerRedemption_model_1.OfferRedemption.countDocuments({
+            user: userId,
+            offer: id,
+        });
+        if (userRedemptions >= offer.maxRedemptions) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, offer.maxRedemptions === 1
+                ? 'You have already redeemed this offer'
+                : `You can redeem this offer only ${offer.maxRedemptions} times`);
+        }
     }
     // Check expiration date
     const now = new Date();

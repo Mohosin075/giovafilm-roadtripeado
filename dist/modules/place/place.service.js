@@ -92,24 +92,174 @@ const getAllPlaces = async (query) => {
         }
         match.$or = or;
     }
-    const total = await place_model_1.Place.countDocuments(match);
-    let findQuery = place_model_1.Place.find(hasGeo
-        ? {
-            ...match,
-            location: {
-                $nearSphere: {
-                    $geometry: { type: 'Point', coordinates: [lng, lat] },
+    // 1. Fetch regular places if applicable
+    const queryType = query.type;
+    const shouldQueryPlaces = !queryType || queryType === 'Regular' || queryType.includes('Regular');
+    let places = [];
+    if (shouldQueryPlaces) {
+        let placeQuery = place_model_1.Place.find(hasGeo
+            ? {
+                ...match,
+                location: {
+                    $nearSphere: {
+                        $geometry: { type: 'Point', coordinates: [lng, lat] },
+                    },
                 },
-            },
+            }
+            : match)
+            .populate('category', 'name color icon status')
+            .populate('map', 'name country status isPaid')
+            .lean();
+        if (!hasGeo) {
+            placeQuery = placeQuery.sort(sort);
         }
-        : match)
-        .populate('category', 'name color icon status')
-        .populate('map', 'name country status isPaid')
-        .lean();
-    if (!hasGeo) {
-        findQuery = findQuery.sort(sort);
+        places = await placeQuery;
     }
-    const data = await findQuery.skip(skip).limit(limit);
+    const formattedPlaces = places.map(p => ({
+        ...p,
+        _id: p._id.toString(),
+    }));
+    // 2. Fetch businesses if applicable
+    const shouldQueryBusinesses = !queryType || queryType === 'Business' || queryType.includes('Business');
+    let formattedBusinesses = [];
+    if (shouldQueryBusinesses) {
+        const businessMatch = {};
+        if (match.category) {
+            businessMatch.category = match.category;
+        }
+        if (match.country) {
+            businessMatch['location.country'] = match.country;
+        }
+        else if (match.map) {
+            if (typeof match.map === 'object' && match.map !== null && '$in' in match.map) {
+                const mapObjs = await map_model_1.Map.find({ _id: match.map }).select('name').lean();
+                businessMatch['location.country'] = { $in: mapObjs.map(m => m.name) };
+            }
+            else {
+                const mapObj = await map_model_1.Map.findById(match.map).select('name').lean();
+                if (mapObj) {
+                    businessMatch['location.country'] = mapObj.name;
+                }
+            }
+        }
+        if (match.status) {
+            if (typeof match.status === 'object' && match.status !== null && '$in' in match.status) {
+                const statusObj = match.status;
+                const statuses = statusObj.$in.map((s) => {
+                    if (s === 'Published')
+                        return 'Approved';
+                    if (s === 'Draft')
+                        return 'Pending';
+                    return s;
+                });
+                businessMatch.status = { $in: statuses };
+            }
+            else {
+                const statusStr = match.status;
+                if (statusStr === 'Published') {
+                    businessMatch.status = 'Approved';
+                }
+                else if (statusStr === 'Draft') {
+                    businessMatch.status = 'Pending';
+                }
+                else {
+                    businessMatch.status = statusStr;
+                }
+            }
+        }
+        if (searchTerm) {
+            const regex = new RegExp(escapeRegex(searchTerm), 'i');
+            const matchingCategories = await category_model_1.Category.find({ name: regex })
+                .select('_id')
+                .lean();
+            const or = [
+                { name: regex },
+                { 'location.address': regex },
+                { 'location.country': regex },
+            ];
+            if (matchingCategories.length > 0) {
+                or.push({ category: { $in: matchingCategories.map(c => c._id) } });
+            }
+            businessMatch.$or = or;
+        }
+        let businessQuery = business_model_1.Business.find(hasGeo
+            ? {
+                ...businessMatch,
+                'location.mapLocation': {
+                    $nearSphere: {
+                        $geometry: { type: 'Point', coordinates: [lng, lat] },
+                    },
+                },
+            }
+            : businessMatch)
+            .populate('category', 'name color icon status')
+            .lean();
+        if (!hasGeo) {
+            businessQuery = businessQuery.sort(sort);
+        }
+        const businesses = await businessQuery;
+        formattedBusinesses = businesses.map(business => {
+            var _a, _b, _c, _d, _e, _f, _g;
+            let placeStatus = 'Draft';
+            if (business.status === 'Approved')
+                placeStatus = 'Published';
+            else if (business.status === 'Pending')
+                placeStatus = 'Draft';
+            else
+                placeStatus = business.status;
+            return {
+                ...business,
+                _id: business._id.toString(),
+                type: 'Business',
+                placeType: 'Business',
+                status: placeStatus,
+                media: ((_a = business.media) === null || _a === void 0 ? void 0 : _a.photos) || [],
+                menuImages: ((_b = business.media) === null || _b === void 0 ? void 0 : _b.menu) ? [business.media.menu] : [],
+                address: ((_c = business.location) === null || _c === void 0 ? void 0 : _c.address) || '',
+                country: ((_d = business.location) === null || _d === void 0 ? void 0 : _d.country) || '',
+                location: {
+                    type: 'Point',
+                    coordinates: ((_f = (_e = business.location) === null || _e === void 0 ? void 0 : _e.mapLocation) === null || _f === void 0 ? void 0 : _f.coordinates) || [],
+                },
+                map: { name: (_g = business.location) === null || _g === void 0 ? void 0 : _g.country },
+            };
+        });
+    }
+    // 3. Combine results
+    const combined = [...formattedPlaces, ...formattedBusinesses];
+    // Sort combined results if not sorting by geo location distance
+    if (!hasGeo) {
+        const isDesc = sort.startsWith('-');
+        const sortField = sort.replace('-', '');
+        combined.sort((a, b) => {
+            var _a, _b, _c, _d;
+            let valA = a[sortField];
+            let valB = b[sortField];
+            if (sortField === 'map') {
+                valA = ((_a = a.map) === null || _a === void 0 ? void 0 : _a.name) || '';
+                valB = ((_b = b.map) === null || _b === void 0 ? void 0 : _b.name) || '';
+            }
+            else if (sortField === 'category') {
+                valA = ((_c = a.category) === null || _c === void 0 ? void 0 : _c.name) || '';
+                valB = ((_d = b.category) === null || _d === void 0 ? void 0 : _d.name) || '';
+            }
+            else if (sortField === 'createdAt' || sortField === 'updatedAt') {
+                valA = valA ? new Date(valA).getTime() : 0;
+                valB = valB ? new Date(valB).getTime() : 0;
+            }
+            if (typeof valA === 'string')
+                valA = valA.toLowerCase();
+            if (typeof valB === 'string')
+                valB = valB.toLowerCase();
+            if (valA < valB)
+                return isDesc ? 1 : -1;
+            if (valA > valB)
+                return isDesc ? -1 : 1;
+            return 0;
+        });
+    }
+    const total = combined.length;
+    const paginatedData = combined.slice(skip, skip + limit);
     return {
         meta: {
             total,
@@ -117,7 +267,7 @@ const getAllPlaces = async (query) => {
             limit,
             totalPage: Math.ceil(total / limit) || 0,
         },
-        data,
+        data: paginatedData,
     };
 };
 const getPlaceById = async (id) => {

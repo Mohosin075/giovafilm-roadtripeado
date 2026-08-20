@@ -109,29 +109,185 @@ const getAllPlaces = async (
     match.$or = or
   }
 
-  const total = await Place.countDocuments(match)
-
-  let findQuery = Place.find(
-    hasGeo
-      ? {
-          ...match,
-          location: {
-            $nearSphere: {
-              $geometry: { type: 'Point', coordinates: [lng, lat] },
+  // 1. Fetch regular places if applicable
+  const queryType = query.type as string | undefined
+  const shouldQueryPlaces = !queryType || queryType === 'Regular' || queryType.includes('Regular')
+  
+  let places: any[] = []
+  if (shouldQueryPlaces) {
+    let placeQuery = Place.find(
+      hasGeo
+        ? {
+            ...match,
+            location: {
+              $nearSphere: {
+                $geometry: { type: 'Point', coordinates: [lng, lat] },
+              },
             },
-          },
-        }
-      : match,
-  )
-    .populate('category', 'name color icon status')
-    .populate('map', 'name country status isPaid')
-    .lean()
+          }
+        : match,
+    )
+      .populate('category', 'name color icon status')
+      .populate('map', 'name country status isPaid')
+      .lean()
 
-  if (!hasGeo) {
-    findQuery = findQuery.sort(sort)
+    if (!hasGeo) {
+      placeQuery = placeQuery.sort(sort)
+    }
+
+    places = await placeQuery
   }
 
-  const data = await findQuery.skip(skip).limit(limit)
+  const formattedPlaces = places.map(p => ({
+    ...p,
+    _id: p._id.toString(),
+  }))
+
+  // 2. Fetch businesses if applicable
+  const shouldQueryBusinesses = !queryType || queryType === 'Business' || queryType.includes('Business')
+  let formattedBusinesses: any[] = []
+
+  if (shouldQueryBusinesses) {
+    const businessMatch: Record<string, any> = {}
+
+    if (match.category) {
+      businessMatch.category = match.category
+    }
+
+    if (match.country) {
+      businessMatch['location.country'] = match.country
+    } else if (match.map) {
+      if (typeof match.map === 'object' && match.map !== null && '$in' in match.map) {
+        const mapObjs = await Map.find({ _id: match.map }).select('name').lean()
+        businessMatch['location.country'] = { $in: mapObjs.map(m => m.name) }
+      } else {
+        const mapObj = await Map.findById(match.map).select('name').lean()
+        if (mapObj) {
+          businessMatch['location.country'] = mapObj.name
+        }
+      }
+    }
+
+    if (match.status) {
+      if (typeof match.status === 'object' && match.status !== null && '$in' in match.status) {
+        const statusObj = match.status as any
+        const statuses = statusObj.$in.map((s: string) => {
+          if (s === 'Published') return 'Approved'
+          if (s === 'Draft') return 'Pending'
+          return s
+        })
+        businessMatch.status = { $in: statuses }
+      } else {
+        const statusStr = match.status as string
+        if (statusStr === 'Published') {
+          businessMatch.status = 'Approved'
+        } else if (statusStr === 'Draft') {
+          businessMatch.status = 'Pending'
+        } else {
+          businessMatch.status = statusStr
+        }
+      }
+    }
+
+    if (searchTerm) {
+      const regex = new RegExp(escapeRegex(searchTerm), 'i')
+      const matchingCategories = await Category.find({ name: regex })
+        .select('_id')
+        .lean()
+
+      const or: Record<string, unknown>[] = [
+        { name: regex },
+        { 'location.address': regex },
+        { 'location.country': regex },
+      ]
+
+      if (matchingCategories.length > 0) {
+        or.push({ category: { $in: matchingCategories.map(c => c._id) } })
+      }
+
+      businessMatch.$or = or
+    }
+
+    let businessQuery = Business.find(
+      hasGeo
+        ? {
+            ...businessMatch,
+            'location.mapLocation': {
+              $nearSphere: {
+                $geometry: { type: 'Point', coordinates: [lng, lat] },
+              },
+            },
+          }
+        : businessMatch,
+    )
+      .populate('category', 'name color icon status')
+      .lean()
+
+    if (!hasGeo) {
+      businessQuery = businessQuery.sort(sort)
+    }
+
+    const businesses = await businessQuery
+
+    formattedBusinesses = businesses.map(business => {
+      let placeStatus = 'Draft'
+      if (business.status === 'Approved') placeStatus = 'Published'
+      else if (business.status === 'Pending') placeStatus = 'Draft'
+      else placeStatus = business.status
+
+      return {
+        ...business,
+        _id: business._id.toString(),
+        type: 'Business',
+        placeType: 'Business',
+        status: placeStatus,
+        media: business.media?.photos || [],
+        menuImages: business.media?.menu ? [business.media.menu] : [],
+        address: business.location?.address || '',
+        country: business.location?.country || '',
+        location: {
+          type: 'Point',
+          coordinates: business.location?.mapLocation?.coordinates || [],
+        },
+        map: { name: business.location?.country },
+      }
+    })
+  }
+
+  // 3. Combine results
+  const combined = [...formattedPlaces, ...formattedBusinesses]
+
+  // Sort combined results if not sorting by geo location distance
+  if (!hasGeo) {
+    const isDesc = sort.startsWith('-')
+    const sortField = sort.replace('-', '')
+
+    combined.sort((a: any, b: any) => {
+      let valA = a[sortField]
+      let valB = b[sortField]
+
+      if (sortField === 'map') {
+        valA = a.map?.name || ''
+        valB = b.map?.name || ''
+      } else if (sortField === 'category') {
+        valA = a.category?.name || ''
+        valB = b.category?.name || ''
+      } else if (sortField === 'createdAt' || sortField === 'updatedAt') {
+        valA = valA ? new Date(valA).getTime() : 0
+        valB = valB ? new Date(valB).getTime() : 0
+      }
+
+      if (typeof valA === 'string') valA = valA.toLowerCase()
+      if (typeof valB === 'string') valB = valB.toLowerCase()
+
+      if (valA < valB) return isDesc ? 1 : -1
+      if (valA > valB) return isDesc ? -1 : 1
+      return 0
+    })
+  }
+
+  const total = combined.length
+  const paginatedData = combined.slice(skip, skip + limit)
 
   return {
     meta: {
@@ -140,7 +296,7 @@ const getAllPlaces = async (
       limit,
       totalPage: Math.ceil(total / limit) || 0,
     },
-    data,
+    data: paginatedData,
   }
 }
 

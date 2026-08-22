@@ -1,5 +1,5 @@
 GENERAL VERSION:
- 
+
 Batch D: Dashboard
 
 1. On the "Users and Roles" page, within the map/country assignment section, remove the "country" selection option for the map editor, as assigning a map and a country amounts to the same thing. -solved
@@ -7,7 +7,7 @@ Batch D: Dashboard
 2. When adding or editing a restaurant or business location, the system must allow me to add menu or pricing photos so that they appear in the dropdown sections below—labeled "Menu and Prices"—alongside "Description and Access," "Offers and Discounts," etc. - solved
 
 3. I need a filter on the Dashboard's "Places" page that allows filtering by category and country.  - solved
- 
+
 Batch D: Dashboard/Rewards & Levels
 
 1. When editing a reward, the system does not allow me to select the reward type (e.g., PDF, free map, exclusive discount, or permanent discount). - solved
@@ -15,11 +15,11 @@ Batch D: Dashboard/Rewards & Levels
 2. I cannot add new rewards.- solved
 
 3. Rewards are earned as users level up, in accordance with the details provided in the PDF outlining the points required for each level and the corresponding rewards. - solved
- 
+
 Lot D: Business
 
 1. When adding a business as a user, it does not allow me to add the pin using the Google Maps link. - solved
- 
+
 Batch D: Users
 
 1. On the "Places" page, locations locked for users who haven't purchased the map still display their names. All information must remain hidden until the corresponding map is purchased. - solved
@@ -47,7 +47,7 @@ Batch D: Users
 12. On the Maps page, when you open a pin and then go back, the map resets instead of remaining where it was.   - solved
 
 13. Upon logging in for the first time after creating an account, the website should open to the Catalog page. Thereafter, it should always open to the Map page.  - solved
- 
+
 MOBILE VERSION:
 
 Batch D: Users: solved
@@ -223,19 +223,19 @@ Batch G: Dashboard
 3. On the "places" page map, when dragging a pin to change its location, the drag option should be enabled after pressing and holding for 2 to 3 seconds to prevent accidentally dragging the pin. solved
 4. On the rewards page, when you try to edit or save, an error appears and it doesn't allow you to. solved
 5. On the rewards page, when a map is given away, the user chooses which map they want for free. solved
- 
+
 Batch G: Users
-1. The map icons are still the same; I would remove the colored line and only leave the existing white line next to the icon so that the icon is more visible. 
+1. The map icons are still the same; I would remove the colored line and only leave the existing white line next to the icon so that the icon is more visible.
 
 2. When you watch the video, I want the video image to be visible in the background, blurred but frozen, so there isn't a black background.
 solved
- 
+
 Batch G: Users - Offers
 1. Remove the disclaimer on the ".offers" page.
 2. Put the "validity period" and "rules" information together in a dropdown "Information" section that opens and closes to maximize screen space.
 
 solved
- 
+
 Batch G: Users - Catalog
 1. When you click "view details" on the Puerto Rico map, the description doesn't display correctly in terms of organization or spacing as written in that section.
  solved
@@ -243,7 +243,7 @@ Batch G: Users - Catalog
 Batch G: Business
 1. When you add a business alongside the price or menu photos, the menu photo doesn't appear on the page with all the business information. solved
 
-2. When you add a business, it appears on the "offers" page but not on the "places" page. 
+2. When you add a business, it appears on the "offers" page but not on the "places" page.
 
 3. In the sections at the bottom of each page where road trip networks, etc., are located, there's a button that says "Pricing Plan." It should display the details and prices, but when users click "Get Started," they should be directed to fill out their business information. Currently, it sends them directly to payment without creating a business profile. solved
 
@@ -255,10 +255,41 @@ solved
 
 
 
+GENERAL VERSION:
+Batch G: Dashboard
+1. The visit count for places or maps on the "reports and statistics" page is not working.
+2. When I save a change to a place with a lot of information or photos, it takes a long time to save.
+3. When I edit and click "save changes," it doesn't save.
+4. When I edit information for a place and click "save changes," the loading wheel doesn't appear, and it seems frozen.
+5. On the "places" page map, when dragging a pin to change its location, it allows me to move it, but the new location isn't saved, and some errors occur.
+6. On the rewards page, it doesn't allow me to delete the PDF if I want to.- solved
+7. On the rewards page, when a map is given away, the user chooses which map they want for free.- solved
+8. Add a delete button when editing a place on the map in the "Places" page.- solved
+
+Batch G: Users
+1. The white border of the icons is too thick. I would like the white border to be thinner and the custom icon to be larger to compensate for the reduced thickness.- solved
+
+Batch G: Business
+1. When a user adds their business, they can edit the place like any other on the "Places" page, but the pin for the business added by the user does not appear on the map in the "Places" page.
+
+MOBILE VERSION:
+Batch G: Users
+1. When viewing photos and videos of a place, I want users to be able to swipe through the photos with their finger without having to tap the left and right arrow buttons.- solved
+2. When viewing photos and videos, I would like users to be able to tap the screen and have the arrows, zoom magnifier, and all titles disappear from the screen so that only the image is visible without any obstructions. And if they tap the screen again, they should reappear.- solved
+
+Batch G: Awards
+1. On the "Awards" page, the awards should appear in pairs (side by side) to maximize the screen.- solved
+2. The awards should appear from lowest XP to highest XP.- solved
+3. Compress the organization of the score, next level, level progress, etc., since it currently occupies the entire mobile screen from the start.- solved
 
 
 
 
 
 
- 
+
+
+
+
+
+

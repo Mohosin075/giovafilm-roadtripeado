@@ -62,14 +62,14 @@ jobs:
           echo "🚀 Starting deployment to EC2..."
 
           # Create deployment directory
-          ssh $SSH_USER@$SSH_KNOWN_HOSTS "mkdir -p ~/app"
+          ssh $SSH_USER@$SSH_KNOWN_HOSTS "mkdir -p /var/www/giovafilm"
 
           # Copy project files to EC2
           rsync -avz \
             --exclude='.git' \
             --exclude='node_modules' \
             --exclude='.github' \
-            . $SSH_USER@$SSH_KNOWN_HOSTS:~/app/
+            . $SSH_USER@$SSH_KNOWN_HOSTS:/var/www/giovafilm/
 
           # Install Node, npm, and PM2 if missing, then deploy app
           ssh $SSH_USER@$SSH_KNOWN_HOSTS "
@@ -92,7 +92,7 @@ jobs:
             fi
 
             # Move into app directory
-            cd ~/app
+            cd /var/www/giovafilm
 
             # Install dependencies
             echo '📦 Installing production dependencies...'
@@ -100,8 +100,7 @@ jobs:
 
             # Restart app using PM2
             echo '🔁 Restarting app with PM2...'
-            pm2 delete nodejs-app || true
-            pm2 start dist/server.js --name nodejs-app
+            pm2 restart roadtripeado-api || pm2 start dist/server.js --name roadtripeado-api
 
             echo '✅ Deployment complete!'
           "

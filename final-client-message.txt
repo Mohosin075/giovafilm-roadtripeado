@@ -300,6 +300,7 @@ marked as •used." Currently, it appears as reusable.
 2. Unlocked rewards should remain in their original area or order.
 3. Condense the layout for score, next level, level progess, etc., as it currently takes up the entire
 mobile screen from the start
+solved
 
 
 

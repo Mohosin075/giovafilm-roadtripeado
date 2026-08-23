@@ -132,13 +132,13 @@ const getAllPlaces = async (query) => {
         }
         else if (match.map) {
             if (typeof match.map === 'object' && match.map !== null && '$in' in match.map) {
-                const mapObjs = await map_model_1.Map.find({ _id: match.map }).select('name').lean();
-                businessMatch['location.country'] = { $in: mapObjs.map(m => m.name) };
+                const mapObjs = await map_model_1.Map.find({ _id: match.map }).select('name country').lean();
+                businessMatch['location.country'] = { $in: mapObjs.map(m => m.country || m.name) };
             }
             else {
-                const mapObj = await map_model_1.Map.findById(match.map).select('name').lean();
+                const mapObj = await map_model_1.Map.findById(match.map).select('name country').lean();
                 if (mapObj) {
-                    businessMatch['location.country'] = mapObj.name;
+                    businessMatch['location.country'] = mapObj.country || mapObj.name;
                 }
             }
         }

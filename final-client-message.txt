@@ -257,11 +257,11 @@ solved
 
 GENERAL VERSION:
 Batch G: Dashboard
-1. The visit count for places or maps on the "reports and statistics" page is not working.
-2. When I save a change to a place with a lot of information or photos, it takes a long time to save.
-3. When I edit and click "save changes," it doesn't save.
-4. When I edit information for a place and click "save changes," the loading wheel doesn't appear, and it seems frozen.
-5. On the "places" page map, when dragging a pin to change its location, it allows me to move it, but the new location isn't saved, and some errors occur.
+1. The visit count for places or maps on the "reports and statistics" page is not working. solved
+2. When I save a change to a place with a lot of information or photos, it takes a long time to save. solved
+3. When I edit and click "save changes," it doesn't save. solved
+4. When I edit information for a place and click "save changes," the loading wheel doesn't appear, and it seems frozen. - solved
+5. On the "places" page map, when dragging a pin to change its location, it allows me to move it, but the new location isn't saved, and some errors occur. - solved
 6. On the rewards page, it doesn't allow me to delete the PDF if I want to.- solved
 7. On the rewards page, when a map is given away, the user chooses which map they want for free.- solved
 8. Add a delete button when editing a place on the map in the "Places" page.- solved
@@ -281,6 +281,25 @@ Batch G: Awards
 1. On the "Awards" page, the awards should appear in pairs (side by side) to maximize the screen.- solved
 2. The awards should appear from lowest XP to highest XP.- solved
 3. Compress the organization of the score, next level, level progress, etc., since it currently occupies the entire mobile screen from the start.- solved
+
+
+
+GENERAL VERSION:
+Batch H: Dashboard
+1. On the "places" page map, draging a pin to change its location triggers the pop-up. The pop-up
+shouldn't open, nor should the user have to press the "save changes- button-
+2. On the •places• page map, pins shouldn't appear until a country has been selected, to avoid
+confusion.
+Batch H: Business
+4. When a user adds their business, it appears as editable on the "places" page just like any other
+location, but the pin for the user-added business does not show up on the •places' map.
+MOBILE VERSION:
+Batch H: Awards
+1. Once a user claims their free map, they should no longer be able to reuse the reward; it should be
+marked as •used." Currently, it appears as reusable.
+2. Unlocked rewards should remain in their original area or order.
+3. Condense the layout for score, next level, level progess, etc., as it currently takes up the entire
+mobile screen from the start
 
 
 

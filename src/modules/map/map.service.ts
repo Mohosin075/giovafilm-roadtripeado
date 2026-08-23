@@ -308,6 +308,14 @@ const getDiscoveryData = async (
   const formattedBusinesses = businesses.map(business => ({
     ...(business as any),
     type: 'business',
+    placeType: 'Business',
+    location: {
+      ...(business.location || {}),
+      type: 'Point',
+      coordinates: business.location?.mapLocation?.coordinates || [],
+    },
+    address: business.location?.address || '',
+    country: business.location?.country || '',
   }))
 
   // Combine results

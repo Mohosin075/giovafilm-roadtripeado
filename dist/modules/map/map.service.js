@@ -236,10 +236,21 @@ const getDiscoveryData = async (query, lockedMapIds, isAdminOrEditor = false) =>
             isLocked: !!isLocked,
         };
     });
-    const formattedBusinesses = businesses.map(business => ({
-        ...business,
-        type: 'business',
-    }));
+    const formattedBusinesses = businesses.map(business => {
+        var _a, _b, _c, _d;
+        return ({
+            ...business,
+            type: 'business',
+            placeType: 'Business',
+            location: {
+                ...(business.location || {}),
+                type: 'Point',
+                coordinates: ((_b = (_a = business.location) === null || _a === void 0 ? void 0 : _a.mapLocation) === null || _b === void 0 ? void 0 : _b.coordinates) || [],
+            },
+            address: ((_c = business.location) === null || _c === void 0 ? void 0 : _c.address) || '',
+            country: ((_d = business.location) === null || _d === void 0 ? void 0 : _d.country) || '',
+        });
+    });
     // Combine results
     let result = [...formattedPlaces, ...formattedBusinesses];
     // If there's a searchTerm, we might want to sort by relevance or alphabetically

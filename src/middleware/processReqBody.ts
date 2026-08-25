@@ -422,43 +422,40 @@ export const fileAndBodyProcessorUsingDiskStorage = () => {
       try {
         parseEmbeddedJsonData(req)
 
-        // Process uploaded files
+        // Process uploaded files — in disk storage mode, multer already saved the files.
+        // We only need to collect their paths and merge into req.body.
         if (req.files) {
           const processedFiles: ProcessedFiles = {}
           const fieldsConfig = new Map(
             uploadFields.map(f => [f.name, f.maxCount]),
           )
 
-          // Process each uploaded field
           for (const [fieldName, files] of Object.entries(req.files)) {
             const maxCount = fieldsConfig.get(fieldName as IFolderName) ?? 1
             const fileArray = files as Express.Multer.File[]
-            const paths: string[] = []
 
-            const savedPaths = await Promise.all(
-              fileArray.map(async file => {
-                const filePath = `/uploads/${fieldName}/${file.filename}`
+            const paths: string[] = fileArray.map(file => {
+              // multer disk storage already saved the file — use file.filename directly
+              const filePath = `/uploads/${fieldName}/${file.filename}`
 
-                if (shouldOptimizeImage(fieldName, file.mimetype)) {
-                  // Optimize in background so the request doesn't wait
-                  optimizeImageOnDisk(
-                    path.join(uploadsDir, fieldName, file.filename),
-                    file.mimetype,
-                  ).catch(err => {
-                    console.error('Background image optimization failed:', err)
-                  })
-                }
+              if (shouldOptimizeImage(fieldName, file.mimetype)) {
+                // Optimize in background so the request doesn't wait
+                optimizeImageOnDisk(
+                  path.join(uploadsDir, fieldName, file.filename),
+                  file.mimetype,
+                ).catch(err => {
+                  console.error('Background image optimization failed:', err)
+                })
+              }
 
-                return filePath
-              }),
-            )
-            paths.push(...savedPaths)
+              return filePath
+            })
 
             // Store as array or single value based on maxCount
             processedFiles[fieldName] = maxCount > 1 ? paths : paths[0]
           }
 
-          // Merge arrays instead of overwriting for list fields
+          // Merge file paths into req.body instead of overwriting
           for (const [fieldName, value] of Object.entries(processedFiles)) {
             if (Array.isArray(req.body[fieldName]) && Array.isArray(value)) {
               req.body[fieldName] = [...req.body[fieldName], ...value]
@@ -477,3 +474,4 @@ export const fileAndBodyProcessorUsingDiskStorage = () => {
     })
   }
 }
+

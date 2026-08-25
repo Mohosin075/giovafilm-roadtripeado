@@ -305,6 +305,20 @@ solved
 
 
 
+GENERAL VERSION:
+Lot i: Dashboard
+1. In the "places" map, when I add a video and click save, it keeps loading and never saves.
+Lot i: Users
+1. On the offers page where the "redeem" button is and the information about the specific offer, I
+would like you to compact the information where it says name, location, offer percentage and
+description of the offer. Since space is wasted and I would like the photo of the offer with the name,
+percentage and description to be visible at a glance. And also that the redeem button is seen on the
+same screen without having to slide down. The reason is to give a more user-friendly experience and
+not hide or complicate things for them.
+
+
+
+
 
 
 

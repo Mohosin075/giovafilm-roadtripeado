@@ -12,6 +12,7 @@ import { User } from '../user/user.model'
 import { Map } from '../map/map.model'
 
 import config from '../../config'
+import { PromoLink } from '../promo/promo.model'
 
 import { WebhookService } from './webhook.service'
 import { emailHelper } from '../../helpers/emailHelper'
@@ -35,10 +36,7 @@ const createCheckoutSession = async (
       )
     }
     if (!map.price || map.price <= 0) {
-      throw new ApiError(
-        StatusCodes.BAD_REQUEST,
-        'Map price is not configured',
-      )
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Map price is not configured')
     }
 
     // Always charge server-side map price (ignore client amount)
@@ -67,7 +65,7 @@ const createCheckoutSession = async (
       metadata: {
         userId: user.authId.toString(),
         mapId: payload.mapId.toString(),
-        ...payload.metadata
+        ...payload.metadata,
       },
     })
 
@@ -83,7 +81,7 @@ const createCheckoutSession = async (
       metadata: {
         checkoutSessionId: session.id,
         mapId: payload.mapId.toString(),
-        ...payload.metadata
+        ...payload.metadata,
       },
     })
 
@@ -112,7 +110,8 @@ const verifyCheckoutSession = async (sessionId: string): Promise<IPayment> => {
     console.log('🔍 Metadata:', stripeSession.metadata)
 
     const paymentIntentId =
-      stripeSession.payment_intent && typeof stripeSession.payment_intent === 'object'
+      stripeSession.payment_intent &&
+      typeof stripeSession.payment_intent === 'object'
         ? (stripeSession.payment_intent as any).id
         : (stripeSession.payment_intent as string)
 
@@ -121,24 +120,29 @@ const verifyCheckoutSession = async (sessionId: string): Promise<IPayment> => {
       $or: [
         { paymentIntentId: sessionId },
         { 'metadata.checkoutSessionId': sessionId },
-        ...(paymentIntentId ? [{ paymentIntentId }] : [])
-      ]
-    })
-      .populate('userId', 'name email')
+        ...(paymentIntentId ? [{ paymentIntentId }] : []),
+      ],
+    }).populate('userId', 'name email')
 
     if (!payment) {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Payment not found')
     }
 
     // Update payment status based on session
-    if (stripeSession.payment_status === 'paid' && payment.status !== 'succeeded') {
+    if (
+      stripeSession.payment_status === 'paid' &&
+      payment.status !== 'succeeded'
+    ) {
       const mongooseSession = await Payment.startSession()
       mongooseSession.startTransaction()
 
       try {
         // Update payment status
         payment.status = 'succeeded'
-        payment.metadata = { ...payment.metadata, stripeSessionId: stripeSession.id }
+        payment.metadata = {
+          ...payment.metadata,
+          stripeSessionId: stripeSession.id,
+        }
         await payment.save({ session: mongooseSession })
 
         // Update User purchasedMaps if mapId exists
@@ -147,9 +151,29 @@ const verifyCheckoutSession = async (sessionId: string): Promise<IPayment> => {
           await User.findByIdAndUpdate(
             payment.userId,
             { $addToSet: { purchasedMaps: mapId } },
-            { session: mongooseSession }
+            { session: mongooseSession },
           )
-          console.log(`verifyCheckoutSession: User purchasedMaps updated for User ID: ${payment.userId}`)
+          console.log(
+            `verifyCheckoutSession: User purchasedMaps updated for User ID: ${payment.userId}`,
+          )
+        }
+
+        // Handle Promo Link usage if applicable
+        const promoCode =
+          stripeSession.metadata?.promoCode || payment.metadata?.promoCode
+        if (promoCode) {
+          await PromoLink.findOneAndUpdate(
+            { code: promoCode, isUsed: false },
+            {
+              isUsed: true,
+              usedBy: payment.userId,
+              usedAt: new Date(),
+            },
+            { session: mongooseSession },
+          )
+          console.log(
+            `verifyCheckoutSession: PromoLink code: ${promoCode} marked as used`,
+          )
         }
 
         // Send confirmation email
@@ -160,7 +184,7 @@ const verifyCheckoutSession = async (sessionId: string): Promise<IPayment> => {
           await emailHelper.sendEmail({
             to: userData.email,
             subject: 'Payment Successful',
-            html: `<p>Hi ${userData.name}, your payment of ${payment.amount} ${payment.currency} was successful.</p>`
+            html: `<p>Hi ${userData.name}, your payment of ${payment.amount} ${payment.currency} was successful.</p>`,
           })
         }
 
@@ -199,7 +223,11 @@ const verifyCheckoutSession = async (sessionId: string): Promise<IPayment> => {
 const createPaymentIntent = async (
   user: any,
   payload: any,
-): Promise<{ clientSecret: string; paymentIntentId: string; amount: number }> => {
+): Promise<{
+  clientSecret: string
+  paymentIntentId: string
+  amount: number
+}> => {
   try {
     // Same as checkout: charge Map.price server-side (never trust client amount)
     const map = await Map.findById(payload.mapId)
@@ -213,10 +241,7 @@ const createPaymentIntent = async (
       )
     }
     if (!map.price || map.price <= 0) {
-      throw new ApiError(
-        StatusCodes.BAD_REQUEST,
-        'Map price is not configured',
-      )
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Map price is not configured')
     }
 
     const amount = map.price
@@ -229,7 +254,7 @@ const createPaymentIntent = async (
         userId: user.authId.toString(),
         userEmail: user.email,
         mapId: payload.mapId.toString(),
-        ...payload.metadata
+        ...payload.metadata,
       },
     })
 
@@ -246,7 +271,7 @@ const createPaymentIntent = async (
       metadata: {
         userId: user.authId.toString(),
         mapId: payload.mapId.toString(),
-        ...payload.metadata
+        ...payload.metadata,
       },
     })
 
@@ -287,7 +312,9 @@ const createEphemeralKey = async (
       customerId = customer.id
 
       // Update user record with stripeCustomerId
-      await User.findByIdAndUpdate(user.authId, { stripeCustomerId: customer.id })
+      await User.findByIdAndUpdate(user.authId, {
+        stripeCustomerId: customer.id,
+      })
     }
 
     // Create ephemeral key
@@ -409,7 +436,7 @@ const getAllPayments = async (
       .sort({ [sortBy]: sortOrder })
       .populate('userId', 'name email')
       .populate({
-        path: 'mapId'
+        path: 'mapId',
       }),
     Payment.countDocuments(whereConditions),
   ])
@@ -433,8 +460,7 @@ const getSinglePayment = async (
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Payment ID')
   }
 
-  const result = await Payment.findById(id)
-    .populate('userId', 'name email')
+  const result = await Payment.findById(id).populate('userId', 'name email')
 
   if (!result) {
     throw new ApiError(
@@ -449,7 +475,10 @@ const getSinglePayment = async (
     const ownerId =
       (result.userId as any)?._id?.toString() || result.userId?.toString()
     if (!isAdmin && ownerId !== user.authId?.toString()) {
-      throw new ApiError(StatusCodes.FORBIDDEN, 'You are not authorized to view this payment')
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        'You are not authorized to view this payment',
+      )
     }
   }
 
@@ -471,8 +500,7 @@ const updatePayment = async (
       new: true,
       runValidators: true,
     },
-  )
-    .populate('userId', 'name email')
+  ).populate('userId', 'name email')
 
   if (!result) {
     throw new ApiError(
@@ -521,8 +549,7 @@ const refundPayment = async (
         metadata: { ...payment.metadata, refundId: refund.id },
       },
       { new: true, runValidators: true },
-    )
-      .populate('userId', 'name email')
+    ).populate('userId', 'name email')
 
     return result!
   } catch (error: any) {
@@ -565,14 +592,20 @@ const generateInvoice = async (id: string): Promise<string | Buffer> => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Payment ID')
   }
 
-  const payment = await Payment.findById(id).populate('userId').populate('mapId')
+  const payment = await Payment.findById(id)
+    .populate('userId')
+    .populate('mapId')
 
   if (!payment) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Payment not found')
   }
 
   // 1. If it's a Stripe payment, try to get the official receipt URL
-  if (payment.paymentIntentId && payment.status === 'succeeded' && payment.paymentMethod === 'stripe') {
+  if (
+    payment.paymentIntentId &&
+    payment.status === 'succeeded' &&
+    payment.paymentMethod === 'stripe'
+  ) {
     try {
       const pi = await stripe.paymentIntents.retrieve(payment.paymentIntentId)
       if (pi.latest_charge) {

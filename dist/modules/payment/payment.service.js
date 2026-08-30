@@ -14,6 +14,7 @@ const mongoose_1 = require("mongoose");
 const user_model_1 = require("../user/user.model");
 const map_model_1 = require("../map/map.model");
 const config_1 = __importDefault(require("../../config"));
+const promo_model_1 = require("../promo/promo.model");
 const webhook_service_1 = require("./webhook.service");
 const emailHelper_1 = require("../../helpers/emailHelper");
 const stripe_1 = __importDefault(require("../../config/stripe"));
@@ -55,7 +56,7 @@ const createCheckoutSession = async (user, payload) => {
             metadata: {
                 userId: user.authId.toString(),
                 mapId: payload.mapId.toString(),
-                ...payload.metadata
+                ...payload.metadata,
             },
         });
         await payment_model_1.Payment.create({
@@ -70,7 +71,7 @@ const createCheckoutSession = async (user, payload) => {
             metadata: {
                 checkoutSessionId: session.id,
                 mapId: payload.mapId.toString(),
-                ...payload.metadata
+                ...payload.metadata,
             },
         });
         return {
@@ -85,6 +86,7 @@ const createCheckoutSession = async (user, payload) => {
     }
 };
 const verifyCheckoutSession = async (sessionId) => {
+    var _a, _b;
     try {
         // Retrieve session from Stripe
         const stripeSession = await stripe_1.default.checkout.sessions.retrieve(sessionId, {
@@ -93,7 +95,8 @@ const verifyCheckoutSession = async (sessionId) => {
         console.log('🔍 Verifying Checkout Session:', stripeSession.id);
         console.log('🔍 Payment Intent:', stripeSession.payment_intent);
         console.log('🔍 Metadata:', stripeSession.metadata);
-        const paymentIntentId = stripeSession.payment_intent && typeof stripeSession.payment_intent === 'object'
+        const paymentIntentId = stripeSession.payment_intent &&
+            typeof stripeSession.payment_intent === 'object'
             ? stripeSession.payment_intent.id
             : stripeSession.payment_intent;
         // Find payment record using either paymentIntentId (legacy/direct) or metadata.checkoutSessionId (correct for checkout)
@@ -101,27 +104,40 @@ const verifyCheckoutSession = async (sessionId) => {
             $or: [
                 { paymentIntentId: sessionId },
                 { 'metadata.checkoutSessionId': sessionId },
-                ...(paymentIntentId ? [{ paymentIntentId }] : [])
-            ]
-        })
-            .populate('userId', 'name email');
+                ...(paymentIntentId ? [{ paymentIntentId }] : []),
+            ],
+        }).populate('userId', 'name email');
         if (!payment) {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Payment not found');
         }
         // Update payment status based on session
-        if (stripeSession.payment_status === 'paid' && payment.status !== 'succeeded') {
+        if (stripeSession.payment_status === 'paid' &&
+            payment.status !== 'succeeded') {
             const mongooseSession = await payment_model_1.Payment.startSession();
             mongooseSession.startTransaction();
             try {
                 // Update payment status
                 payment.status = 'succeeded';
-                payment.metadata = { ...payment.metadata, stripeSessionId: stripeSession.id };
+                payment.metadata = {
+                    ...payment.metadata,
+                    stripeSessionId: stripeSession.id,
+                };
                 await payment.save({ session: mongooseSession });
                 // Update User purchasedMaps if mapId exists
                 const mapId = payment.mapId;
                 if (mapId) {
                     await user_model_1.User.findByIdAndUpdate(payment.userId, { $addToSet: { purchasedMaps: mapId } }, { session: mongooseSession });
                     console.log(`verifyCheckoutSession: User purchasedMaps updated for User ID: ${payment.userId}`);
+                }
+                // Handle Promo Link usage if applicable
+                const promoCode = ((_a = stripeSession.metadata) === null || _a === void 0 ? void 0 : _a.promoCode) || ((_b = payment.metadata) === null || _b === void 0 ? void 0 : _b.promoCode);
+                if (promoCode) {
+                    await promo_model_1.PromoLink.findOneAndUpdate({ code: promoCode, isUsed: false }, {
+                        isUsed: true,
+                        usedBy: payment.userId,
+                        usedAt: new Date(),
+                    }, { session: mongooseSession });
+                    console.log(`verifyCheckoutSession: PromoLink code: ${promoCode} marked as used`);
                 }
                 // Send confirmation email
                 const user = await payment.populate('userId');
@@ -130,7 +146,7 @@ const verifyCheckoutSession = async (sessionId) => {
                     await emailHelper_1.emailHelper.sendEmail({
                         to: userData.email,
                         subject: 'Payment Successful',
-                        html: `<p>Hi ${userData.name}, your payment of ${payment.amount} ${payment.currency} was successful.</p>`
+                        html: `<p>Hi ${userData.name}, your payment of ${payment.amount} ${payment.currency} was successful.</p>`,
                     });
                 }
                 await mongooseSession.commitTransaction();
@@ -183,7 +199,7 @@ const createPaymentIntent = async (user, payload) => {
                 userId: user.authId.toString(),
                 userEmail: user.email,
                 mapId: payload.mapId.toString(),
-                ...payload.metadata
+                ...payload.metadata,
             },
         });
         // Create payment record
@@ -199,7 +215,7 @@ const createPaymentIntent = async (user, payload) => {
             metadata: {
                 userId: user.authId.toString(),
                 mapId: payload.mapId.toString(),
-                ...payload.metadata
+                ...payload.metadata,
             },
         });
         return {
@@ -232,7 +248,9 @@ const createEphemeralKey = async (user, apiVersion = '2025-05-28.basil') => {
             });
             customerId = customer.id;
             // Update user record with stripeCustomerId
-            await user_model_1.User.findByIdAndUpdate(user.authId, { stripeCustomerId: customer.id });
+            await user_model_1.User.findByIdAndUpdate(user.authId, {
+                stripeCustomerId: customer.id,
+            });
         }
         // Create ephemeral key
         const ephemeralKey = await stripe_1.default.ephemeralKeys.create({ customer: customerId }, { apiVersion: apiVersion });
@@ -329,7 +347,7 @@ const getAllPayments = async (user, filterables, pagination) => {
             .sort({ [sortBy]: sortOrder })
             .populate('userId', 'name email')
             .populate({
-            path: 'mapId'
+            path: 'mapId',
         }),
         payment_model_1.Payment.countDocuments(whereConditions),
     ]);
@@ -348,8 +366,7 @@ const getSinglePayment = async (id, user) => {
     if (!mongoose_1.Types.ObjectId.isValid(id)) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid Payment ID');
     }
-    const result = await payment_model_1.Payment.findById(id)
-        .populate('userId', 'name email');
+    const result = await payment_model_1.Payment.findById(id).populate('userId', 'name email');
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Requested payment not found, please try again with valid id');
     }
@@ -370,8 +387,7 @@ const updatePayment = async (id, payload) => {
     const result = await payment_model_1.Payment.findByIdAndUpdate(new mongoose_1.Types.ObjectId(id), { $set: payload }, {
         new: true,
         runValidators: true,
-    })
-        .populate('userId', 'name email');
+    }).populate('userId', 'name email');
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Requested payment not found, please try again with valid id');
     }
@@ -400,8 +416,7 @@ const refundPayment = async (id, reason) => {
             refundAmount: payment.amount,
             refundReason: reason,
             metadata: { ...payment.metadata, refundId: refund.id },
-        }, { new: true, runValidators: true })
-            .populate('userId', 'name email');
+        }, { new: true, runValidators: true }).populate('userId', 'name email');
         return result;
     }
     catch (error) {
@@ -432,12 +447,16 @@ const generateInvoice = async (id) => {
     if (!mongoose_1.Types.ObjectId.isValid(id)) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid Payment ID');
     }
-    const payment = await payment_model_1.Payment.findById(id).populate('userId').populate('mapId');
+    const payment = await payment_model_1.Payment.findById(id)
+        .populate('userId')
+        .populate('mapId');
     if (!payment) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Payment not found');
     }
     // 1. If it's a Stripe payment, try to get the official receipt URL
-    if (payment.paymentIntentId && payment.status === 'succeeded' && payment.paymentMethod === 'stripe') {
+    if (payment.paymentIntentId &&
+        payment.status === 'succeeded' &&
+        payment.paymentMethod === 'stripe') {
         try {
             const pi = await stripe_1.default.paymentIntents.retrieve(payment.paymentIntentId);
             if (pi.latest_charge) {

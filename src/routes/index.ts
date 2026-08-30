@@ -21,6 +21,7 @@ import { StatsRoutes } from '../modules/stats/stats.route'
 import { FavouriteRoutes } from '../modules/favourite/favourite.route'
 import { StatusCodes } from 'http-status-codes'
 import { PaymentRoutes } from '../modules/payment/payment.route'
+import { PromoLinkRoutes } from '../modules/promo/promo.route'
 
 const router = express.Router()
 
@@ -46,6 +47,7 @@ const apiRoutes: { path: string; route: Router }[] = [
   { path: '/stats', route: StatsRoutes },
   { path: '/favourite', route: FavouriteRoutes },
   { path: '/payment', route: PaymentRoutes },
+  { path: '/promo-links', route: PromoLinkRoutes },
 ]
 
 apiRoutes.forEach(route => {

@@ -11,8 +11,9 @@ const payment_model_1 = require("./payment.model");
 const emailHelper_1 = require("../../helpers/emailHelper");
 const user_model_1 = require("../user/user.model");
 const stripe_1 = __importDefault(require("../../config/stripe"));
+const promo_model_1 = require("../promo/promo.model");
 const handleCheckoutSessionCompleted = async (sessionData) => {
-    var _a, _b;
+    var _a, _b, _c, _d;
     try {
         console.log('🔔 Processing Checkout Session Completed:', sessionData.id);
         const sessionWithDetails = await stripe_1.default.checkout.sessions.retrieve(sessionData.id, {
@@ -57,10 +58,26 @@ const handleCheckoutSessionCompleted = async (sessionData) => {
             console.log(`Webhook: Processing map purchase update for Map ID: ${mapId}`);
             if (mapId) {
                 const updatedUser = await user_model_1.User.findByIdAndUpdate(payment.userId, {
-                    $addToSet: { purchasedMaps: mapId }
+                    $addToSet: { purchasedMaps: mapId },
                 }, { session: mongoSession, new: true });
                 if (updatedUser) {
                     console.log(`Webhook: User purchasedMaps updated for User ID: ${payment.userId}`);
+                }
+            }
+            // Handle Promo Link usage if applicable
+            const promoCode = ((_c = sessionWithDetails.metadata) === null || _c === void 0 ? void 0 : _c.promoCode) || ((_d = payment.metadata) === null || _d === void 0 ? void 0 : _d.promoCode);
+            if (promoCode) {
+                console.log(`Webhook: Processing promo code usage for code: ${promoCode}`);
+                const updatedPromo = await promo_model_1.PromoLink.findOneAndUpdate({ code: promoCode, isUsed: false }, {
+                    isUsed: true,
+                    usedBy: payment.userId,
+                    usedAt: new Date(),
+                }, { session: mongoSession, new: true });
+                if (updatedPromo) {
+                    console.log(`Webhook: PromoLink code: ${promoCode} marked as used`);
+                }
+                else {
+                    console.warn(`Webhook WARNING: PromoLink code: ${promoCode} was not found or already marked as used.`);
                 }
             }
             await mongoSession.commitTransaction();
@@ -69,7 +86,7 @@ const handleCheckoutSessionCompleted = async (sessionData) => {
             await emailHelper_1.emailHelper.sendEmail({
                 to: payment.userEmail,
                 subject: 'Payment Successful',
-                html: `<p>Your payment was successful.</p>`
+                html: `<p>Your payment was successful.</p>`,
             });
         }
         catch (error) {
@@ -154,7 +171,7 @@ const handlePaymentSuccess = async (paymentIntent) => {
         const mapId = payment.mapId || ((_a = paymentIntent.metadata) === null || _a === void 0 ? void 0 : _a.mapId);
         if (mapId) {
             const updatedUser = await user_model_1.User.findByIdAndUpdate(payment.userId, {
-                $addToSet: { purchasedMaps: mapId }
+                $addToSet: { purchasedMaps: mapId },
             }, { session: mongoSession, new: true });
             if (updatedUser) {
                 console.log(`Webhook: User purchasedMaps updated for User ID: ${payment.userId}`);
@@ -167,7 +184,7 @@ const handlePaymentSuccess = async (paymentIntent) => {
             await emailHelper_1.emailHelper.sendEmail({
                 to: payment.userEmail,
                 subject: 'Payment Successful',
-                html: `<p>Your payment was successful.</p>`
+                html: `<p>Your payment was successful.</p>`,
             });
         }
     }
@@ -189,7 +206,7 @@ const handlePaymentFailure = async (paymentIntent) => {
         // Fallback for failure too
         if (!payment && paymentIntent.metadata && paymentIntent.metadata.mapId) {
             payment = await payment_model_1.Payment.findOne({
-                mapId: paymentIntent.metadata.mapId
+                mapId: paymentIntent.metadata.mapId,
             }).session(mongoSession);
         }
         if (payment) {
@@ -220,7 +237,7 @@ exports.WebhookService = {
                 }
                 catch (err) {
                     console.error('⚠️ Webhook signature verification failed:', err.message);
-                    // Fallback to direct parsing for development if needed, 
+                    // Fallback to direct parsing for development if needed,
                     // but in production this should probably throw
                     event = JSON.parse(payload.body.toString());
                 }

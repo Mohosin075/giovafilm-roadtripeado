@@ -25,6 +25,7 @@ const stats_route_1 = require("../modules/stats/stats.route");
 const favourite_route_1 = require("../modules/favourite/favourite.route");
 const http_status_codes_1 = require("http-status-codes");
 const payment_route_1 = require("../modules/payment/payment.route");
+const promo_route_1 = require("../modules/promo/promo.route");
 const router = express_1.default.Router();
 const apiRoutes = [
     { path: '/user', route: user_route_1.UserRoutes },
@@ -47,6 +48,7 @@ const apiRoutes = [
     { path: '/stats', route: stats_route_1.StatsRoutes },
     { path: '/favourite', route: favourite_route_1.FavouriteRoutes },
     { path: '/payment', route: payment_route_1.PaymentRoutes },
+    { path: '/promo-links', route: promo_route_1.PromoLinkRoutes },
 ];
 apiRoutes.forEach(route => {
     router.use(route.path, route.route);

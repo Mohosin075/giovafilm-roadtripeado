@@ -1,0 +1,44 @@
+Hi Gio,
+I hope you are doing well!
+Regarding your request to handle the $5 upgrade fee for your existing Google My Maps users (~7,200 users) and provide 100% free access to influencers for advertising purposes, we have reviewed the requirements and identified the best technical approach for your platform.
+We recommend implementing a Custom Promo & Invitation Link System integrated directly with your database, Stripe, and admin panel.
+Why this approach is the best fit
+1. Frictionless Influencer Access — 100% Free
+You will be able to generate unique invitation links for influencers. When an influencer opens the link and logs in, the system can automatically grant access to the selected map.
+They will not need to enter credit card details or go through Stripe checkout, making the process simple and professional.
+2. Secure $5 Upgrade for Existing Customers
+For your existing Google My Maps customers, you can generate a unique upgrade link with a predefined $5 price.
+When the customer uses the link, Stripe will charge exactly $5, and after successful payment, the system will automatically unlock the new map for them.
+3. Full Admin Control
+We will provide the necessary controls in the admin panel so you can:
+Generate unique promo/invitation links
+Select which map the link applies to
+Set the final price, such as $0 for influencers or $5 for existing customers
+Set expiration dates
+Track whether a link has been used
+See which user claimed a specific link
+This approach will also give you flexibility in the future if you want to create other promotional campaigns or special offers, or if you want a different approach, just let us know.
+Since this requires additional backend and admin-panel development, including database models, Stripe checkout modifications, webhook validation, invitation-link logic, and admin controls, we would treat it as an additional feature.
+You know we already work based on your expectations, and we want to run your business the way you want. So, only for this additional work, there will be a small charge of $200 - $250 USD.
+If you find more issues, don't worry about this—we will fix them.
+Please let me know if you are onboard with this approach, and we can start building it! If you agree, we will send you a short custom offer, and within 2 days, we will complete this feature.
+Please let us know if you are happy to proceed, and we will get started.
+If you need any assistance or have any questions, please feel free to let us know. We will be happy to help.
+Best regards,
+
+
+Hi Gio,
+Yes, absolutely.
+1. Can you modify the fee?
+Yes. You will be able to set the price from the admin panel for each link, such as $5 for existing customers, $0 for influencers, or any other amount you want.
+2. How will you identify each customer/link?
+Since you already have the information for your existing ~7,200 customers, we can create a unique secure link for each customer and associate it with their email or customer reference.
+From the admin panel, you will be able to see who the link belongs to, whether it has been used, who claimed it, and the payment status.
+For influencers, we can use a similar system with a $0 price and a custom label such as “Influencer - Sarah.”
+So yes, the whole process can be managed directly from the admin panel.
+If this approach works for you, we can proceed with the implementation.
+
+
+Yes, it’s absolutely possible. We can send the upgrade links automatically to all 7,200 existing customers.
+For this, we will need the email list of those 7,200 customers from you. If you have the list, we can set up the system to send the emails automatically.
+Also, the link does not have to force them to use the same email address. We can design the flow so they can use their current email when creating or accessing their account.

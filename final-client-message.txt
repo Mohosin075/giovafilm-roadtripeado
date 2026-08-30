@@ -308,6 +308,7 @@ solved
 GENERAL VERSION:
 Lot i: Dashboard
 1. In the "places" map, when I add a video and click save, it keeps loading and never saves.
+solved
 Lot i: Users
 1. On the offers page where the "redeem" button is and the information about the specific offer, I
 would like you to compact the information where it says name, location, offer percentage and
@@ -315,6 +316,31 @@ description of the offer. Since space is wasted and I would like the photo of th
 percentage and description to be visible at a glance. And also that the redeem button is seen on the
 same screen without having to slide down. The reason is to give a more user-friendly experience and
 not hide or complicate things for them.
+solved
+
+GENERAL VERSION:
+Lot J - Dashboard:
+1. On the "Places" page map, there is a slight delay when dragging a pin to change its location, which
+negatively affects the administrator experience. solved
+Lot J - Users:
+1. I would like the white border on the icons to be thinner. Please use Googe Maps or Go"e
+My Maps pins as a reference for the exact look. solved
+2. On the "Places" page, the "All countries" option should be removed from the country selection
+section.
+3. On the "Places" page, remove the "Search" button; the user should trigger the search using the
+keyboard, just as in other search sections.
+4. On the "Places" page, I would like the "Categories" section and the country selection section to be
+placed side-by-side, next to the "Popular," "New," and "Near me" buttons.
+5. The search bar and filters on the "Offers- page are not organized the same way as those on the "Places" page. Please ensure they share the same proportions and layout.
+
+solved
+
+
+MOBILE VERSION:
+Lot J - Users:
+1. On the "Catalog" page, please arrange the maps side-by-side (in pairs)-
+2 When using the app, there are instances where the screen slides as if the screen size were
+incorrect—specifically, as if it were slightly too large- (I can provide a video of this)-
 
 
 

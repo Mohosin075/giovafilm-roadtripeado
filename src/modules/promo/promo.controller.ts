@@ -103,6 +103,27 @@ const getAllPromoLinks = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const deletePromoLink = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params
+  const result = await PromoServices.deletePromoLink(id)
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Promo link deleted successfully',
+    data: result,
+  })
+})
+
+const getPromoStats = catchAsync(async (req: Request, res: Response) => {
+  const result = await PromoServices.getPromoStats()
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Promo stats retrieved successfully',
+    data: result,
+  })
+})
+
 export const PromoControllers = {
   verifyPromoCode,
   claimFreePromo,
@@ -110,4 +131,6 @@ export const PromoControllers = {
   bulkGeneratePromoLinks,
   sendBulkPromoEmails,
   getAllPromoLinks,
+  deletePromoLink,
+  getPromoStats,
 }

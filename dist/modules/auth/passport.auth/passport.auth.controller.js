@@ -39,8 +39,20 @@ const googleAuthCallback = (0, catchAsync_1.default)(async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
     }
-    // Do not put refreshToken in the URL
-    return res.redirect(`${config_1.default.clientUrl}/login?accessToken=${accessToken}&role=user`);
+    // Retrieve state parameter (our encoded redirect URL)
+    let redirectUrl = `${config_1.default.clientUrl}/login?accessToken=${accessToken}&role=user`;
+    if (req.query.state) {
+        try {
+            const decodedRedirect = Buffer.from(req.query.state, 'base64').toString('ascii');
+            if (decodedRedirect.startsWith('/')) {
+                redirectUrl += `&redirect=${encodeURIComponent(decodedRedirect)}`;
+            }
+        }
+        catch (e) {
+            console.error('Failed to decode OAuth state redirect', e);
+        }
+    }
+    return res.redirect(redirectUrl);
 });
 exports.PassportAuthController = {
     login,

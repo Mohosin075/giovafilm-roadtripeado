@@ -16,5 +16,7 @@ router.post('/claim', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_RO
 router.post('/create-checkout-session', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), (0, validateRequest_1.default)(promo_validation_1.PromoValidations.createPromoCheckoutSessionZodSchema), promo_controller_1.PromoControllers.createPromoCheckoutSession);
 router.post('/bulk-generate', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), (0, validateRequest_1.default)(promo_validation_1.PromoValidations.bulkGeneratePromoZodSchema), promo_controller_1.PromoControllers.bulkGeneratePromoLinks);
 router.post('/send-emails', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), (0, validateRequest_1.default)(promo_validation_1.PromoValidations.sendBulkEmailsZodSchema), promo_controller_1.PromoControllers.sendBulkPromoEmails);
+router.get('/stats', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), promo_controller_1.PromoControllers.getPromoStats);
 router.get('/', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), promo_controller_1.PromoControllers.getAllPromoLinks);
+router.delete('/:id', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), promo_controller_1.PromoControllers.deletePromoLink);
 exports.PromoLinkRoutes = router;

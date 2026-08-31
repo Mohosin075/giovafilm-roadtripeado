@@ -38,9 +38,21 @@ router.post(
 )
 
 router.get(
+  '/stats',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  PromoControllers.getPromoStats,
+)
+
+router.get(
   '/',
   auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   PromoControllers.getAllPromoLinks,
+)
+
+router.delete(
+  '/:id',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  PromoControllers.deletePromoLink,
 )
 
 export const PromoLinkRoutes = router

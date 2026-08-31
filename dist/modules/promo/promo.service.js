@@ -317,6 +317,32 @@ const getAllPromoLinks = async (query) => {
         data,
     };
 };
+const deletePromoLink = async (id) => {
+    if (!mongoose_1.Types.ObjectId.isValid(id)) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid promo link ID');
+    }
+    const result = await promo_model_1.PromoLink.findByIdAndDelete(id);
+    if (!result) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Promo link not found');
+    }
+    return result;
+};
+const getPromoStats = async () => {
+    const [total, used, unused, influencer, upgrade] = await Promise.all([
+        promo_model_1.PromoLink.countDocuments(),
+        promo_model_1.PromoLink.countDocuments({ isUsed: true }),
+        promo_model_1.PromoLink.countDocuments({ isUsed: false }),
+        promo_model_1.PromoLink.countDocuments({ promoType: 'influencer' }),
+        promo_model_1.PromoLink.countDocuments({ promoType: 'upgrade' }),
+    ]);
+    return {
+        total,
+        used,
+        unused,
+        influencer,
+        upgrade,
+    };
+};
 exports.PromoServices = {
     verifyPromoCode,
     claimFreePromo,
@@ -324,4 +350,6 @@ exports.PromoServices = {
     bulkGeneratePromoLinks,
     sendBulkPromoEmails,
     getAllPromoLinks,
+    deletePromoLink,
+    getPromoStats,
 };

@@ -38,7 +38,11 @@ router.post(
 router.get(
   '/google',
   authRateLimiter,
-  passport.authenticate('google', { scope: ['profile', 'email'] }),
+  (req, res, next) => {
+    const redirect = req.query.redirect as string;
+    const state = redirect ? Buffer.from(redirect).toString('base64') : '';
+    passport.authenticate('google', { scope: ['profile', 'email'], state })(req, res, next);
+  }
 )
 
 router.get(

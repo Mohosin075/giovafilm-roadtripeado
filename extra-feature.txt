@@ -42,3 +42,11 @@ If this approach works for you, we can proceed with the implementation.
 Yes, it’s absolutely possible. We can send the upgrade links automatically to all 7,200 existing customers.
 For this, we will need the email list of those 7,200 customers from you. If you have the list, we can set up the system to send the emails automatically.
 Also, the link does not have to force them to use the same email address. We can design the flow so they can use their current email when creating or accessing their account.
+
+
+
+
+
+Option 1: Pre-assigned by Admin (Recommended) When sending the emails in bulk from the admin panel, you will select which map that specific email list is for (e.g., you upload a list of users specifically for the Puerto Rico Map). When they click their unique link and pay the $5 fee, that specific map is automatically unlocked for them. If users bought different maps, you would upload them in separate batches.
+
+Option A: Charge $5 for each map. If they owned 2 maps, they will receive a link for each map and pay $5 for each to upgrade ($10 total).

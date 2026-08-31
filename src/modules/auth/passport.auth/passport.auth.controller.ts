@@ -50,10 +50,20 @@ const googleAuthCallback = catchAsync(async (req: Request, res: Response) => {
     })
   }
 
-  // Do not put refreshToken in the URL
-  return res.redirect(
-    `${config.clientUrl}/login?accessToken=${accessToken}&role=user`,
-  )
+  // Retrieve state parameter (our encoded redirect URL)
+  let redirectUrl = `${config.clientUrl}/login?accessToken=${accessToken}&role=user`
+  if (req.query.state) {
+    try {
+      const decodedRedirect = Buffer.from(req.query.state as string, 'base64').toString('ascii')
+      if (decodedRedirect.startsWith('/')) {
+        redirectUrl += `&redirect=${encodeURIComponent(decodedRedirect)}`
+      }
+    } catch (e) {
+      console.error('Failed to decode OAuth state redirect', e)
+    }
+  }
+
+  return res.redirect(redirectUrl)
 })
 
 export const PassportAuthController = {

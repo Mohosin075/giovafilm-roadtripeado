@@ -413,6 +413,35 @@ const getAllPromoLinks = async (query: any): Promise<any> => {
   }
 }
 
+const deletePromoLink = async (id: string): Promise<IPromoLink | null> => {
+  if (!Types.ObjectId.isValid(id)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid promo link ID')
+  }
+  const result = await PromoLink.findByIdAndDelete(id)
+  if (!result) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Promo link not found')
+  }
+  return result
+}
+
+const getPromoStats = async (): Promise<any> => {
+  const [total, used, unused, influencer, upgrade] = await Promise.all([
+    PromoLink.countDocuments(),
+    PromoLink.countDocuments({ isUsed: true }),
+    PromoLink.countDocuments({ isUsed: false }),
+    PromoLink.countDocuments({ promoType: 'influencer' }),
+    PromoLink.countDocuments({ promoType: 'upgrade' }),
+  ])
+
+  return {
+    total,
+    used,
+    unused,
+    influencer,
+    upgrade,
+  }
+}
+
 export const PromoServices = {
   verifyPromoCode,
   claimFreePromo,
@@ -420,4 +449,6 @@ export const PromoServices = {
   bulkGeneratePromoLinks,
   sendBulkPromoEmails,
   getAllPromoLinks,
+  deletePromoLink,
+  getPromoStats,
 }

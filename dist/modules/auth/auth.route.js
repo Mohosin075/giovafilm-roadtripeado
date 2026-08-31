@@ -17,7 +17,11 @@ const router = express_1.default.Router();
 router.post('/signup', rateLimit_1.authRateLimiter, (0, validateRequest_1.default)(auth_validation_1.AuthValidations.createUserZodSchema), custom_auth_controller_1.CustomAuthController.createUser);
 router.post('/admin-login', rateLimit_1.authRateLimiter, (0, validateRequest_1.default)(auth_validation_1.AuthValidations.loginZodSchema), custom_auth_controller_1.CustomAuthController.adminLogin);
 router.post('/login', rateLimit_1.authRateLimiter, (0, validateRequest_1.default)(auth_validation_1.AuthValidations.loginZodSchema), passport_1.default.authenticate('local', { session: false }), passport_auth_controller_1.PassportAuthController.login);
-router.get('/google', rateLimit_1.authRateLimiter, passport_1.default.authenticate('google', { scope: ['profile', 'email'] }));
+router.get('/google', rateLimit_1.authRateLimiter, (req, res, next) => {
+    const redirect = req.query.redirect;
+    const state = redirect ? Buffer.from(redirect).toString('base64') : '';
+    passport_1.default.authenticate('google', { scope: ['profile', 'email'], state })(req, res, next);
+});
 router.get('/google/callback', passport_1.default.authenticate('google', { session: false }), passport_auth_controller_1.PassportAuthController.googleAuthCallback);
 router.post('/verify-account', rateLimit_1.otpRateLimiter, (0, validateRequest_1.default)(auth_validation_1.AuthValidations.verifyAccountZodSchema), custom_auth_controller_1.CustomAuthController.verifyAccount);
 router.post('/custom-login', rateLimit_1.authRateLimiter, (0, validateRequest_1.default)(auth_validation_1.AuthValidations.loginZodSchema), custom_auth_controller_1.CustomAuthController.customLogin);

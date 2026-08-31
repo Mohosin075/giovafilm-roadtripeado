@@ -89,6 +89,25 @@ const getAllPromoLinks = (0, catchAsync_1.default)(async (req, res) => {
         data: result.data,
     });
 });
+const deletePromoLink = (0, catchAsync_1.default)(async (req, res) => {
+    const { id } = req.params;
+    const result = await promo_service_1.PromoServices.deletePromoLink(id);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Promo link deleted successfully',
+        data: result,
+    });
+});
+const getPromoStats = (0, catchAsync_1.default)(async (req, res) => {
+    const result = await promo_service_1.PromoServices.getPromoStats();
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Promo stats retrieved successfully',
+        data: result,
+    });
+});
 exports.PromoControllers = {
     verifyPromoCode,
     claimFreePromo,
@@ -96,4 +115,6 @@ exports.PromoControllers = {
     bulkGeneratePromoLinks,
     sendBulkPromoEmails,
     getAllPromoLinks,
+    deletePromoLink,
+    getPromoStats,
 };

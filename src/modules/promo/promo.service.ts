@@ -62,11 +62,11 @@ const claimFreePromo = async (
 
   if (
     promoDetails.recipientEmail &&
-    user.email.toLowerCase() !== promoDetails.recipientEmail.toLowerCase()
+    user.email?.toLowerCase() !== promoDetails.recipientEmail.toLowerCase()
   ) {
     throw new ApiError(
       StatusCodes.FORBIDDEN,
-      `This invitation is specifically reserved for ${promoDetails.recipientEmail}. You are logged in as ${user.email}.`,
+      `This invitation is specifically reserved for ${promoDetails.recipientEmail}. You are logged in as ${user.email || ''}.`,
     )
   }
 

@@ -35,6 +35,15 @@ const promoLinkSchema = new mongoose_1.Schema({
         default: null,
         index: true,
     },
+    isEmailSent: {
+        type: Boolean,
+        default: false,
+        index: true,
+    },
+    emailSentAt: {
+        type: Date,
+        default: null,
+    },
     isUsed: {
         type: Boolean,
         default: false,

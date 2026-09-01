@@ -41,7 +41,16 @@ const verifyPromoCode = async (code, userMapId) => {
     };
 };
 const claimFreePromo = async (userId, code, userMapId) => {
+    var _a;
     const promoDetails = await verifyPromoCode(code, userMapId);
+    const user = await user_model_1.User.findById(userId);
+    if (!user) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
+    }
+    if (promoDetails.recipientEmail &&
+        ((_a = user.email) === null || _a === void 0 ? void 0 : _a.toLowerCase()) !== promoDetails.recipientEmail.toLowerCase()) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, `This invitation is specifically reserved for ${promoDetails.recipientEmail}. You are logged in as ${user.email || ''}.`);
+    }
     if (promoDetails.price > 0) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'This promo link requires payment and cannot be claimed for free');
     }
@@ -77,6 +86,11 @@ const claimFreePromo = async (userId, code, userMapId) => {
 };
 const createPromoCheckoutSession = async (user, code, userMapId) => {
     const promoDetails = await verifyPromoCode(code, userMapId);
+    if (promoDetails.recipientEmail &&
+        user.email &&
+        user.email.toLowerCase() !== promoDetails.recipientEmail.toLowerCase()) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, `This invitation is specifically reserved for ${promoDetails.recipientEmail}. You are logged in as ${user.email}.`);
+    }
     if (promoDetails.price <= 0) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'This promo link is free, please claim it directly instead of checkout');
     }
@@ -152,6 +166,7 @@ const bulkGeneratePromoLinks = async (payload) => {
                 promoType: resolvedType,
                 label,
                 recipientEmail: email.trim().toLowerCase(),
+                isEmailSent: false,
                 isUsed: false,
                 expiresAt: expiration,
             });
@@ -168,6 +183,7 @@ const bulkGeneratePromoLinks = async (payload) => {
                 promoType: resolvedType,
                 label,
                 recipientEmail: null,
+                isEmailSent: false,
                 isUsed: false,
                 expiresAt: expiration,
             });
@@ -181,6 +197,7 @@ const sendBulkPromoEmails = async (promoIds) => {
         _id: { $in: promoIds },
         isUsed: false,
         recipientEmail: { $ne: null },
+        isEmailSent: { $ne: true },
     }).populate('mapId', 'name');
     if (promoLinks.length === 0) {
         return {
@@ -265,6 +282,10 @@ const processEmailsInBackground = async (promoLinks) => {
                     subject,
                     html: emailHtml,
                 });
+                await promo_model_1.PromoLink.findByIdAndUpdate(promo._id, {
+                    isEmailSent: true,
+                    emailSentAt: new Date(),
+                });
                 console.log(`Successfully sent promo email to: ${promo.recipientEmail} for code: ${promo.code}`);
             }
             catch (err) {
@@ -328,12 +349,14 @@ const deletePromoLink = async (id) => {
     return result;
 };
 const getPromoStats = async () => {
-    const [total, used, unused, influencer, upgrade] = await Promise.all([
+    const [total, used, unused, influencer, upgrade, emailSent, pendingEmail] = await Promise.all([
         promo_model_1.PromoLink.countDocuments(),
         promo_model_1.PromoLink.countDocuments({ isUsed: true }),
         promo_model_1.PromoLink.countDocuments({ isUsed: false }),
         promo_model_1.PromoLink.countDocuments({ promoType: 'influencer' }),
         promo_model_1.PromoLink.countDocuments({ promoType: 'upgrade' }),
+        promo_model_1.PromoLink.countDocuments({ isEmailSent: true }),
+        promo_model_1.PromoLink.countDocuments({ isUsed: false, recipientEmail: { $ne: null }, $or: [{ isEmailSent: false }, { isEmailSent: { $exists: false } }] }),
     ]);
     return {
         total,
@@ -341,6 +364,8 @@ const getPromoStats = async () => {
         unused,
         influencer,
         upgrade,
+        emailSent,
+        pendingEmail,
     };
 };
 exports.PromoServices = {

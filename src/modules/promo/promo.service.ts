@@ -55,6 +55,21 @@ const claimFreePromo = async (
 ): Promise<{ success: boolean; message: string }> => {
   const promoDetails = await verifyPromoCode(code, userMapId)
 
+  const user = await User.findById(userId)
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+  }
+
+  if (
+    promoDetails.recipientEmail &&
+    user.email.toLowerCase() !== promoDetails.recipientEmail.toLowerCase()
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `This invitation is specifically reserved for ${promoDetails.recipientEmail}. You are logged in as ${user.email}.`,
+    )
+  }
+
   if (promoDetails.price > 0) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
@@ -115,6 +130,17 @@ const createPromoCheckoutSession = async (
   userMapId?: string,
 ): Promise<{ sessionId: string; url: string }> => {
   const promoDetails = await verifyPromoCode(code, userMapId)
+
+  if (
+    promoDetails.recipientEmail &&
+    user.email &&
+    user.email.toLowerCase() !== promoDetails.recipientEmail.toLowerCase()
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `This invitation is specifically reserved for ${promoDetails.recipientEmail}. You are logged in as ${user.email}.`,
+    )
+  }
 
   if (promoDetails.price <= 0) {
     throw new ApiError(
@@ -215,6 +241,7 @@ const bulkGeneratePromoLinks = async (payload: {
         promoType: resolvedType,
         label,
         recipientEmail: email.trim().toLowerCase(),
+        isEmailSent: false,
         isUsed: false,
         expiresAt: expiration,
       })
@@ -230,6 +257,7 @@ const bulkGeneratePromoLinks = async (payload: {
         promoType: resolvedType,
         label,
         recipientEmail: null,
+        isEmailSent: false,
         isUsed: false,
         expiresAt: expiration,
       })
@@ -249,6 +277,7 @@ const sendBulkPromoEmails = async (
     _id: { $in: promoIds },
     isUsed: false,
     recipientEmail: { $ne: null },
+    isEmailSent: { $ne: true },
   }).populate('mapId', 'name')
 
   if (promoLinks.length === 0) {
@@ -345,6 +374,10 @@ const processEmailsInBackground = async (promoLinks: any[]) => {
             html: emailHtml,
           })
 
+          await PromoLink.findByIdAndUpdate(promo._id, {
+            isEmailSent: true,
+            emailSentAt: new Date(),
+          });
           console.log(
             `Successfully sent promo email to: ${promo.recipientEmail} for code: ${promo.code}`,
           )
@@ -425,12 +458,14 @@ const deletePromoLink = async (id: string): Promise<IPromoLink | null> => {
 }
 
 const getPromoStats = async (): Promise<any> => {
-  const [total, used, unused, influencer, upgrade] = await Promise.all([
+  const [total, used, unused, influencer, upgrade, emailSent, pendingEmail] = await Promise.all([
     PromoLink.countDocuments(),
     PromoLink.countDocuments({ isUsed: true }),
     PromoLink.countDocuments({ isUsed: false }),
     PromoLink.countDocuments({ promoType: 'influencer' }),
     PromoLink.countDocuments({ promoType: 'upgrade' }),
+    PromoLink.countDocuments({ isEmailSent: true }),
+    PromoLink.countDocuments({ isUsed: false, recipientEmail: { $ne: null }, $or: [{ isEmailSent: false }, { isEmailSent: { $exists: false } }] }),
   ])
 
   return {
@@ -439,6 +474,8 @@ const getPromoStats = async (): Promise<any> => {
     unused,
     influencer,
     upgrade,
+    emailSent,
+    pendingEmail,
   }
 }
 

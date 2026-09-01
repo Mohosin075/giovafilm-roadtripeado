@@ -7,6 +7,8 @@ export interface IPromoLink {
   promoType: 'influencer' | 'upgrade' | 'custom'
   label: string // E.g., "Influencer - Sarah", "Old Customer Bulk Batch 1"
   recipientEmail?: string | null
+  isEmailSent?: boolean
+  emailSentAt?: Date | null
   isUsed: boolean
   usedBy?: Types.ObjectId | null
   usedAt?: Date | null

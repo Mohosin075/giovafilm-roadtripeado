@@ -35,6 +35,15 @@ const promoLinkSchema = new Schema<IPromoLink, PromoLinkModel>(
       default: null,
       index: true,
     },
+    isEmailSent: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    emailSentAt: {
+      type: Date,
+      default: null,
+    },
     isUsed: {
       type: Boolean,
       default: false,

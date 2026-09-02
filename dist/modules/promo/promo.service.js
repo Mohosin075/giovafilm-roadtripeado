@@ -15,6 +15,7 @@ const map_model_1 = require("../map/map.model");
 const user_model_1 = require("../user/user.model");
 const payment_model_1 = require("../payment/payment.model");
 const promo_model_1 = require("./promo.model");
+const server_1 = require("../../server");
 const verifyPromoCode = async (code, userMapId) => {
     const promoLink = await promo_model_1.PromoLink.findOne({ code });
     if (!promoLink) {
@@ -286,6 +287,14 @@ const processEmailsInBackground = async (promoLinks) => {
                     isEmailSent: true,
                     emailSentAt: new Date(),
                 });
+                if (server_1.io) {
+                    server_1.io.emit('promo_email_sent', {
+                        promoId: promo._id,
+                        recipientEmail: promo.recipientEmail,
+                        isEmailSent: true,
+                        emailSentAt: new Date(),
+                    });
+                }
                 console.log(`Successfully sent promo email to: ${promo.recipientEmail} for code: ${promo.code}`);
             }
             catch (err) {
@@ -296,6 +305,11 @@ const processEmailsInBackground = async (promoLinks) => {
         if (i + BATCH_SIZE < promoLinks.length) {
             await new Promise(resolve => setTimeout(resolve, DELAY_MS));
         }
+    }
+    if (server_1.io) {
+        server_1.io.emit('promo_bulk_sent_complete', {
+            totalSent: promoLinks.length,
+        });
     }
     console.log(`Background bulk email job completed.`);
 };

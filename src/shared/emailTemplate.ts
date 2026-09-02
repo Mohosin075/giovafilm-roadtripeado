@@ -14,7 +14,7 @@ const createAccount = (values: ICreateAccount) => {
                 <tr>
                   <td style="padding: 40px 40px 20px 40px; text-align:center;">
                     <div style="margin-bottom: 24px;">
-                       <img src="${(config.clientUrl || 'https://roadtripeado.shop').replace(/\/+$/, '')}/logo.png" alt="Roadtripeado Logo" style="width:120px; height:auto; display:block; margin:0 auto;" />
+                       <img src="cid:roadtripeado-logo" alt="Roadtripeado Logo" style="width:140px; height:auto; display:block; margin:0 auto;" />
                     </div>
                     <h1 style="color:#111827; font-size:28px; font-weight:700; margin:0; line-height: 1.2;">Verify Your Account</h1>
                   </td>
@@ -57,7 +57,7 @@ const resetPassword = (values: IResetPassword) => {
                 <tr>
                   <td style="padding: 40px 40px 20px 40px; text-align:center;">
                     <div style="margin-bottom: 24px;">
-                       <img src="${(config.clientUrl || 'https://roadtripeado.shop').replace(/\/+$/, '')}/logo.png" alt="Roadtripeado Logo" style="width:120px; height:auto; display:block; margin:0 auto;" />
+                       <img src="cid:roadtripeado-logo" alt="Roadtripeado Logo" style="width:140px; height:auto; display:block; margin:0 auto;" />
                     </div>
                     <h1 style="color:#111827; font-size:28px; font-weight:700; margin:0; line-height: 1.2;">Reset Password</h1>
                   </td>
@@ -106,7 +106,7 @@ const resendOtp = (values: {
                 <tr>
                   <td style="padding: 40px 40px 20px 40px; text-align:center;">
                     <div style="margin-bottom: 24px;">
-                       <img src="${(config.clientUrl || 'https://roadtripeado.shop').replace(/\/+$/, '')}/logo.png" alt="Roadtripeado Logo" style="width:120px; height:auto; display:block; margin:0 auto;" />
+                       <img src="cid:roadtripeado-logo" alt="Roadtripeado Logo" style="width:140px; height:auto; display:block; margin:0 auto;" />
                     </div>
                     <h1 style="color:#111827; font-size:28px; font-weight:700; margin:0; line-height: 1.2;">New ${isReset ? 'Reset' : 'Verification'} Code</h1>
                   </td>
@@ -444,7 +444,7 @@ const userInvitation = (values: { email: string; role: string; otp: string }) =>
                 <tr>
                   <td style="padding: 40px 40px 20px 40px; text-align:center;">
                     <div style="margin-bottom: 24px;">
-                       <img src="${(config.clientUrl || 'https://roadtripeado.shop').replace(/\/+$/, '')}/logo.png" alt="Roadtripeado Logo" style="width:120px; height:auto; display:block; margin:0 auto;" />
+                       <img src="cid:roadtripeado-logo" alt="Roadtripeado Logo" style="width:140px; height:auto; display:block; margin:0 auto;" />
                     </div>
                     <h1 style="color:#111827; font-size:28px; font-weight:700; margin:0; line-height: 1.2;">Invitation to Join</h1>
                   </td>

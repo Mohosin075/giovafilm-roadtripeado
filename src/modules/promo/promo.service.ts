@@ -10,6 +10,7 @@ import { User } from '../user/user.model'
 import { Payment } from '../payment/payment.model'
 import { PromoLink } from './promo.model'
 import { IPromoLink } from './promo.interface'
+import { io } from '../../server'
 
 const verifyPromoCode = async (
   code: string,
@@ -343,7 +344,7 @@ const processEmailsInBackground = async (promoLinks: any[]) => {
                       <tr>
                         <td style="padding: 40px 40px 20px 40px; text-align:center;">
                           <div style="margin-bottom: 24px;">
-                             <img src="${(config.clientUrl || 'https://roadtripeado.shop').replace(/\/+$/, '')}/logo.png" alt="Roadtripeado Logo" style="width:120px; height:auto; display:block; margin:0 auto;" />
+                             <img src="cid:roadtripeado-logo" alt="Roadtripeado Logo" style="width:140px; height:auto; display:block; margin:0 auto;" />
                           </div>
                           <h1 style="color:#111827; font-size:24px; font-weight:700; margin:0; line-height: 1.2;">Your Exclusive Access Link</h1>
                         </td>
@@ -378,6 +379,16 @@ const processEmailsInBackground = async (promoLinks: any[]) => {
             isEmailSent: true,
             emailSentAt: new Date(),
           });
+
+          if (io) {
+            io.emit('promo_email_sent', {
+              promoId: promo._id,
+              recipientEmail: promo.recipientEmail,
+              isEmailSent: true,
+              emailSentAt: new Date(),
+            });
+          }
+
           console.log(
             `Successfully sent promo email to: ${promo.recipientEmail} for code: ${promo.code}`,
           )
@@ -394,6 +405,12 @@ const processEmailsInBackground = async (promoLinks: any[]) => {
     if (i + BATCH_SIZE < promoLinks.length) {
       await new Promise(resolve => setTimeout(resolve, DELAY_MS))
     }
+  }
+
+  if (io) {
+    io.emit('promo_bulk_sent_complete', {
+      totalSent: promoLinks.length,
+    })
   }
 
   console.log(`Background bulk email job completed.`)

@@ -253,7 +253,7 @@ const processEmailsInBackground = async (promoLinks) => {
                       <tr>
                         <td style="padding: 40px 40px 20px 40px; text-align:center;">
                           <div style="margin-bottom: 24px;">
-                             <img src="${config_1.default.clientUrl}/logo.png" alt="Roadtripeado Logo" style="width:120px; height:auto; display:block; margin:0 auto;" onerror="this.style.display='none'">
+                             <img src="cid:roadtripeado-logo" alt="Roadtripeado Logo" style="width:140px; height:auto; display:block; margin:0 auto;" />
                           </div>
                           <h1 style="color:#111827; font-size:24px; font-weight:700; margin:0; line-height: 1.2;">Your Exclusive Access Link</h1>
                         </td>

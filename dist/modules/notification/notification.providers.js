@@ -4,33 +4,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.emailProvider = exports.EmailProvider = void 0;
-const nodemailer_1 = __importDefault(require("nodemailer"));
+const resend_1 = require("resend");
 const http_status_codes_1 = require("http-status-codes");
 const config_1 = __importDefault(require("../../config"));
 const ApiError_1 = __importDefault(require("../../errors/ApiError"));
 const notification_templates_1 = require("./notification.templates");
 class EmailProvider {
     constructor() {
-        this.transporter = nodemailer_1.default.createTransport({
-            host: config_1.default.email.host,
-            port: config_1.default.email.port,
-            secure: false, // false for TLS, true for SSL
-            auth: {
-                user: config_1.default.email.user,
-                pass: config_1.default.email.pass,
-            },
-            tls: {
-                rejectUnauthorized: process.env.EMAIL_TLS_REJECT_UNAUTHORIZED !== undefined
-                    ? process.env.EMAIL_TLS_REJECT_UNAUTHORIZED !== 'false'
-                    : config_1.default.node_env === 'production',
-            },
-            // Connection settings
-            pool: true,
-            maxConnections: 5,
-            maxMessages: 100,
-        });
-        // Initialize asynchronously
-        // this.initialize()
+        this.resend = new resend_1.Resend(config_1.default.email.resend_api_key);
     }
     static getInstance() {
         if (!EmailProvider.instance) {
@@ -38,29 +19,50 @@ class EmailProvider {
         }
         return EmailProvider.instance;
     }
+    getSenderEmail() {
+        const defaultFrom = 'Roadtripeado <noreply@roadtripeado.com>';
+        const configuredFrom = config_1.default.email.from;
+        if (!configuredFrom) {
+            return defaultFrom;
+        }
+        if (configuredFrom.includes('@gmail.com') || !configuredFrom.includes('@')) {
+            return defaultFrom;
+        }
+        return configuredFrom;
+    }
     async verifyConnection() {
         try {
-            await this.transporter.verify();
-            console.log('✅ Email server connection verified');
+            const { error } = await this.resend.domains.list();
+            if (error) {
+                throw new Error(error.message);
+            }
+            console.log('✅ Resend email service verified');
         }
         catch (error) {
-            console.error('❌ Email server connection failed:', error.message);
+            console.error('❌ Resend email service verification failed:', error.message);
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.SERVICE_UNAVAILABLE, 'Email service is currently unavailable');
         }
     }
     async sendEmail(data) {
         try {
             const { subject, html } = notification_templates_1.EmailTemplates.getTemplate(data.template, data.data);
-            const mailOptions = {
-                from: `EventHub <${config_1.default.email.from}>`,
-                to: Array.isArray(data.to) ? data.to.join(',') : data.to,
+            const from = this.getSenderEmail();
+            const recipients = Array.isArray(data.to)
+                ? data.to
+                : data.to.split(',').map((email) => email.trim()).filter(Boolean);
+            const { data: result, error } = await this.resend.emails.send({
+                from,
+                to: recipients,
                 subject,
                 html,
                 attachments: data.attachments,
-            };
-            const info = await this.transporter.sendMail(mailOptions);
-            console.log(`📧 Email sent: ${info.messageId}`);
-            console.log(`   To: ${mailOptions.to}`);
+            });
+            if (error) {
+                console.error('❌ Resend email sending failed:', error.message);
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, `Failed to send email: ${error.message}`);
+            }
+            console.log(`📧 Email sent via Resend: ${result === null || result === void 0 ? void 0 : result.id}`);
+            console.log(`   To: ${recipients.join(', ')}`);
             console.log(`   Subject: ${subject}`);
             return true;
         }

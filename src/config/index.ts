@@ -50,11 +50,7 @@ export default {
     temp_jwt_expire_in: process.env.TEMP_JWT_EXPIRE_IN,
   },
   email: {
-    from: process.env.EMAIL_FROM,
-    user: process.env.EMAIL_USER,
-    port: process.env.EMAIL_PORT,
-    host: process.env.EMAIL_HOST,
-    pass: process.env.EMAIL_PASS,
+    from: process.env.EMAIL_FROM || 'Roadtripeado <noreply@roadtripeado.com>',
     resend_api_key: process.env.RESEND_API_KEY,
   },
   cloudinary: {

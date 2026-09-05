@@ -1,32 +1,59 @@
-import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
 import config from '../config'
 import { ISendEmail } from '../interfaces/email'
-
 import fs from 'fs'
 import path from 'path'
 
-// Default: verify TLS in production. Override with EMAIL_TLS_REJECT_UNAUTHORIZED=false if SMTP uses self-signed certs.
-const rejectUnauthorized =
-  process.env.EMAIL_TLS_REJECT_UNAUTHORIZED !== undefined
-    ? process.env.EMAIL_TLS_REJECT_UNAUTHORIZED !== 'false'
-    : config.node_env === 'production'
+const resend = new Resend(config.email.resend_api_key)
 
-const transporter = nodemailer.createTransport({
-  host: config.email.host,
-  port: Number(config.email.port),
-  secure: false,
-  auth: {
-    user: config.email.user,
-    pass: config.email.pass,
-  },
-  tls: {
-    rejectUnauthorized,
-  },
-})
+const getSenderEmail = (): string => {
+  const defaultFrom = 'Roadtripeado <noreply@roadtripeado.com>'
+  const configuredFrom = config.email.from
+
+  if (!configuredFrom) {
+    return defaultFrom
+  }
+
+  // Resend requires a verified domain sender. If misconfigured with @gmail.com or missing @, fallback to verified domain
+  if (configuredFrom.includes('@gmail.com') || !configuredFrom.includes('@')) {
+    return defaultFrom
+  }
+
+  return configuredFrom
+}
 
 const sendEmail = async (values: ISendEmail) => {
   try {
-    const attachments: any[] = values.attachments ? [...values.attachments] : []
+    const attachments: any[] = []
+
+    if (values.attachments && Array.isArray(values.attachments)) {
+      for (const att of values.attachments) {
+        let content = att.content
+        if (
+          !content &&
+          att.path &&
+          typeof att.path === 'string' &&
+          !att.path.startsWith('http') &&
+          fs.existsSync(att.path)
+        ) {
+          content = fs.readFileSync(att.path)
+        }
+
+        attachments.push({
+          filename: att.filename,
+          content,
+          path:
+            att.path &&
+            !content &&
+            typeof att.path === 'string' &&
+            att.path.startsWith('http')
+              ? att.path
+              : undefined,
+          contentType: att.contentType,
+          contentId: att.contentId || att.cid,
+        })
+      }
+    }
 
     // Auto-attach inline logo if template references cid:roadtripeado-logo
     if (values.html && values.html.includes('cid:roadtripeado-logo')) {
@@ -34,27 +61,41 @@ const sendEmail = async (values: ISendEmail) => {
       if (fs.existsSync(logoPath)) {
         attachments.push({
           filename: 'logo.png',
-          path: logoPath,
-          cid: 'roadtripeado-logo',
+          content: fs.readFileSync(logoPath),
+          contentId: 'roadtripeado-logo',
         })
       }
     }
 
-    const info = await transporter.sendMail({
-      from: config.email.from,
-      to: values.to,
+    const from = getSenderEmail()
+    const recipients = Array.isArray(values.to)
+      ? values.to
+      : values.to.includes(',')
+        ? values.to.split(',').map((e) => e.trim()).filter(Boolean)
+        : [values.to.trim()]
+
+    const { data, error } = await resend.emails.send({
+      from,
+      to: recipients,
       subject: values.subject,
       html: values.html,
-      attachments,
+      attachments: attachments.length > 0 ? attachments : undefined,
     })
 
-    console.log('Mail send successfully', info.accepted)
+    if (error) {
+      console.error('❌ Resend email failed:', error)
+      return { success: false, error }
+    }
+
+    console.log('✅ Mail sent successfully via Resend. ID:', data?.id)
+    return { success: true, data }
   } catch (error) {
-    console.log({ error })
-    console.error('Email', error)
+    console.error('❌ Error sending email via Resend:', error)
+    return { success: false, error }
   }
 }
 
 export const emailHelper = {
   sendEmail,
+  resend,
 }

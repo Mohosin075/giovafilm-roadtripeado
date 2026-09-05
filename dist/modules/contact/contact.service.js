@@ -19,7 +19,7 @@ const createContact = async (payload) => {
     const admin = await user_model_1.User.findOne({ role: ['admin', 'super_admin'] });
     // Send email to admin
     await emailHelper_1.emailHelper.sendEmail({
-        to: (admin === null || admin === void 0 ? void 0 : admin.email) || config_1.default.email.user || '', // Admin email
+        to: (admin === null || admin === void 0 ? void 0 : admin.email) || config_1.default.super_admin.email || '', // Admin email
         subject: `New Contact Message: ${payload.subject}`,
         html: `
       <h1>New Contact Form Submission</h1>

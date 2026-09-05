@@ -13,6 +13,8 @@ exports.PaymentValidations = {
             currency: zod_1.z.string().optional(),
             productName: zod_1.z.string().optional(),
             description: zod_1.z.string().optional(),
+            successUrl: zod_1.z.string().optional(),
+            cancelUrl: zod_1.z.string().optional(),
         }),
     }),
     update: zod_1.z.object({

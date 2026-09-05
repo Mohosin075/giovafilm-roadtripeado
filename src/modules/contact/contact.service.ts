@@ -20,7 +20,7 @@ const createContact = async (payload: IContact): Promise<IContact> => {
 
   // Send email to admin
   await emailHelper.sendEmail({
-    to: admin?.email || config.email.user || '', // Admin email
+    to: admin?.email || config.super_admin.email || '', // Admin email
     subject: `New Contact Message: ${payload.subject}`,
     html: `
       <h1>New Contact Form Submission</h1>

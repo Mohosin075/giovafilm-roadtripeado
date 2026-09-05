@@ -1,38 +1,16 @@
-import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
 import { StatusCodes } from 'http-status-codes'
 import config from '../../config'
 import ApiError from '../../errors/ApiError'
 import { EmailNotificationData } from './notification.interface'
 import { EmailTemplates } from './notification.templates'
-import SMTPTransport from 'nodemailer/lib/smtp-transport'
 
 export class EmailProvider {
-  private transporter: nodemailer.Transporter
+  private resend: Resend
   private static instance: EmailProvider
 
   private constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: config.email.host,
-      port: config.email.port,
-      secure: false, // false for TLS, true for SSL
-      auth: {
-        user: config.email.user,
-        pass: config.email.pass,
-      },
-      tls: {
-        rejectUnauthorized:
-          process.env.EMAIL_TLS_REJECT_UNAUTHORIZED !== undefined
-            ? process.env.EMAIL_TLS_REJECT_UNAUTHORIZED !== 'false'
-            : config.node_env === 'production',
-      },
-      // Connection settings
-      pool: true,
-      maxConnections: 5,
-      maxMessages: 100,
-    } as SMTPTransport.Options)
-
-    // Initialize asynchronously
-    // this.initialize()
+    this.resend = new Resend(config.email.resend_api_key)
   }
 
   static getInstance(): EmailProvider {
@@ -42,12 +20,30 @@ export class EmailProvider {
     return EmailProvider.instance
   }
 
+  private getSenderEmail(): string {
+    const defaultFrom = 'Roadtripeado <noreply@roadtripeado.com>'
+    const configuredFrom = config.email.from
+
+    if (!configuredFrom) {
+      return defaultFrom
+    }
+
+    if (configuredFrom.includes('@gmail.com') || !configuredFrom.includes('@')) {
+      return defaultFrom
+    }
+
+    return configuredFrom
+  }
+
   private async verifyConnection(): Promise<void> {
     try {
-      await this.transporter.verify()
-      console.log('✅ Email server connection verified')
+      const { error } = await this.resend.domains.list()
+      if (error) {
+        throw new Error(error.message)
+      }
+      console.log('✅ Resend email service verified')
     } catch (error: any) {
-      console.error('❌ Email server connection failed:', error.message)
+      console.error('❌ Resend email service verification failed:', error.message)
       throw new ApiError(
         StatusCodes.SERVICE_UNAVAILABLE,
         'Email service is currently unavailable',
@@ -62,18 +58,29 @@ export class EmailProvider {
         data.data,
       )
 
-      const mailOptions: nodemailer.SendMailOptions = {
-        from: `EventHub <${config.email.from}>`,
-        to: Array.isArray(data.to) ? data.to.join(',') : data.to,
+      const from = this.getSenderEmail()
+      const recipients = Array.isArray(data.to)
+        ? data.to
+        : data.to.split(',').map((email) => email.trim()).filter(Boolean)
+
+      const { data: result, error } = await this.resend.emails.send({
+        from,
+        to: recipients,
         subject,
         html,
-        attachments: data.attachments,
+        attachments: data.attachments as any,
+      })
+
+      if (error) {
+        console.error('❌ Resend email sending failed:', error.message)
+        throw new ApiError(
+          StatusCodes.INTERNAL_SERVER_ERROR,
+          `Failed to send email: ${error.message}`,
+        )
       }
 
-      const info = await this.transporter.sendMail(mailOptions)
-
-      console.log(`📧 Email sent: ${info.messageId}`)
-      console.log(`   To: ${mailOptions.to}`)
+      console.log(`📧 Email sent via Resend: ${result?.id}`)
+      console.log(`   To: ${recipients.join(', ')}`)
       console.log(`   Subject: ${subject}`)
 
       return true

@@ -11,6 +11,8 @@ export const PaymentValidations = {
       currency: z.string().optional(),
       productName: z.string().optional(),
       description: z.string().optional(),
+      successUrl: z.string().optional(),
+      cancelUrl: z.string().optional(),
     }),
   }),
 

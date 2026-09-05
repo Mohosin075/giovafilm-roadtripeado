@@ -350,7 +350,7 @@ Dashboard:
 1. On the "Places" page map, when changing the location of a pin by dragging, there's a slight delay that negatively impacts the administrator's experience. If you need a video of this, please let me know. solved
 
 Promo Links:
-1. The link works, but when claiming it, an error appears on the screen (I have a screenshot), and then it continues working fine.
+1. The link works, but when claiming it, an error appears on the screen (I have a screenshot), and then it continues working fine. solved
 
 2. The email sent to the user doesn't display the Roadtripeado logo; it shows an error.
 solved
@@ -360,10 +360,16 @@ Users:
 
 2. On the "Maps" page, the section below the country selection button doesn't allow you to drag the map with the mouse. The error only occurs right below that button. solved
 
-3. On the "Maps" page search bar, when you type a municipality, region, or town and press enter, only the places within that municipality, region, or town that are identified in the address should appear on the map. This is something I requested from the beginning and had forgotten about. (For example: When searching for "Carolina, Puerto Rico," the address should appear on the map, but other places shouldn't be visible until you refresh the page or press the Roadtripeado logo to refresh it.)
+3. On the "Maps" page search bar, when you type a municipality, region, or town and press enter, only the places within that municipality, region, or town that are identified in the address should appear on the map. This is something I requested from the beginning and had forgotten about. (For example: When searching for "Carolina, Puerto Rico," the address should appear on the map, but other places shouldn't be visible until you refresh the page or press the Roadtripeado logo to refresh it.) solved
 
 MOBILE VERSION:
 Users:
-1. On the "Places" page, I would like the "Categories" section and the country selection section to be next to each other, along with the "Popular," "New," and "Near Me" buttons. This was fixed in the large-screen version but not in the mobile version.
+1. On the "Places" page, I would like the "Categories" section and the country selection section to be next to each other, along with the "Popular," "New," and "Near Me" buttons. This was fixed in the large-screen version but not in the mobile version. solved
+
+final verstion
+
+Users 1: Here you can see what I want from the icons. Currently, the icons of Roadtripeado have an
+inner edge of colors that I do not like. The icons in Google maps have the white border and the icon.
+Nothing else. It is not necessary to put colored edges because the icons already have their colors.
 
 

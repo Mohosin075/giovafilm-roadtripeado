@@ -166,7 +166,7 @@ const getAvailableCountries = async () => {
     return combined.filter((country) => typeof country === 'string' && country !== 'Unknown' && country.trim() !== '');
 };
 // Marker/list only — no description/media (detail APIs load those on click)
-const DISCOVERY_PLACE_FIELDS = 'name type status category map country address rating totalReview location';
+const DISCOVERY_PLACE_FIELDS = 'name type status category map country address rating totalReview location entryCost hikeTime difficulty atmosphere schedules';
 const DISCOVERY_BUSINESS_FIELDS = 'name status category location rating totalReview hasActiveSubscription';
 const DISCOVERY_MAX_FETCH = 2000;
 const getDiscoveryData = async (query, lockedMapIds, isAdminOrEditor = false) => {
@@ -231,6 +231,7 @@ const getDiscoveryData = async (query, lockedMapIds, isAdminOrEditor = false) =>
         const isLocked = mapId && lockedMapIds && lockedMapIds.includes(mapId.toString()) && place.type !== 'Business';
         return {
             ...place,
+            ...(isLocked ? { entryCost: undefined, hikeTime: undefined, difficulty: undefined, atmosphere: undefined, schedules: undefined } : {}),
             placeType: place.type,
             type: 'place',
             isLocked: !!isLocked,

@@ -373,3 +373,13 @@ inner edge of colors that I do not like. The icons in Google maps have the white
 Nothing else. It is not necessary to put colored edges because the icons already have their colors.
 
 
+
+
+
+
+
+
+
+
+
+

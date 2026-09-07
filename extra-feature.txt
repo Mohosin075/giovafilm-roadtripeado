@@ -50,3 +50,51 @@ Also, the link does not have to force them to use the same email address. We can
 Option 1: Pre-assigned by Admin (Recommended) When sending the emails in bulk from the admin panel, you will select which map that specific email list is for (e.g., you upload a list of users specifically for the Puerto Rico Map). When they click their unique link and pay the $5 fee, that specific map is automatically unlocked for them. If users bought different maps, you would upload them in separate batches.
 
 Option A: Charge $5 for each map. If they owned 2 maps, they will receive a link for each map and pay $5 for each to upgrade ($10 total).
+
+
+
+
+
+
+GENERAL VERSION:
+Dashboard:
+1. When I edit a place's information on the "Places" page map, the previously published information about entrance fees, walking time, etc., isn't visible. I can't tell if I've already published that information or if I still need to add it. I need this information to be saved so I can see it on the dashboard.
+2. On the "Offers" page, there's no option to filter by country or search by name, municipality, region,
+etc.
+
+Users:
+1. In the catalog, all the maps show "4.5 * (120 reviews)," even though none of them should have any
+reviews yet. This needs to be reset.
+2. Translate the entire website into Spanish.
+3. When opening the Puerto Rico map, the categories panel gets stuck on "Loading locations ... " for 5-
+7 seconds before displaying the pins-it feels slow, especially on mobile. 4. When I open the map
+while logged in, sometimes the landing page appears and disappears after a few seconds. This bug
+negatively impacts the user experience.
+5. The pin representing the user's current location appears very large and unwieldy on the map. I
+would prefer something more subtle and decent that matches the website's design.
+6. When the user selects a pin on the map, it zooms in very sharply on the selected pin. I would like
+the zoom to be less aggressive and only focus on the pin so the user doesn't have to zoom out to
+continue exploring the map.
+
+
+MOBILE VERSION:
+Users:
+1. When searching for a municipality on mobile, the background turns white and the map is not
+visible, resulting in a disjointed experience.
+2. On mobile, when opening the map while logged in, the landing page appears and then quickly
+disappears. Then the map of "Dhaka" appears, and suddenly the selected map reappears.
+
+
+
+
+General Version:
+Dashboard:
+1. On the "Places" page map, I'm again having problems uploading videos. They just keep loading and
+never upload. And the uploads have always taken an excessively long time. I'd like it to be faster
+when uploading photos and videos.
+2. When I try to upload a video to the Places section, it doesn't allow me to drag and drop the file
+from the folder. This makes it difficult to create the map efficiently.
+
+Users:
+1. On the map page, if I deactivate categories and then go to a pin, when I return to the map, all the
+categories are reactivated. I'd like it to save the categories that the user deactivated.

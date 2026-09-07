@@ -213,7 +213,7 @@ const getAvailableCountries = async (): Promise<string[]> => {
 
 // Marker/list only — no description/media (detail APIs load those on click)
 const DISCOVERY_PLACE_FIELDS =
-  'name type status category map country address rating totalReview location'
+  'name type status category map country address rating totalReview location entryCost hikeTime difficulty atmosphere schedules'
 const DISCOVERY_BUSINESS_FIELDS =
   'name status category location rating totalReview hasActiveSubscription'
 const DISCOVERY_MAX_FETCH = 2000
@@ -299,6 +299,7 @@ const getDiscoveryData = async (
     const isLocked = mapId && lockedMapIds && lockedMapIds.includes(mapId.toString()) && place.type !== 'Business'
     return {
       ...(place as any),
+      ...(isLocked ? { entryCost: undefined, hikeTime: undefined, difficulty: undefined, atmosphere: undefined, schedules: undefined } : {}),
       placeType: place.type,
       type: 'place',
       isLocked: !!isLocked,

@@ -169,7 +169,7 @@ const getAvailableCountries = async () => {
 const DISCOVERY_PLACE_FIELDS = 'name type status category map country address rating totalReview location entryCost hikeTime difficulty atmosphere schedules';
 const DISCOVERY_BUSINESS_FIELDS = 'name status category location rating totalReview hasActiveSubscription';
 const DISCOVERY_MAX_FETCH = 2000;
-const getDiscoveryData = async (query, lockedMapIds, isAdminOrEditor = false) => {
+const getDiscoveryData = async (query, lockedMapIds, isAdminOrEditor = false, preloadedMapObj) => {
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 10;
     // Prepare separate queries because Place and Business have different schemas
@@ -177,7 +177,8 @@ const getDiscoveryData = async (query, lockedMapIds, isAdminOrEditor = false) =>
     const businessQueryObj = { ...query };
     // 1. Handle "map" filter (Only applicable for Places, map businesses by their country)
     if (businessQueryObj.map) {
-        const mapObj = await map_model_1.Map.findById(businessQueryObj.map).select('name country').lean();
+        const mapObj = preloadedMapObj ||
+            (await map_model_1.Map.findById(businessQueryObj.map).select('name country').lean());
         if (mapObj) {
             businessQueryObj['location.country'] = mapObj.country || mapObj.name;
         }
@@ -205,15 +206,19 @@ const getDiscoveryData = async (query, lockedMapIds, isAdminOrEditor = false) =>
         .populate('category', 'name color icon status')
         .lean(), placeQueryObj)
         .search(place_constants_1.placeSearchableFields)
-        .filter()
-        .sort();
+        .filter();
+    if (query.sort) {
+        placeQuery.sort();
+    }
     const businessQuery = new QueryBuilder_1.default(business_model_1.Business.find()
         .select(DISCOVERY_BUSINESS_FIELDS)
         .populate('category', 'name color icon status')
         .lean(), businessQueryObj)
         .search(business_constants_1.businessSearchableFields)
-        .filter()
-        .sort();
+        .filter();
+    if (query.sort) {
+        businessQuery.sort();
+    }
     // Honor requested limit (maps page uses ~1000); cap to avoid unbounded scans
     const fetchLimit = Math.min(Math.max(limit, 1), DISCOVERY_MAX_FETCH);
     placeQuery.modelQuery.limit(fetchLimit);

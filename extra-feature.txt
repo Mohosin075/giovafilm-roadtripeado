@@ -64,9 +64,10 @@ solved
 Users:
 1. In the catalog, all the maps show "4.5 * (120 reviews)," even though none of them should have any
 reviews yet. This needs to be reset.
+solved
 2. Translate the entire website into Spanish.- i will do later
-3. When opening the Puerto Rico map, the categories panel gets stuck on "Loading locations ... " for 5-
-7 seconds before displaying the pins-it feels slow, especially on mobile.
+3. When opening the Puerto Rico map, the categories panel gets stuck on "Loading locations ... " for 5-7 seconds before displaying the pins-it feels slow, especially on mobile.
+solved
 4. When I open the map while logged in, sometimes the landing page appears and disappears after a few seconds. This bug
 negatively impacts the user experience.
 5. The pin representing the user's current location appears very large and unwieldy on the map. I

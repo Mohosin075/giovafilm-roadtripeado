@@ -221,7 +221,8 @@ const DISCOVERY_MAX_FETCH = 2000
 const getDiscoveryData = async (
   query: Record<string, unknown>,
   lockedMapIds?: string[],
-  isAdminOrEditor = false
+  isAdminOrEditor = false,
+  preloadedMapObj?: any
 ) => {
   const page = Number(query.page) || 1
   const limit = Number(query.limit) || 10
@@ -232,7 +233,9 @@ const getDiscoveryData = async (
 
   // 1. Handle "map" filter (Only applicable for Places, map businesses by their country)
   if (businessQueryObj.map) {
-    const mapObj = await Map.findById(businessQueryObj.map).select('name country').lean()
+    const mapObj =
+      preloadedMapObj ||
+      (await Map.findById(businessQueryObj.map).select('name country').lean())
     if (mapObj) {
       businessQueryObj['location.country'] = mapObj.country || mapObj.name
     }
@@ -268,7 +271,10 @@ const getDiscoveryData = async (
   )
     .search(placeSearchableFields)
     .filter()
-    .sort()
+
+  if (query.sort) {
+    placeQuery.sort()
+  }
 
   const businessQuery = new QueryBuilder(
     Business.find()
@@ -279,7 +285,10 @@ const getDiscoveryData = async (
   )
     .search(businessSearchableFields)
     .filter()
-    .sort()
+
+  if (query.sort) {
+    businessQuery.sort()
+  }
 
   // Honor requested limit (maps page uses ~1000); cap to avoid unbounded scans
   const fetchLimit = Math.min(Math.max(limit, 1), DISCOVERY_MAX_FETCH)

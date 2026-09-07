@@ -128,15 +128,17 @@ const getAvailableCountries = (0, catchAsync_1.default)(async (req, res) => {
 const getDiscoveryData = (0, catchAsync_1.default)(async (req, res) => {
     const authorizationHeader = req.headers.authorization;
     const user = await (0, mapAccessHelper_1.getUserFromToken)(authorizationHeader);
-    // Run accessible map IDs and paid maps lookup in parallel
-    const [accessibleMapIds, paidMaps] = await Promise.all([
+    const mapIdParam = req.query.map ? String(req.query.map) : undefined;
+    // Run accessible map IDs, paid maps lookup, and target map lookup in parallel
+    const [accessibleMapIds, paidMaps, targetMap] = await Promise.all([
         (0, mapAccessHelper_1.getAccessibleMapIds)(user),
         map_model_1.Map.find({ isPaid: true }, '_id'),
+        mapIdParam ? map_model_1.Map.findById(mapIdParam).select('name country').lean() : null,
     ]);
     const paidMapIds = paidMaps.map(m => m._id.toString());
     const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id));
     const isAdminOrEditor = !!(user && (user.role === 'admin' || user.role === 'map_editor'));
-    const result = await map_service_1.MapService.getDiscoveryData(req.query, lockedMapIds, isAdminOrEditor);
+    const result = await map_service_1.MapService.getDiscoveryData(req.query, lockedMapIds, isAdminOrEditor, targetMap);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,

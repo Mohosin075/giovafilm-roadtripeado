@@ -7,6 +7,10 @@ import QueryBuilder from '../../builder/QueryBuilder'
 import { offerSearchableFields } from './offer.constants'
 import { BOGO_SECOND_TYPE, DISCOUNT_TYPE, OFFER_STATUS } from '../../enum/offer'
 import { Business } from '../business/business.model'
+import { Place } from '../place/place.model'
+
+const escapeRegex = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 const createOffer = async (payload: IOffer): Promise<IOffer> => {
   if (payload.discountType === DISCOUNT_TYPE.BOGO && !payload.bogoSecondType) {
@@ -38,6 +42,16 @@ const createOffer = async (payload: IOffer): Promise<IOffer> => {
 }
 
 const getAllOffers = async (query: Record<string, unknown>) => {
+  const queryObj = { ...query }
+
+  // Extract custom query filters before QueryBuilder.filter() runs
+  const country =
+    typeof queryObj.country === 'string' ? queryObj.country.trim() : ''
+  const searchTerm =
+    typeof queryObj.searchTerm === 'string' ? queryObj.searchTerm.trim() : ''
+  delete queryObj.country
+  delete queryObj.searchTerm
+
   // Find all approved businesses with active subscriptions
   const activeBusinesses = await Business.find({
     status: 'Approved',
@@ -46,21 +60,91 @@ const getAllOffers = async (query: Record<string, unknown>) => {
   const activeBusinessIds = activeBusinesses.map(b => b._id)
 
   // Filter offers: must either belong to a place or to an active/approved business
-  const filterQuery = {
-    $or: [
-      { place: { $exists: true, $ne: null } },
-      { business: { $in: activeBusinessIds } },
-    ],
+  const filterConditions: any[] = [
+    {
+      $or: [
+        { place: { $exists: true, $ne: null } },
+        { business: { $in: activeBusinessIds } },
+      ],
+    },
+  ]
+
+  // Filter by country if provided
+  if (country) {
+    const countryRegex = new RegExp(`^${escapeRegex(country)}$`, 'i')
+    const [matchingPlaces, matchingBusinesses] = await Promise.all([
+      Place.find({ country: countryRegex }).select('_id').lean(),
+      Business.find({
+        $or: [
+          { 'location.country': countryRegex },
+          { country: countryRegex },
+        ],
+      }).select('_id').lean(),
+    ])
+
+    const placeIds = matchingPlaces.map(p => p._id)
+    const businessIds = matchingBusinesses.map(b => b._id)
+
+    filterConditions.push({
+      $or: [
+        { place: { $in: placeIds } },
+        { business: { $in: businessIds } },
+      ],
+    })
   }
 
+  // Search by offer title/description, place name/address/municipality/region, or business name/address/city
+  if (searchTerm) {
+    const searchRegex = new RegExp(escapeRegex(searchTerm), 'i')
+
+    const [matchingPlaces, matchingBusinesses] = await Promise.all([
+      Place.find({
+        $or: [
+          { name: searchRegex },
+          { address: searchRegex },
+          { country: searchRegex },
+        ],
+      }).select('_id').lean(),
+      Business.find({
+        $or: [
+          { name: searchRegex },
+          { 'location.address': searchRegex },
+          { 'location.city': searchRegex },
+          { 'location.country': searchRegex },
+        ],
+      }).select('_id').lean(),
+    ])
+
+    const placeIds = matchingPlaces.map(p => p._id)
+    const businessIds = matchingBusinesses.map(b => b._id)
+
+    const searchOr: any[] = [
+      { title: searchRegex },
+      { description: searchRegex },
+    ]
+
+    if (placeIds.length > 0) {
+      searchOr.push({ place: { $in: placeIds } })
+    }
+    if (businessIds.length > 0) {
+      searchOr.push({ business: { $in: businessIds } })
+    }
+
+    filterConditions.push({ $or: searchOr })
+  }
+
+  const finalFilter =
+    filterConditions.length > 1
+      ? { $and: filterConditions }
+      : filterConditions[0]
+
   const offerQuery = new QueryBuilder(
-    Offer.find(filterQuery)
+    Offer.find(finalFilter)
       .populate('business', 'name location media status category map country')
-      .populate('place', 'name location media status category map country')
+      .populate('place', 'name location media status category map country address')
       .lean(),
-    query,
+    queryObj,
   )
-    .search(offerSearchableFields)
     .filter()
     .sort()
     .paginate()
@@ -77,7 +161,7 @@ const getAllOffers = async (query: Record<string, unknown>) => {
 
 const getOfferById = async (id: string): Promise<IOffer | null> => {
   const result = await Offer.findById(id)
-    .populate('place', 'name location media status category map country')
+    .populate('place', 'name location media status category map country address')
     .populate('business', 'name location media status category')
   if (!result) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Offer not found')

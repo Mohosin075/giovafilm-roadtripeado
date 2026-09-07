@@ -9,9 +9,10 @@ const ApiError_1 = __importDefault(require("../../errors/ApiError"));
 const offer_model_1 = require("./offer.model");
 const offerRedemption_model_1 = require("./offerRedemption.model");
 const QueryBuilder_1 = __importDefault(require("../../builder/QueryBuilder"));
-const offer_constants_1 = require("./offer.constants");
 const offer_1 = require("../../enum/offer");
 const business_model_1 = require("../business/business.model");
+const place_model_1 = require("../place/place.model");
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const createOffer = async (payload) => {
     if (payload.discountType === offer_1.DISCOUNT_TYPE.BOGO && !payload.bogoSecondType) {
         payload.bogoSecondType = offer_1.BOGO_SECOND_TYPE.FREE;
@@ -37,6 +38,12 @@ const createOffer = async (payload) => {
     return result;
 };
 const getAllOffers = async (query) => {
+    const queryObj = { ...query };
+    // Extract custom query filters before QueryBuilder.filter() runs
+    const country = typeof queryObj.country === 'string' ? queryObj.country.trim() : '';
+    const searchTerm = typeof queryObj.searchTerm === 'string' ? queryObj.searchTerm.trim() : '';
+    delete queryObj.country;
+    delete queryObj.searchTerm;
     // Find all approved businesses with active subscriptions
     const activeBusinesses = await business_model_1.Business.find({
         status: 'Approved',
@@ -44,17 +51,76 @@ const getAllOffers = async (query) => {
     }).select('_id').lean();
     const activeBusinessIds = activeBusinesses.map(b => b._id);
     // Filter offers: must either belong to a place or to an active/approved business
-    const filterQuery = {
-        $or: [
-            { place: { $exists: true, $ne: null } },
-            { business: { $in: activeBusinessIds } },
-        ],
-    };
-    const offerQuery = new QueryBuilder_1.default(offer_model_1.Offer.find(filterQuery)
+    const filterConditions = [
+        {
+            $or: [
+                { place: { $exists: true, $ne: null } },
+                { business: { $in: activeBusinessIds } },
+            ],
+        },
+    ];
+    // Filter by country if provided
+    if (country) {
+        const countryRegex = new RegExp(`^${escapeRegex(country)}$`, 'i');
+        const [matchingPlaces, matchingBusinesses] = await Promise.all([
+            place_model_1.Place.find({ country: countryRegex }).select('_id').lean(),
+            business_model_1.Business.find({
+                $or: [
+                    { 'location.country': countryRegex },
+                    { country: countryRegex },
+                ],
+            }).select('_id').lean(),
+        ]);
+        const placeIds = matchingPlaces.map(p => p._id);
+        const businessIds = matchingBusinesses.map(b => b._id);
+        filterConditions.push({
+            $or: [
+                { place: { $in: placeIds } },
+                { business: { $in: businessIds } },
+            ],
+        });
+    }
+    // Search by offer title/description, place name/address/municipality/region, or business name/address/city
+    if (searchTerm) {
+        const searchRegex = new RegExp(escapeRegex(searchTerm), 'i');
+        const [matchingPlaces, matchingBusinesses] = await Promise.all([
+            place_model_1.Place.find({
+                $or: [
+                    { name: searchRegex },
+                    { address: searchRegex },
+                    { country: searchRegex },
+                ],
+            }).select('_id').lean(),
+            business_model_1.Business.find({
+                $or: [
+                    { name: searchRegex },
+                    { 'location.address': searchRegex },
+                    { 'location.city': searchRegex },
+                    { 'location.country': searchRegex },
+                ],
+            }).select('_id').lean(),
+        ]);
+        const placeIds = matchingPlaces.map(p => p._id);
+        const businessIds = matchingBusinesses.map(b => b._id);
+        const searchOr = [
+            { title: searchRegex },
+            { description: searchRegex },
+        ];
+        if (placeIds.length > 0) {
+            searchOr.push({ place: { $in: placeIds } });
+        }
+        if (businessIds.length > 0) {
+            searchOr.push({ business: { $in: businessIds } });
+        }
+        filterConditions.push({ $or: searchOr });
+    }
+    const finalFilter = filterConditions.length > 1
+        ? { $and: filterConditions }
+        : filterConditions[0];
+    const offerQuery = new QueryBuilder_1.default(offer_model_1.Offer.find(finalFilter)
         .populate('business', 'name location media status category map country')
-        .populate('place', 'name location media status category map country')
-        .lean(), query)
-        .search(offer_constants_1.offerSearchableFields)
+        .populate('place', 'name location media status category map country address')
+        .lean(), queryObj)
         .filter()
         .sort()
         .paginate()
@@ -68,7 +134,7 @@ const getAllOffers = async (query) => {
 };
 const getOfferById = async (id) => {
     const result = await offer_model_1.Offer.findById(id)
-        .populate('place', 'name location media status category map country')
+        .populate('place', 'name location media status category map country address')
         .populate('business', 'name location media status category');
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Offer not found');

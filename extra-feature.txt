@@ -69,12 +69,14 @@ solved
 3. When opening the Puerto Rico map, the categories panel gets stuck on "Loading locations ... " for 5-7 seconds before displaying the pins-it feels slow, especially on mobile.
 solved
 4. When I open the map while logged in, sometimes the landing page appears and disappears after a few seconds. This bug
-negatively impacts the user experience.
+negatively impacts the user experience. - solved
 5. The pin representing the user's current location appears very large and unwieldy on the map. I
 would prefer something more subtle and decent that matches the website's design.
+solved
 6. When the user selects a pin on the map, it zooms in very sharply on the selected pin. I would like
 the zoom to be less aggressive and only focus on the pin so the user doesn't have to zoom out to
 continue exploring the map.
+solved
 
 
 MOBILE VERSION:

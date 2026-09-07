@@ -211,11 +211,11 @@ const getAvailableCountries = async (): Promise<string[]> => {
   return combined.filter((country): country is string => typeof country === 'string' && country !== 'Unknown' && country.trim() !== '')
 }
 
-// Marker/list only — no description/media (detail APIs load those on click)
+// Marker/list preview fields — includes media & description for instant, smooth location dialog previews
 const DISCOVERY_PLACE_FIELDS =
-  'name type status category map country address rating totalReview location entryCost hikeTime difficulty atmosphere schedules'
+  'name type status category map country address rating totalReview location media description entryCost hikeTime difficulty atmosphere schedules'
 const DISCOVERY_BUSINESS_FIELDS =
-  'name status category location rating totalReview hasActiveSubscription'
+  'name status category location rating totalReview hasActiveSubscription media description'
 const DISCOVERY_MAX_FETCH = 2000
 
 const getDiscoveryData = async (
@@ -319,6 +319,8 @@ const getDiscoveryData = async (
     ...(business as any),
     type: 'business',
     placeType: 'Business',
+    media: business.media || { photos: [] },
+    description: business.description || '',
     location: {
       ...(business.location || {}),
       type: 'Point',

@@ -30,8 +30,8 @@ if (isProduction) {
 app.post('/api/v1/subscription/webhook', express_1.default.raw({ type: 'application/json' }), subscription_controller_1.SubscriptionController.handleWebhook);
 app.post('/api/v1/payment/webhook', express_1.default.raw({ type: 'application/json' }), payment_controller_1.PaymentController.handleWebhook);
 // Body parsers must come after webhook
-app.use(express_1.default.json({ limit: '1mb' }));
-app.use(express_1.default.urlencoded({ extended: true, limit: '1mb' }));
+app.use(express_1.default.json({ limit: '20mb' }));
+app.use(express_1.default.urlencoded({ extended: true, limit: '20mb' }));
 // Session must come before passport
 const sessionSecret = config_1.default.jwt.jwt_secret || (!isProduction ? 'dev-only-secret' : '');
 if (!sessionSecret) {

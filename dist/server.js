@@ -42,6 +42,10 @@ async function main() {
                 console.log(colors_1.default.green(`   - Requested IP: http://${config_1.default.ip_address}:${port}`));
             }
         });
+        // Set 10-minute timeout for large media/video uploads and streaming
+        server.timeout = 10 * 60 * 1000;
+        server.keepAliveTimeout = 65000;
+        server.headersTimeout = 66000;
         // Socket.IO setup — align CORS with API config (no open *)
         const corsOrigins = (config_1.default.cors_origins || []).map((origin) => origin.trim());
         exports.io = new socket_io_1.Server(server, {

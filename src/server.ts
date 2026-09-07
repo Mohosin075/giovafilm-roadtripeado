@@ -56,6 +56,11 @@ async function main() {
       }
     })
 
+    // Set 10-minute timeout for large media/video uploads and streaming
+    server.timeout = 10 * 60 * 1000
+    server.keepAliveTimeout = 65000
+    server.headersTimeout = 66000
+
     // Socket.IO setup — align CORS with API config (no open *)
     const corsOrigins = (config.cors_origins || []).map((origin: string) =>
       origin.trim(),

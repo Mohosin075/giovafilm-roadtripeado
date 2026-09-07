@@ -83,20 +83,21 @@ MOBILE VERSION:
 Users:
 1. When searching for a municipality on mobile, the background turns white and the map is not
 visible, resulting in a disjointed experience.
+solved
 2. On mobile, when opening the map while logged in, the landing page appears and then quickly
 disappears. Then the map of "Dhaka" appears, and suddenly the selected map reappears.
+solved
 
 
 
 
 General Version:
 Dashboard:
-1. On the "Places" page map, I'm again having problems uploading videos. They just keep loading and
-never upload. And the uploads have always taken an excessively long time. I'd like it to be faster
-when uploading photos and videos.
-2. When I try to upload a video to the Places section, it doesn't allow me to drag and drop the file
-from the folder. This makes it difficult to create the map efficiently.
+1. On the "Places" page map, I'm again having problems uploading videos. They just keep loading and never upload. And the uploads have always taken an excessively long time. I'd like it to be faster when uploading photos and videos.
+solved
+2. When I try to upload a video to the Places section, it doesn't allow me to drag and drop the file from the folder. This makes it difficult to create the map efficiently.
+solved
 
 Users:
-1. On the map page, if I deactivate categories and then go to a pin, when I return to the map, all the
-categories are reactivated. I'd like it to save the categories that the user deactivated.
+1. On the map page, if I deactivate categories and then go to a pin, when I return to the map, all the categories are reactivated. I'd like it to save the categories that the user deactivated.
+solved

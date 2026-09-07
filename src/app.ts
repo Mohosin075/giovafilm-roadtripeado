@@ -41,8 +41,8 @@ app.post(
 )
 
 // Body parsers must come after webhook
-app.use(express.json({ limit: '1mb' }))
-app.use(express.urlencoded({ extended: true, limit: '1mb' }))
+app.use(express.json({ limit: '20mb' }))
+app.use(express.urlencoded({ extended: true, limit: '20mb' }))
 
 // Session must come before passport
 const sessionSecret = config.jwt.jwt_secret || (!isProduction ? 'dev-only-secret' : '')

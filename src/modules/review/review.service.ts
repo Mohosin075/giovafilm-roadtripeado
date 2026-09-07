@@ -10,6 +10,8 @@ import { Business } from '../business/business.model'
 import { IPaginationOptions } from '../../interfaces/pagination'
 import { paginationHelper } from '../../helpers/paginationHelper'
 import { AwardServices } from '../award/award.service'
+import { NotificationServices } from '../notification/notification.service'
+import { NotificationType, NotificationPriority } from '../notification/notification.interface'
 
 import { getAccessibleMapIds } from '../../helpers/mapAccessHelper'
 
@@ -83,30 +85,61 @@ const createReview = async (user: JwtPayload, payload: IReview) => {
   if (payload.placeId) {
     const isPlaceExist = await Place.findById(payload.placeId)
     if (!isPlaceExist) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
-    }
-
-    // Check map access: only allow review if the map is free, purchased, or the user is admin/editor
-    const mapId = isPlaceExist.map ? isPlaceExist.map.toString() : null
-    if (mapId) {
-      const accessibleMapIds = await getAccessibleMapIds(isUserExist)
-      if (!accessibleMapIds.includes(mapId)) {
-        throw new ApiError(
-          StatusCodes.FORBIDDEN,
-          'You must unlock or purchase this map before you can review this place.',
-        )
+      // Fallback: Check if this ID is a Business (similar to PlaceService.getPlaceById fallback)
+      const isBusinessExist = await Business.findById(payload.placeId)
+      if (isBusinessExist) {
+        payload.businessId = payload.placeId as any
+        delete (payload as any).placeId
+        if (isBusinessExist.status !== 'Approved') {
+          throw new ApiError(
+            StatusCodes.BAD_REQUEST,
+            'Only approved businesses can be reviewed.',
+          )
+        }
+      } else {
+        throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
+      }
+    } else {
+      // Check map access: only allow review if the map is free, purchased, or the user is admin/editor
+      const mapId = isPlaceExist.map ? isPlaceExist.map.toString() : null
+      if (mapId) {
+        const accessibleMapIds = await getAccessibleMapIds(isUserExist)
+        if (!accessibleMapIds.includes(mapId)) {
+          throw new ApiError(
+            StatusCodes.FORBIDDEN,
+            'You must unlock or purchase this map before you can review this place.',
+          )
+        }
       }
     }
   } else if (payload.businessId) {
     const isBusinessExist = await Business.findById(payload.businessId)
     if (!isBusinessExist) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Business not found')
-    }
-    if (isBusinessExist.status !== 'Approved') {
-      throw new ApiError(
-        StatusCodes.BAD_REQUEST,
-        'Only approved businesses can be reviewed.',
-      )
+      // Fallback: Check if this ID is a Place
+      const isPlaceExist = await Place.findById(payload.businessId)
+      if (isPlaceExist) {
+        payload.placeId = payload.businessId as any
+        delete (payload as any).businessId
+        const mapId = isPlaceExist.map ? isPlaceExist.map.toString() : null
+        if (mapId) {
+          const accessibleMapIds = await getAccessibleMapIds(isUserExist)
+          if (!accessibleMapIds.includes(mapId)) {
+            throw new ApiError(
+              StatusCodes.FORBIDDEN,
+              'You must unlock or purchase this map before you can review this place.',
+            )
+          }
+        }
+      } else {
+        throw new ApiError(StatusCodes.NOT_FOUND, 'Business not found')
+      }
+    } else {
+      if (isBusinessExist.status !== 'Approved') {
+        throw new ApiError(
+          StatusCodes.BAD_REQUEST,
+          'Only approved businesses can be reviewed.',
+        )
+      }
     }
   } else {
     throw new ApiError(
@@ -158,18 +191,39 @@ const getAllReviews = async (
 const getReviewsByPlace = async (
   placeId: string,
   paginationOptions: IPaginationOptions,
+  userId?: string,
 ) => {
-  return await getAllReviews(paginationOptions, { placeId, status: 'Approved' })
+  // If this ID is a Business, automatically query by businessId
+  const isBusiness = await Business.exists({ _id: placeId })
+  const targetFilter = isBusiness ? { businessId: placeId } : { placeId }
+
+  const filter: any = {
+    ...targetFilter,
+    $or: [
+      { status: 'Approved' },
+      ...(userId ? [{ reviewer: userId }] : []),
+    ],
+  }
+  return await getAllReviews(paginationOptions, filter)
 }
 
 const getReviewsByBusiness = async (
   businessId: string,
   paginationOptions: IPaginationOptions,
+  userId?: string,
 ) => {
-  return await getAllReviews(paginationOptions, {
-    businessId,
-    status: 'Approved',
-  })
+  // If this ID is a Place, automatically query by placeId
+  const isPlace = await Place.exists({ _id: businessId })
+  const targetFilter = isPlace ? { placeId: businessId } : { businessId }
+
+  const filter: any = {
+    ...targetFilter,
+    $or: [
+      { status: 'Approved' },
+      ...(userId ? [{ reviewer: userId }] : []),
+    ],
+  }
+  return await getAllReviews(paginationOptions, filter)
 }
 
 const updateReview = async (
@@ -477,6 +531,28 @@ const approveReview = async (id: string) => {
     }
 
     await session.commitTransaction()
+
+    // Send in-app notification to reviewer
+    try {
+      const targetName = existingReview.placeId
+        ? (await Place.findById(existingReview.placeId).select('name').lean())?.name
+        : (await Business.findById(existingReview.businessId).select('name').lean())?.name
+
+      await NotificationServices.createNotification({
+        userId: reviewerId,
+        title: 'Review Approved! 🎉',
+        content: `Your review for "${targetName || 'location'}" was approved! You earned +${points} explorer points.`,
+        type: NotificationType.SYSTEM_ALERT,
+        priority: NotificationPriority.HIGH,
+        actionUrl: existingReview.placeId
+          ? `/places/${existingReview.placeId}`
+          : `/places/${existingReview.businessId}?type=business`,
+        actionText: 'View Review',
+      })
+    } catch (notifErr) {
+      console.error('Failed to send review approval notification:', notifErr)
+    }
+
     return updatedReview
   } catch (error) {
     await session.abortTransaction()
@@ -500,6 +576,26 @@ const rejectReview = async (id: string) => {
     { $set: { status: 'Rejected', isVerified: false, pointsEarned: 0 } },
     { new: true }
   )
+
+  // Send in-app notification to reviewer
+  try {
+    const targetName = existingReview.placeId
+      ? (await Place.findById(existingReview.placeId).select('name').lean())?.name
+      : (await Business.findById(existingReview.businessId).select('name').lean())?.name
+
+    await NotificationServices.createNotification({
+      userId: existingReview.reviewer.toString(),
+      title: 'Review Status Update',
+      content: `Your review for "${targetName || 'location'}" was not approved by our moderation team.`,
+      type: NotificationType.SYSTEM_ALERT,
+      priority: NotificationPriority.MEDIUM,
+      actionUrl: '/profile/contributions-reviews',
+      actionText: 'My Reviews',
+    })
+  } catch (notifErr) {
+    console.error('Failed to send review rejection notification:', notifErr)
+  }
+
   return result
 }
 

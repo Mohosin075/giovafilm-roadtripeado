@@ -60,14 +60,14 @@ GENERAL VERSION:
 Dashboard:
 1. When I edit a place's information on the "Places" page map, the previously published information about entrance fees, walking time, etc., isn't visible. I can't tell if I've already published that information or if I still need to add it. I need this information to be saved so I can see it on the dashboard.
 2. On the "Offers" page, there's no option to filter by country or search by name, municipality, region, etc.
-
+solved
 Users:
 1. In the catalog, all the maps show "4.5 * (120 reviews)," even though none of them should have any
 reviews yet. This needs to be reset.
-2. Translate the entire website into Spanish.
+2. Translate the entire website into Spanish.- i will do later
 3. When opening the Puerto Rico map, the categories panel gets stuck on "Loading locations ... " for 5-
-7 seconds before displaying the pins-it feels slow, especially on mobile. 4. When I open the map
-while logged in, sometimes the landing page appears and disappears after a few seconds. This bug
+7 seconds before displaying the pins-it feels slow, especially on mobile.
+4. When I open the map while logged in, sometimes the landing page appears and disappears after a few seconds. This bug
 negatively impacts the user experience.
 5. The pin representing the user's current location appears very large and unwieldy on the map. I
 would prefer something more subtle and decent that matches the website's design.

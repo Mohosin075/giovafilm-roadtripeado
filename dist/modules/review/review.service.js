@@ -13,6 +13,8 @@ const place_model_1 = require("../place/place.model");
 const business_model_1 = require("../business/business.model");
 const paginationHelper_1 = require("../../helpers/paginationHelper");
 const award_service_1 = require("../award/award.service");
+const notification_service_1 = require("../notification/notification.service");
+const notification_interface_1 = require("../notification/notification.interface");
 const mapAccessHelper_1 = require("../../helpers/mapAccessHelper");
 const ratingIncPipeline = (rating) => [
     {
@@ -80,24 +82,54 @@ const createReview = async (user, payload) => {
     if (payload.placeId) {
         const isPlaceExist = await place_model_1.Place.findById(payload.placeId);
         if (!isPlaceExist) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Place not found');
+            // Fallback: Check if this ID is a Business (similar to PlaceService.getPlaceById fallback)
+            const isBusinessExist = await business_model_1.Business.findById(payload.placeId);
+            if (isBusinessExist) {
+                payload.businessId = payload.placeId;
+                delete payload.placeId;
+                if (isBusinessExist.status !== 'Approved') {
+                    throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Only approved businesses can be reviewed.');
+                }
+            }
+            else {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Place not found');
+            }
         }
-        // Check map access: only allow review if the map is free, purchased, or the user is admin/editor
-        const mapId = isPlaceExist.map ? isPlaceExist.map.toString() : null;
-        if (mapId) {
-            const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(isUserExist);
-            if (!accessibleMapIds.includes(mapId)) {
-                throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'You must unlock or purchase this map before you can review this place.');
+        else {
+            // Check map access: only allow review if the map is free, purchased, or the user is admin/editor
+            const mapId = isPlaceExist.map ? isPlaceExist.map.toString() : null;
+            if (mapId) {
+                const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(isUserExist);
+                if (!accessibleMapIds.includes(mapId)) {
+                    throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'You must unlock or purchase this map before you can review this place.');
+                }
             }
         }
     }
     else if (payload.businessId) {
         const isBusinessExist = await business_model_1.Business.findById(payload.businessId);
         if (!isBusinessExist) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Business not found');
+            // Fallback: Check if this ID is a Place
+            const isPlaceExist = await place_model_1.Place.findById(payload.businessId);
+            if (isPlaceExist) {
+                payload.placeId = payload.businessId;
+                delete payload.businessId;
+                const mapId = isPlaceExist.map ? isPlaceExist.map.toString() : null;
+                if (mapId) {
+                    const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(isUserExist);
+                    if (!accessibleMapIds.includes(mapId)) {
+                        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'You must unlock or purchase this map before you can review this place.');
+                    }
+                }
+            }
+            else {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Business not found');
+            }
         }
-        if (isBusinessExist.status !== 'Approved') {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Only approved businesses can be reviewed.');
+        else {
+            if (isBusinessExist.status !== 'Approved') {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Only approved businesses can be reviewed.');
+            }
         }
     }
     else {
@@ -131,14 +163,31 @@ const getAllReviews = async (paginationOptions, filter = {}) => {
         data: result,
     };
 };
-const getReviewsByPlace = async (placeId, paginationOptions) => {
-    return await getAllReviews(paginationOptions, { placeId, status: 'Approved' });
+const getReviewsByPlace = async (placeId, paginationOptions, userId) => {
+    // If this ID is a Business, automatically query by businessId
+    const isBusiness = await business_model_1.Business.exists({ _id: placeId });
+    const targetFilter = isBusiness ? { businessId: placeId } : { placeId };
+    const filter = {
+        ...targetFilter,
+        $or: [
+            { status: 'Approved' },
+            ...(userId ? [{ reviewer: userId }] : []),
+        ],
+    };
+    return await getAllReviews(paginationOptions, filter);
 };
-const getReviewsByBusiness = async (businessId, paginationOptions) => {
-    return await getAllReviews(paginationOptions, {
-        businessId,
-        status: 'Approved',
-    });
+const getReviewsByBusiness = async (businessId, paginationOptions, userId) => {
+    // If this ID is a Place, automatically query by placeId
+    const isPlace = await place_model_1.Place.exists({ _id: businessId });
+    const targetFilter = isPlace ? { placeId: businessId } : { businessId };
+    const filter = {
+        ...targetFilter,
+        $or: [
+            { status: 'Approved' },
+            ...(userId ? [{ reviewer: userId }] : []),
+        ],
+    };
+    return await getAllReviews(paginationOptions, filter);
 };
 const updateReview = async (user, id, payload) => {
     var _a;
@@ -298,6 +347,7 @@ const getMyReviews = async (user, paginationOptions) => {
     return await getAllReviews(paginationOptions, { reviewer: user.authId });
 };
 const approveReview = async (id) => {
+    var _a, _b;
     const session = await mongoose_1.default.startSession();
     try {
         session.startTransaction();
@@ -364,6 +414,26 @@ const approveReview = async (id) => {
             await business_model_1.Business.findByIdAndUpdate(existingReview.businessId, ratingIncPipeline(existingReview.rating), { session, new: true });
         }
         await session.commitTransaction();
+        // Send in-app notification to reviewer
+        try {
+            const targetName = existingReview.placeId
+                ? (_a = (await place_model_1.Place.findById(existingReview.placeId).select('name').lean())) === null || _a === void 0 ? void 0 : _a.name
+                : (_b = (await business_model_1.Business.findById(existingReview.businessId).select('name').lean())) === null || _b === void 0 ? void 0 : _b.name;
+            await notification_service_1.NotificationServices.createNotification({
+                userId: reviewerId,
+                title: 'Review Approved! 🎉',
+                content: `Your review for "${targetName || 'location'}" was approved! You earned +${points} explorer points.`,
+                type: notification_interface_1.NotificationType.SYSTEM_ALERT,
+                priority: notification_interface_1.NotificationPriority.HIGH,
+                actionUrl: existingReview.placeId
+                    ? `/places/${existingReview.placeId}`
+                    : `/places/${existingReview.businessId}?type=business`,
+                actionText: 'View Review',
+            });
+        }
+        catch (notifErr) {
+            console.error('Failed to send review approval notification:', notifErr);
+        }
         return updatedReview;
     }
     catch (error) {
@@ -375,6 +445,7 @@ const approveReview = async (id) => {
     }
 };
 const rejectReview = async (id) => {
+    var _a, _b;
     const existingReview = await review_model_1.Review.findById(id);
     if (!existingReview) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Review not found');
@@ -383,6 +454,24 @@ const rejectReview = async (id) => {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Cannot reject an already approved review');
     }
     const result = await review_model_1.Review.findByIdAndUpdate(id, { $set: { status: 'Rejected', isVerified: false, pointsEarned: 0 } }, { new: true });
+    // Send in-app notification to reviewer
+    try {
+        const targetName = existingReview.placeId
+            ? (_a = (await place_model_1.Place.findById(existingReview.placeId).select('name').lean())) === null || _a === void 0 ? void 0 : _a.name
+            : (_b = (await business_model_1.Business.findById(existingReview.businessId).select('name').lean())) === null || _b === void 0 ? void 0 : _b.name;
+        await notification_service_1.NotificationServices.createNotification({
+            userId: existingReview.reviewer.toString(),
+            title: 'Review Status Update',
+            content: `Your review for "${targetName || 'location'}" was not approved by our moderation team.`,
+            type: notification_interface_1.NotificationType.SYSTEM_ALERT,
+            priority: notification_interface_1.NotificationPriority.MEDIUM,
+            actionUrl: '/profile/contributions-reviews',
+            actionText: 'My Reviews',
+        });
+    }
+    catch (notifErr) {
+        console.error('Failed to send review rejection notification:', notifErr);
+    }
     return result;
 };
 exports.ReviewService = {

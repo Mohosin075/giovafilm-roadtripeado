@@ -6,6 +6,7 @@ import { StatusCodes } from 'http-status-codes'
 import { paginationFields } from '../../interfaces/pagination'
 import pick from '../../shared/pick'
 import { JwtPayload } from 'jsonwebtoken'
+import { getUserFromToken } from '../../helpers/mapAccessHelper'
 
 const createReview = catchAsync(async (req: Request, res: Response) => {
   const result = await ReviewService.createReview(req.user!, req.body)
@@ -55,8 +56,13 @@ const getAllReviews = catchAsync(async (req: Request, res: Response) => {
 
 const getReviewsByPlace = catchAsync(async (req: Request, res: Response) => {
   const { placeId } = req.params
+  const user = await getUserFromToken(req.headers.authorization)
   const paginationOptions = pick(req.query, paginationFields)
-  const result = await ReviewService.getReviewsByPlace(placeId, paginationOptions)
+  const result = await ReviewService.getReviewsByPlace(
+    placeId,
+    paginationOptions,
+    user?._id?.toString(),
+  )
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -68,10 +74,12 @@ const getReviewsByPlace = catchAsync(async (req: Request, res: Response) => {
 
 const getReviewsByBusiness = catchAsync(async (req: Request, res: Response) => {
   const { businessId } = req.params
+  const user = await getUserFromToken(req.headers.authorization)
   const paginationOptions = pick(req.query, paginationFields)
   const result = await ReviewService.getReviewsByBusiness(
     businessId,
     paginationOptions,
+    user?._id?.toString(),
   )
 
   sendResponse(res, {

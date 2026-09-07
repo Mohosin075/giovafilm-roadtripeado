@@ -10,6 +10,7 @@ const sendResponse_1 = __importDefault(require("../../shared/sendResponse"));
 const http_status_codes_1 = require("http-status-codes");
 const pagination_1 = require("../../interfaces/pagination");
 const pick_1 = __importDefault(require("../../shared/pick"));
+const mapAccessHelper_1 = require("../../helpers/mapAccessHelper");
 const createReview = (0, catchAsync_1.default)(async (req, res) => {
     const result = await review_service_1.ReviewService.createReview(req.user, req.body);
     (0, sendResponse_1.default)(res, {
@@ -48,9 +49,11 @@ const getAllReviews = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 const getReviewsByPlace = (0, catchAsync_1.default)(async (req, res) => {
+    var _a;
     const { placeId } = req.params;
+    const user = await (0, mapAccessHelper_1.getUserFromToken)(req.headers.authorization);
     const paginationOptions = (0, pick_1.default)(req.query, pagination_1.paginationFields);
-    const result = await review_service_1.ReviewService.getReviewsByPlace(placeId, paginationOptions);
+    const result = await review_service_1.ReviewService.getReviewsByPlace(placeId, paginationOptions, (_a = user === null || user === void 0 ? void 0 : user._id) === null || _a === void 0 ? void 0 : _a.toString());
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -59,9 +62,11 @@ const getReviewsByPlace = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 const getReviewsByBusiness = (0, catchAsync_1.default)(async (req, res) => {
+    var _a;
     const { businessId } = req.params;
+    const user = await (0, mapAccessHelper_1.getUserFromToken)(req.headers.authorization);
     const paginationOptions = (0, pick_1.default)(req.query, pagination_1.paginationFields);
-    const result = await review_service_1.ReviewService.getReviewsByBusiness(businessId, paginationOptions);
+    const result = await review_service_1.ReviewService.getReviewsByBusiness(businessId, paginationOptions, (_a = user === null || user === void 0 ? void 0 : user._id) === null || _a === void 0 ? void 0 : _a.toString());
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,

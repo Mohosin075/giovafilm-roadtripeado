@@ -3,7 +3,7 @@ GENERAL VERSION
 Dashboard:
 
 1. When adding a video to a location, the same problem persists, and I still can't upload videos. It gets stuck loading for 20 minutes and never uploads.
-
+solved
 2. On the "Offers" page, when I create an offer and try to upload a photo, it doesn't allow me to drag the image from the folder for better efficiency.
 
 3. On the "Places" page, if information isn't entered in a field, it doesn't appear on the user's screen. (Example: I add a business/restaurant but don't include access information. I'd like that section to be hidden when the user navigates to that restaurant's pin.)
@@ -13,7 +13,7 @@ Dashboard:
 
 Users:
 
-1. Translate the entire website into Spanish.
+1. Translate the entire website into Spanish. - later
 
 2. When a user selects a pin, it keeps zooming aggressively into the selected pin. I don't want it to zoom so much, just a little.
 
@@ -33,6 +33,7 @@ Users:
 2. On the "Places" page, in the filters area, the "Categories" button is too long on the right, and the "Countries" button is also too long.
 
 
+new featues
 ==================================================
 
 FEATURE EVALUATION: HIKING TRAILS & GPS NAVIGATION

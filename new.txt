@@ -1,0 +1,74 @@
+GENERAL VERSION
+
+Dashboard:
+
+1. When adding a video to a location, the same problem persists, and I still can't upload videos. It gets stuck loading for 20 minutes and never uploads.
+
+2. On the "Offers" page, when I create an offer and try to upload a photo, it doesn't allow me to drag the image from the folder for better efficiency.
+
+3. On the "Places" page, if information isn't entered in a field, it doesn't appear on the user's screen. (Example: I add a business/restaurant but don't include access information. I'd like that section to be hidden when the user navigates to that restaurant's pin.)
+
+4. On the "Offers" page, when creating an offer, I'd like to be able to choose whether the user can redeem the offer daily, weekly, or monthly. That part is a bit ambiguous.
+
+
+Users:
+
+1. Translate the entire website into Spanish.
+
+2. When a user selects a pin, it keeps zooming aggressively into the selected pin. I don't want it to zoom so much, just a little.
+
+3. On the "map" page, I'd like the system to read words with and without accents as a single word when typing in the search bar. For example, if a user types "Manati" without the accent on the "i" when it's correctly spelled "Manatí" with the accent, the places in that municipality won't appear because of a simple accent and spelling error.
+
+4. Business hours are not displayed on the Place information page.
+
+
+==================================================
+
+MOBILE VERSION
+
+Users:
+
+1. On the business information page, the website and Instagram buttons are cut off on the right side.
+
+2. On the "Places" page, in the filters area, the "Categories" button is too long on the right, and the "Countries" button is also too long.
+
+
+==================================================
+
+FEATURE EVALUATION: HIKING TRAILS & GPS NAVIGATION
+
+Concept:
+I want to evaluate whether we can add a GPS navigation feature for hiking trails/footpaths to Roadtripeado (not for roads—we already handle that by sending users to Google Maps). The concept is similar to how AllTrails works. There are two related parts:
+
+1. Recording a new trail ("Start" → GPS tracking)
+   - The user presses a "Start" button at a pin/location, and the app records their GPS position in real-time as they walk.
+   - It must display live data: distance covered (miles or km), elapsed time, and the route path on the map.
+   - Upon completion, the recording is saved as that trail's track.
+
+2. Following a previously saved trail (Offline)
+   - The user opens a previously recorded trail (by us or another user) and sees the following beforehand: total distance, estimated time, and the route map.
+   - They press "Start," and the app guides them along the predefined route, showing their current position in real-time relative to the path.
+   - It must work without a signal or internet connection—the map and route need to be downloaded to the phone before setting out.
+
+
+General Technical Questions:
+
+1. If a user presses "Start" at a pin that doesn't have a saved route yet, is it technically feasible for the app to simply start recording from scratch (without comparing it to anything) and save that initial recording as the "official" route so the next user sees it available?
+
+2. Can we import existing free trail data from OpenStreetMap so we don't have to start from scratch in popular locations (e.g., El Yunque)? How complicated would it be to bring that data into our system?
+
+3. Does our current map provider allow map downloads for offline use, or would we need to switch providers?
+
+4. Can we record and save a GPS track (e.g., in GPX format) using the technology we already employ, or does it require a new library/SDK?
+
+5. How accurate is the GPS in offline mode (no mobile data, using only the phone's GPS)?
+
+6. Regarding permissions: tracking is not automatic—the user must grant the system location permission (iOS/Android) once, and then tap "Start" each time they want to record. Are there any iOS/Android limitations we should be aware of regarding this?
+
+7. What is the estimated effort (days/weeks) for each part:
+   (a) Recording and saving new routes
+   (b) Offline navigation along a previously saved route
+   (c) Importing OpenStreetMap data
+
+8. Can we automate the process so that if a user's track largely matches (e.g., 70–80%) a previously saved route, it is marked as a "verified route"? How complex would that be?
+

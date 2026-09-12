@@ -137,7 +137,7 @@ export class EmailProvider {
     return this.sendTemplateEmail(to, 'welcome', {
       userName,
       actionUrl: `${config.clientUrl}/dashboard`,
-      actionText: 'Go to Dashboard',
+      actionText: 'Ir al Panel de Control',
     })
   }
 
@@ -151,7 +151,7 @@ export class EmailProvider {
       resetCode,
       expiryMinutes: 30,
       actionUrl: `${config.clientUrl}/reset-password?code=${resetCode}`,
-      actionText: 'Reset Password',
+      actionText: 'Restablecer Contraseña',
     })
   }
 
@@ -166,7 +166,7 @@ export class EmailProvider {
       userName,
       verificationUrl,
       actionUrl: verificationUrl,
-      actionText: 'Verify Account',
+      actionText: 'Verificar Cuenta',
     })
   }
 }

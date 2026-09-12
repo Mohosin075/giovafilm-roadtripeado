@@ -13,7 +13,7 @@ solved
 
 Users:
 
-1. Translate the entire website into Spanish. - later
+1. Translate the entire website into both Spanish and English.
 
 2. When a user selects a pin, it keeps zooming aggressively into the selected pin. I don't want it to zoom so much, just a little.
 

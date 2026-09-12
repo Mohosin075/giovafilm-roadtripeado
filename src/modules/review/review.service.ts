@@ -540,14 +540,14 @@ const approveReview = async (id: string) => {
 
       await NotificationServices.createNotification({
         userId: reviewerId,
-        title: 'Review Approved! 🎉',
-        content: `Your review for "${targetName || 'location'}" was approved! You earned +${points} explorer points.`,
+        title: '¡Reseña aprobada! 🎉',
+        content: `¡Tu reseña sobre "${targetName || 'lugar'}" fue aprobada! Ganaste +${points} puntos de explorador.`,
         type: NotificationType.SYSTEM_ALERT,
         priority: NotificationPriority.HIGH,
         actionUrl: existingReview.placeId
           ? `/places/${existingReview.placeId}`
           : `/places/${existingReview.businessId}?type=business`,
-        actionText: 'View Review',
+        actionText: 'Ver Reseña',
       })
     } catch (notifErr) {
       console.error('Failed to send review approval notification:', notifErr)
@@ -585,12 +585,12 @@ const rejectReview = async (id: string) => {
 
     await NotificationServices.createNotification({
       userId: existingReview.reviewer.toString(),
-      title: 'Review Status Update',
-      content: `Your review for "${targetName || 'location'}" was not approved by our moderation team.`,
+      title: 'Actualización del estado de la reseña',
+      content: `Tu reseña sobre "${targetName || 'lugar'}" no fue aprobada por nuestro equipo de moderación.`,
       type: NotificationType.SYSTEM_ALERT,
       priority: NotificationPriority.MEDIUM,
       actionUrl: '/profile/contributions-reviews',
-      actionText: 'My Reviews',
+      actionText: 'Mis Reseñas',
     })
   } catch (notifErr) {
     console.error('Failed to send review rejection notification:', notifErr)

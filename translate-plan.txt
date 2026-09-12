@@ -1,0 +1,16 @@
+সেরা সমাধান: Auto-Translation (Backend) + Manual Edit Option
+কেন এটি আপনার জন্য সবচেয়ে সেরা?
+অ্যাডমিনের বাড়তি কোনো খাটাখাটনি নেই: ড্যাশবোর্ডে প্লেস বা অফার তৈরি করার সময় অ্যাডমিনকে ২বার (English ও Spanish) লিখতে হবে না। অ্যাডমিন যেকোনো ১টি ভাষাতে (যেমন স্প্যানিশ বা ইংলিশে) লিখলেই হবে।
+স্বয়ংক্রিয় অনুবাদ: ব্যাকএন্ড ডাটাবেজে সেভ হওয়ার সময় Google/DeepL Translate API দিয়ে মিসিং ভাষার অনুবাদটি অটো বানিয়ে ডাটাবেজে সেভ করে নেবে।
+ইউজারদের জন্য দ্রুত ও রেডিমেড: ইউজার সাইটে ES বা EN সিলেক্ট করা মাত্রই ডাটাবেজ থেকে তৈরি করা নিখুঁত টেক্সট চলে আসবে।
+এডিট করার স্বাধীনতা: অটো-অনুবাদ হওয়া টেক্সটে কোনো ভুল থাকলে অ্যাডমিন ড্যাশবোর্ড থেকে পরে ম্যানুয়ালি ঠিকও করে দিতে পারবে।
+বাস্তবায়নের ৩টি সহজ ধাপ:
+mermaid
+flowchart TD
+    A[1. User Website Frontend] -->|Add Language Toggle ES / EN| B[Static UI Text via i18n JSON]
+    C[2. Admin Dashboard] -->|Create Place in 1 Language| D[Backend API]
+    D -->|Auto Translate Missing Language| E[3. Mongoose DB: en & es stored]
+    E -->|Serve requested language| A
+User Website: Header-এ একটি Language Switcher (ES 🇪🇸 | EN 🇺🇸) বাটন থাকবে। Navbar/Footer ইত্যাদি static টেক্সটের জন্য i18next ব্যবহার হবে।
+Backend API & DB: Mongoose Schema-তে অনূবাদযোগ্য ফিল্ডগুলো { en: String, es: String } স্ট্রাকচারে থাকবে এবং ডাটা সেভের সময় অটো-ট্রান্সলেট লাইব্রেরি কাজ করবে।
+Admin Dashboard: ড্যাশবোর্ড আগের মতোই থাকবে, কোনো জটিলতা নেই।

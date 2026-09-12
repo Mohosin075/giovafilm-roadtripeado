@@ -16,8 +16,8 @@ export class NotificationIntegration {
     try {
       await NotificationServices.createNotification({
         userId: receiverId,
-        title: 'New Message',
-        content: `You have a new message: "${message.substring(0, 100)}..."`,
+        title: 'Nuevo Mensaje',
+        content: `Tienes un nuevo mensaje: "${message.substring(0, 100)}..."`,
         type: NotificationType.NEW_MESSAGE,
         channel: NotificationChannel.IN_APP,
         priority: NotificationPriority.MEDIUM,
@@ -26,7 +26,7 @@ export class NotificationIntegration {
           messagePreview: message.substring(0, 100),
         },
         actionUrl: `${process.env.CLIENT_URL}/messages/${senderId}`,
-        actionText: 'View Message',
+        actionText: 'Ver Mensaje',
       })
     } catch (error) {
       console.error('Error creating message notification:', error)
@@ -44,8 +44,8 @@ export class NotificationIntegration {
       await NotificationServices.createNotification(
         {
           userId: user._id,
-          title: 'Password Reset Request',
-          content: `Use this code to reset your password: ${resetCode}`,
+          title: 'Solicitud de Restablecimiento de Contraseña',
+          content: `Usa este código para restablecer tu contraseña: ${resetCode}`,
           type: NotificationType.PASSWORD_RESET,
           channel: NotificationChannel.EMAIL,
           priority: NotificationPriority.URGENT,
@@ -71,9 +71,9 @@ export class NotificationIntegration {
       await NotificationServices.createNotification(
         {
           userId: user._id,
-          title: 'Verify Your Account',
+          title: 'Verifica tu Cuenta',
           content:
-            'Please verify your email address to complete your registration.',
+            'Por favor verifica tu dirección de correo electrónico para completar tu registro.',
           type: NotificationType.ACCOUNT_VERIFICATION,
           channel: NotificationChannel.EMAIL,
           priority: NotificationPriority.HIGH,

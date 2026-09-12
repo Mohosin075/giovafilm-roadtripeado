@@ -110,8 +110,8 @@ export class NotificationScheduler {
           await NotificationServices.createNotification(
             {
               userId: user._id,
-              title: 'Welcome to EventHub!',
-              content: `Welcome aboard, ${user.name}! We're excited to have you join our community.`,
+              title: '¡Bienvenido a Roadtripeado!',
+              content: `¡Bienvenido, ${user.name}! Estamos emocionados de tenerte en nuestra comunidad.`,
               type: NotificationType.WELCOME,
               channel: NotificationChannel.BOTH,
               priority: NotificationPriority.MEDIUM,
@@ -119,7 +119,7 @@ export class NotificationScheduler {
                 welcomeEmailSent: true,
               },
               actionUrl: `${process.env.CLIENT_URL}/dashboard`,
-              actionText: 'Get Started',
+              actionText: 'Comenzar',
             },
             true,
           )

@@ -4,6 +4,9 @@ import { JwtPayload } from 'jsonwebtoken'
 import catchAsync from '../../shared/catchAsync'
 import sendResponse from '../../shared/sendResponse'
 import { PromoServices } from './promo.service'
+import { localizeDocument } from '../../helpers/localize'
+
+const promoFields = ['mapId.name']
 
 const verifyPromoCode = catchAsync(async (req: Request, res: Response) => {
   const { code, mapId } = req.query as { code?: string; mapId?: string }
@@ -99,7 +102,7 @@ const getAllPromoLinks = catchAsync(async (req: Request, res: Response) => {
     success: true,
     message: 'Promo links retrieved successfully',
     meta: result.meta,
-    data: result.data,
+    data: localizeDocument(result.data, req.lang, promoFields),
   })
 })
 

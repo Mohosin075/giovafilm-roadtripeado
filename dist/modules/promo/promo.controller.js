@@ -8,6 +8,8 @@ const http_status_codes_1 = require("http-status-codes");
 const catchAsync_1 = __importDefault(require("../../shared/catchAsync"));
 const sendResponse_1 = __importDefault(require("../../shared/sendResponse"));
 const promo_service_1 = require("./promo.service");
+const localize_1 = require("../../helpers/localize");
+const promoFields = ['mapId.name'];
 const verifyPromoCode = (0, catchAsync_1.default)(async (req, res) => {
     const { code, mapId } = req.query;
     if (!code) {
@@ -86,7 +88,7 @@ const getAllPromoLinks = (0, catchAsync_1.default)(async (req, res) => {
         success: true,
         message: 'Promo links retrieved successfully',
         meta: result.meta,
-        data: result.data,
+        data: (0, localize_1.localizeDocument)(result.data, req.lang, promoFields),
     });
 });
 const deletePromoLink = (0, catchAsync_1.default)(async (req, res) => {

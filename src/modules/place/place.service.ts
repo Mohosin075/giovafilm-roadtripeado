@@ -9,6 +9,14 @@ import { getCountryFromCoordinates } from '../../utils/reverseGeocoding'
 import { Business } from '../business/business.model'
 import { autoTranslateField } from '../../utils/autoTranslate'
 import { difficultyMap } from './place.constants'
+import {
+  getUserFromToken,
+  getAccessibleMapIds,
+  verifyEditorEditAccess,
+} from '../../helpers/mapAccessHelper'
+import { getCoordinatesFromUrl } from '../../utils/mapHelper'
+import { toStringArray } from '../../utils/media'
+import { USER_ROLES } from '../../enum/user'
 
 const processPlaceTranslations = async (payload: Partial<IPlace>) => {
   if (payload.name) payload.name = await autoTranslateField(payload.name)
@@ -41,33 +49,54 @@ const toNumber = (value: unknown): number => {
   return Number.isFinite(parsed) ? parsed : NaN
 }
 
-const createPlace = async (payload: IPlace): Promise<IPlace> => {
+const createPlace = async (payload: any, userOrAuthHeader?: any): Promise<IPlace> => {
+  const user = typeof userOrAuthHeader === 'string'
+    ? await getUserFromToken(userOrAuthHeader)
+    : userOrAuthHeader
+
+  const placeData = { ...payload }
+  const uploadedImages = toStringArray(placeData.images)
+  const uploadedDocs = toStringArray(placeData.documents)
+  if (uploadedImages.length || placeData.media) {
+    placeData.media = [...toStringArray(placeData.media), ...uploadedImages]
+  }
+  if (uploadedDocs.length || placeData.menuImages) {
+    placeData.menuImages = [...toStringArray(placeData.menuImages), ...uploadedDocs]
+  }
+  delete placeData.images
+  delete placeData.documents
+
+  // A place must belong to a map, verify access
+  if (placeData.map) {
+    await verifyEditorEditAccess(user, placeData.map.toString())
+  }
+
   // Auto-populate country if not provided (run before transaction/session to prevent locks)
-  if (!payload.country && payload.location?.coordinates) {
-    const [lng, lat] = payload.location.coordinates
+  if (!placeData.country && placeData.location?.coordinates) {
+    const [lng, lat] = placeData.location.coordinates
     // MongoDB stores [lng, lat], but Google API needs (lat, lng)
     const country = await getCountryFromCoordinates(lat, lng)
     console.log('country', country)
     if (country) {
-      payload.country = country
+      placeData.country = country
     } else {
-      payload.country = 'Unknown' // Fallback
+      placeData.country = 'Unknown' // Fallback
     }
   }
 
-  await processPlaceTranslations(payload)
+  await processPlaceTranslations(placeData)
 
   const session = await mongoose.startSession()
   try {
     session.startTransaction()
 
     // Check if map exists
-    const map = await Map.findById(payload.map).session(session)
+    const map = await Map.findById(placeData.map).session(session)
     if (!map) {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')
     }
 
-    const result = await Place.create([payload], { session })
+    const result = await Place.create([placeData], { session })
     const createdPlace = result[0]
 
     // Add place to map
@@ -92,8 +121,21 @@ const createPlace = async (payload: IPlace): Promise<IPlace> => {
 }
 
 const getAllPlaces = async (
-  query: Record<string, unknown>
+  query: Record<string, unknown>,
+  authHeader?: string,
 ) => {
+  // Run auth lookup and paid map IDs in parallel to avoid sequential DB hits
+  const [user, paidMaps] = await Promise.all([
+    getUserFromToken(authHeader),
+    Map.find({ isPaid: true }, '_id'),
+  ])
+  const accessibleMapIds = await getAccessibleMapIds(user)
+
+  const paidMapIds = paidMaps.map(m => m._id.toString())
+  const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id))
+
+  const isPremium = user && [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any)
+
   const searchTerm =
     typeof query.searchTerm === 'string' ? query.searchTerm.trim() : ''
   const lat = toNumber(query.lat)
@@ -101,19 +143,27 @@ const getAllPlaces = async (
   const hasGeo = Number.isFinite(lat) && Number.isFinite(lng)
   const sort =
     typeof query.sort === 'string' && query.sort.trim()
-      ? query.sort.trim()
+      ? (query.sort as string)
       : '-createdAt'
-  const limit = Number(query.limit) || 10
-  const page = Number(query.page) || 1
+  const page = Math.max(1, toNumber(query.page) || 1)
+  const limit = Math.max(1, toNumber(query.limit) || 10)
   const skip = (page - 1) * limit
 
+  // 1. Build Place Query
   const match: Record<string, unknown> = {}
-
-  for (const key of ['status', 'map', 'country', 'category', 'type'] as const) {
-    const value = query[key]
-    if (typeof value === 'string' && value.trim() && value !== 'undefined') {
-      match[key] = value.includes(',') ? { $in: value.split(',') } : value
-    }
+  if (query.map) {
+    match.map = new mongoose.Types.ObjectId(query.map as string)
+  }
+  if (query.category) {
+    match.category = new mongoose.Types.ObjectId(query.category as string)
+  }
+  if (query.status) {
+    match.status = query.status
+  } else {
+    match.status = 'Published'
+  }
+  if (query.country) {
+    match.country = new RegExp(`^${escapeRegex(String(query.country).trim())}$`, 'i')
   }
 
   if (searchTerm) {
@@ -135,68 +185,53 @@ const getAllPlaces = async (
     match.$or = or
   }
 
-  // 1. Fetch regular places if applicable
-  const queryType = query.type as string | undefined
-  const shouldQueryPlaces = !queryType || queryType === 'Regular' || queryType.includes('Regular')
-  
-  let places: any[] = []
-  if (shouldQueryPlaces) {
-    let placeQuery = Place.find(
-      hasGeo
-        ? {
-            ...match,
-            location: {
-              $nearSphere: {
-                $geometry: { type: 'Point', coordinates: [lng, lat] },
-              },
+  let placeQuery = Place.find(
+    hasGeo
+      ? {
+          ...match,
+          location: {
+            $nearSphere: {
+              $geometry: { type: 'Point', coordinates: [lng, lat] },
             },
-          }
-        : match,
-    )
-      .populate('category', 'name color icon status')
-      .populate('map', 'name country status isPaid')
-      .lean()
+          },
+        }
+      : match,
+  )
+    .populate('category', 'name color icon status')
+    .populate('map', 'name isPaid price')
+    .lean()
 
-    if (!hasGeo) {
-      placeQuery = placeQuery.sort(sort)
-    }
-
-    places = await placeQuery
+  if (!hasGeo) {
+    placeQuery = placeQuery.sort(sort)
   }
 
+  const places = await placeQuery
   const formattedPlaces = places.map(p => ({
     ...p,
     _id: p._id.toString(),
+    type: 'Regular',
+    placeType: 'Regular',
   }))
 
-  // 2. Fetch businesses if applicable
-  const shouldQueryBusinesses = !queryType || queryType === 'Business' || queryType.includes('Business')
+  // 2. Build Business Query (if type is not strictly 'Regular' and no specific map filter is applied)
   let formattedBusinesses: any[] = []
+  if (query.type !== 'Regular' && !query.map) {
+    const businessMatch: Record<string, unknown> = {}
 
-  if (shouldQueryBusinesses) {
-    const businessMatch: Record<string, any> = {}
-
-    if (match.category) {
-      businessMatch.category = match.category
+    if (query.category) {
+      businessMatch.category = new mongoose.Types.ObjectId(query.category as string)
+    }
+    if (query.country) {
+      businessMatch['location.country'] = new RegExp(
+        `^${escapeRegex(String(query.country).trim())}$`,
+        'i',
+      )
     }
 
-    if (match.country) {
-      businessMatch['location.country'] = match.country
-    } else if (match.map) {
-      if (typeof match.map === 'object' && match.map !== null && '$in' in match.map) {
-        const mapObjs = await Map.find({ _id: match.map }).select('name country').lean()
-        businessMatch['location.country'] = { $in: mapObjs.map(m => m.country || m.name) }
-      } else {
-        const mapObj = await Map.findById(match.map).select('name country').lean()
-        if (mapObj) {
-          businessMatch['location.country'] = mapObj.country || mapObj.name
-        }
-      }
-    }
-
+    // Map place statuses to business statuses
     if (match.status) {
-      if (typeof match.status === 'object' && match.status !== null && '$in' in match.status) {
-        const statusObj = match.status as any
+      const statusObj = match.status as any
+      if (statusObj && statusObj.$in) {
         const statuses = statusObj.$in.map((s: string) => {
           if (s === 'Published') return 'Approved'
           if (s === 'Draft') return 'Pending'
@@ -298,13 +333,13 @@ const getAllPlaces = async (
       } else if (sortField === 'category') {
         valA = a.category?.name || ''
         valB = b.category?.name || ''
-      } else if (sortField === 'createdAt' || sortField === 'updatedAt') {
-        valA = valA ? new Date(valA).getTime() : 0
-        valB = valB ? new Date(valB).getTime() : 0
+      } else if (sortField === 'createdAt') {
+        valA = new Date(a.createdAt || 0).getTime()
+        valB = new Date(b.createdAt || 0).getTime()
+      } else {
+        valA = a[sortField] || ''
+        valB = b[sortField] || ''
       }
-
-      if (typeof valA === 'string') valA = valA.toLowerCase()
-      if (typeof valB === 'string') valB = valB.toLowerCase()
 
       if (valA < valB) return isDesc ? 1 : -1
       if (valA > valB) return isDesc ? -1 : 1
@@ -315,6 +350,26 @@ const getAllPlaces = async (
   const total = combined.length
   const paginatedData = combined.slice(skip, skip + limit)
 
+  const updatedData = paginatedData.map((place: any) => {
+    const mapId = place.map?._id || place.map
+    const isLocked = !isPremium && mapId && lockedMapIds.includes(mapId.toString()) && place.type !== 'Business'
+    if (isLocked) {
+      // Keep teaser fields (name/media/category/location) for locked cards
+      const { description: _description, hours: _hours, privateInfo: _privateInfo, ...teaser } = place
+      return {
+        ...teaser,
+        description: undefined,
+        hours: undefined,
+        privateInfo: undefined,
+        isLocked: true,
+      }
+    }
+    return {
+      ...place,
+      isLocked: false,
+    }
+  })
+
   return {
     meta: {
       total,
@@ -322,34 +377,67 @@ const getAllPlaces = async (
       limit,
       totalPage: Math.ceil(total / limit) || 0,
     },
-    data: paginatedData,
+    data: updatedData,
   }
 }
 
-const getPlaceById = async (id: string): Promise<any | null> => {
-  const result = await Place.findById(id).populate('category').populate('map')
-  if (result) return result
+const getPlaceById = async (
+  id: string,
+  authHeader?: string,
+): Promise<any | null> => {
+  const [user, placeDoc] = await Promise.all([
+    getUserFromToken(authHeader),
+    Place.findById(id).populate('category').populate('map'),
+  ])
 
-  // Fallback to checking Business collection
-  const business = await Business.findById(id).populate('category')
-  if (business) {
-    // Map Business fields to Place schema so frontend doesn't break
-    return {
-      ...business.toObject(),
-      type: 'Business',
-      placeType: 'Business',
-      media: business.media?.photos || [],
-      menuImages: business.media?.menu ? [business.media.menu] : [],
-      address: business.location?.address || '',
-      country: business.location?.country || '',
-      location: {
-        type: 'Point',
-        coordinates: business.location?.mapLocation?.coordinates || [],
-      },
-      map: { name: business.location?.country },
+  let result: any = placeDoc
+  if (!result) {
+    // Fallback to checking Business collection
+    const business = await Business.findById(id).populate('category')
+    if (business) {
+      // Map Business fields to Place schema so frontend doesn't break
+      result = {
+        ...business.toObject(),
+        type: 'Business',
+        placeType: 'Business',
+        media: business.media?.photos || [],
+        menuImages: business.media?.menu ? [business.media.menu] : [],
+        address: business.location?.address || '',
+        country: business.location?.country || '',
+        location: {
+          type: 'Point',
+          coordinates: business.location?.mapLocation?.coordinates || [],
+        },
+        map: { name: business.location?.country },
+      }
     }
   }
-  throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
+
+  if (!result) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
+  }
+
+  const isPremium = user && [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any)
+  const accessibleMapIds = await getAccessibleMapIds(user)
+
+  const mapId = result.map?._id || result.map
+  if (mapId) {
+    const isLocked = !accessibleMapIds.includes(mapId.toString())
+    if (!isPremium && isLocked) {
+      if (result.type !== 'Business') {
+        throw new ApiError(
+          StatusCodes.FORBIDDEN,
+          'This information and these benefits can be unlocked by purchasing your favorite map.'
+        )
+      }
+    }
+  }
+
+  const placeObj = typeof (result as any).toObject === 'function' ? (result as any).toObject() : result
+  const isLocked = mapId && !accessibleMapIds.includes(mapId.toString()) && result.type !== 'Business'
+  placeObj.isLocked = !isPremium && !!isLocked
+
+  return placeObj
 }
 
 const incrementOpenCount = async (id: string) => {
@@ -366,10 +454,39 @@ const incrementOpenCount = async (id: string) => {
 
 const updatePlace = async (
   id: string,
-  payload: Partial<IPlace>,
+  payload: any,
+  userOrAuthHeader?: any,
 ): Promise<any | null> => {
-  await processPlaceTranslations(payload)
+  const user = typeof userOrAuthHeader === 'string'
+    ? await getUserFromToken(userOrAuthHeader)
+    : userOrAuthHeader
+
+  const placeData = { ...payload }
+  const uploadedImages = toStringArray(placeData.images)
+  const uploadedDocs = toStringArray(placeData.documents)
+  if (uploadedImages.length || placeData.media) {
+    placeData.media = [...toStringArray(placeData.media), ...uploadedImages]
+  }
+  if (uploadedDocs.length || placeData.menuImages) {
+    placeData.menuImages = [...toStringArray(placeData.menuImages), ...uploadedDocs]
+  }
+  delete placeData.images
+  delete placeData.documents
+
   const isExist = await Place.findById(id)
+  if (isExist) {
+    // A place must belong to a map, verify access to the existing map
+    const mapId = isExist.map?._id || isExist.map
+    if (mapId) {
+      await verifyEditorEditAccess(user, mapId.toString())
+    }
+
+    // If they are moving the place to a new map, verify access to the new map too
+    if (placeData.map && placeData.map.toString() !== mapId?.toString()) {
+      await verifyEditorEditAccess(user, placeData.map.toString())
+    }
+  }
+  await processPlaceTranslations(placeData)
   if (!isExist) {
     // Fallback: Check and update Business collection
     const isBusiness = await Business.findById(id)
@@ -559,6 +676,20 @@ const deletePlace = async (id: string): Promise<any | null> => {
   }
 }
 
+const extractCoordinates = async (url?: string) => {
+  if (!url) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Google Maps URL is required')
+  }
+  const coordinates = await getCoordinatesFromUrl(url)
+  if (!coordinates) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      'Could not extract coordinates. Try using the full URL from your browser address bar.'
+    )
+  }
+  return coordinates
+}
+
 export const PlaceService = {
   createPlace,
   getAllPlaces,
@@ -566,4 +697,6 @@ export const PlaceService = {
   incrementOpenCount,
   updatePlace,
   deletePlace,
+  extractCoordinates,
 }
+

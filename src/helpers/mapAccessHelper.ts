@@ -29,12 +29,18 @@ export const getAccessibleMapIds = async (user: any): Promise<string[]> => {
     return allMaps.map(m => m._id.toString())
   }
 
+  // Ensure full user data is available if user was passed from req.user (JwtPayload)
+  let fullUser = user
+  if (user && !user.assignedMaps && !user.purchasedMaps && (user.authId || user._id)) {
+    fullUser = (await User.findById(user.authId || user._id)) || user
+  }
+
   // Map Editor — only assigned maps + maps in assigned countries
-  if (user && user.role === USER_ROLES.MAP_EDITOR) {
-    const assignedMapIds = (user.assignedMaps || []).map((id: any) =>
+  if (fullUser && fullUser.role === USER_ROLES.MAP_EDITOR) {
+    const assignedMapIds = (fullUser.assignedMaps || []).map((id: any) =>
       id.toString(),
     )
-    const assignedCountries: string[] = user.assignedCountries || []
+    const assignedCountries: string[] = fullUser.assignedCountries || []
 
     const countryMaps =
       assignedCountries.length > 0
@@ -50,8 +56,8 @@ export const getAccessibleMapIds = async (user: any): Promise<string[]> => {
   const freeMapIds = freeMaps.map(m => m._id.toString())
 
   // If user is logged in, append purchased maps
-  if (user && user.purchasedMaps) {
-    const purchasedMapIds = user.purchasedMaps.map((id: any) => id.toString())
+  if (fullUser && fullUser.purchasedMaps) {
+    const purchasedMapIds = fullUser.purchasedMaps.map((id: any) => id.toString())
     return Array.from(new Set([...freeMapIds, ...purchasedMapIds]))
   }
 
@@ -71,8 +77,13 @@ export const verifyEditorEditAccess = async (user: any, mapId: string): Promise<
     return true
   }
 
+  let fullUser = user
+  if (!user.assignedMaps && (user.authId || user._id)) {
+    fullUser = (await User.findById(user.authId || user._id)) || user
+  }
+
   // If Map Editor, check assigned maps and countries
-  if (user.role === USER_ROLES.MAP_EDITOR) {
+  if (fullUser.role === USER_ROLES.MAP_EDITOR) {
     const map = await Map.findById(mapId)
     if (!map) {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found.')
@@ -81,8 +92,8 @@ export const verifyEditorEditAccess = async (user: any, mapId: string): Promise<
     const mapIdStr = map._id.toString()
     const mapCountry = map.country
 
-    const isAssignedMap = user.assignedMaps?.some((id: any) => id.toString() === mapIdStr)
-    const isAssignedCountry = mapCountry && user.assignedCountries?.includes(mapCountry)
+    const isAssignedMap = fullUser.assignedMaps?.some((id: any) => id.toString() === mapIdStr)
+    const isAssignedCountry = mapCountry && fullUser.assignedCountries?.includes(mapCountry)
 
     if (isAssignedMap || isAssignedCountry) {
       return true
@@ -115,7 +126,12 @@ export const verifyEditorBusinessAccess = async (
     return true
   }
 
-  if (user.role !== USER_ROLES.MAP_EDITOR) {
+  let fullUser = user
+  if (!user.assignedMaps && (user.authId || user._id)) {
+    fullUser = (await User.findById(user.authId || user._id)) || user
+  }
+
+  if (fullUser.role !== USER_ROLES.MAP_EDITOR) {
     throw new ApiError(StatusCodes.FORBIDDEN, 'You do not have permission to edit this resource.')
   }
 
@@ -127,11 +143,11 @@ export const verifyEditorBusinessAccess = async (
     )
   }
 
-  if (user.assignedCountries?.includes(country)) {
+  if (fullUser.assignedCountries?.includes(country)) {
     return true
   }
 
-  const assignedMapIds = (user.assignedMaps || []).map((id: any) => id.toString())
+  const assignedMapIds = (fullUser.assignedMaps || []).map((id: any) => id.toString())
   if (assignedMapIds.length > 0) {
     const maps = await Map.find({ _id: { $in: assignedMapIds } }).select('name country')
     const matchesAssignedMap = maps.some(

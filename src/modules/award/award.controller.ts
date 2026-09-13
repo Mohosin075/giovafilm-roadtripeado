@@ -4,6 +4,16 @@ import catchAsync from '../../shared/catchAsync'
 import sendResponse from '../../shared/sendResponse'
 import { AwardServices } from './award.service'
 import { JwtPayload } from 'jsonwebtoken'
+import { localizeDocument } from '../../helpers/localize'
+
+const awardFields = [
+  'config.title',
+  'config.description',
+  'config.mapId.name',
+  'config.mapId.description',
+  'map.name',
+  'map.description',
+]
 
 const getMyAwards = catchAsync(async (req: Request, res: Response) => {
   const { authId } = req.user as JwtPayload
@@ -12,7 +22,7 @@ const getMyAwards = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'User awards retrieved successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, awardFields),
   })
 })
 

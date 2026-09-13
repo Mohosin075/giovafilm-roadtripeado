@@ -14,6 +14,10 @@ const reverseGeocoding_1 = require("../../utils/reverseGeocoding");
 const business_model_1 = require("../business/business.model");
 const autoTranslate_1 = require("../../utils/autoTranslate");
 const place_constants_1 = require("./place.constants");
+const mapAccessHelper_1 = require("../../helpers/mapAccessHelper");
+const mapHelper_1 = require("../../utils/mapHelper");
+const media_1 = require("../../utils/media");
+const user_1 = require("../../enum/user");
 const processPlaceTranslations = async (payload) => {
     var _a, _b;
     if (payload.name)
@@ -48,31 +52,49 @@ const toNumber = (value) => {
     const parsed = typeof value === 'string' || typeof value === 'number' ? Number(value) : NaN;
     return Number.isFinite(parsed) ? parsed : NaN;
 };
-const createPlace = async (payload) => {
+const createPlace = async (payload, userOrAuthHeader) => {
     var _a;
+    const user = typeof userOrAuthHeader === 'string'
+        ? await (0, mapAccessHelper_1.getUserFromToken)(userOrAuthHeader)
+        : userOrAuthHeader;
+    const placeData = { ...payload };
+    const uploadedImages = (0, media_1.toStringArray)(placeData.images);
+    const uploadedDocs = (0, media_1.toStringArray)(placeData.documents);
+    if (uploadedImages.length || placeData.media) {
+        placeData.media = [...(0, media_1.toStringArray)(placeData.media), ...uploadedImages];
+    }
+    if (uploadedDocs.length || placeData.menuImages) {
+        placeData.menuImages = [...(0, media_1.toStringArray)(placeData.menuImages), ...uploadedDocs];
+    }
+    delete placeData.images;
+    delete placeData.documents;
+    // A place must belong to a map, verify access
+    if (placeData.map) {
+        await (0, mapAccessHelper_1.verifyEditorEditAccess)(user, placeData.map.toString());
+    }
     // Auto-populate country if not provided (run before transaction/session to prevent locks)
-    if (!payload.country && ((_a = payload.location) === null || _a === void 0 ? void 0 : _a.coordinates)) {
-        const [lng, lat] = payload.location.coordinates;
+    if (!placeData.country && ((_a = placeData.location) === null || _a === void 0 ? void 0 : _a.coordinates)) {
+        const [lng, lat] = placeData.location.coordinates;
         // MongoDB stores [lng, lat], but Google API needs (lat, lng)
         const country = await (0, reverseGeocoding_1.getCountryFromCoordinates)(lat, lng);
         console.log('country', country);
         if (country) {
-            payload.country = country;
+            placeData.country = country;
         }
         else {
-            payload.country = 'Unknown'; // Fallback
+            placeData.country = 'Unknown'; // Fallback
         }
     }
-    await processPlaceTranslations(payload);
+    await processPlaceTranslations(placeData);
     const session = await mongoose_1.default.startSession();
     try {
         session.startTransaction();
         // Check if map exists
-        const map = await map_model_1.Map.findById(payload.map).session(session);
+        const map = await map_model_1.Map.findById(placeData.map).session(session);
         if (!map) {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Map not found');
         }
-        const result = await place_model_1.Place.create([payload], { session });
+        const result = await place_model_1.Place.create([placeData], { session });
         const createdPlace = result[0];
         // Add place to map
         await map_model_1.Map.findByIdAndUpdate(payload.map, {
@@ -91,23 +113,42 @@ const createPlace = async (payload) => {
         session.endSession();
     }
 };
-const getAllPlaces = async (query) => {
+const getAllPlaces = async (query, authHeader) => {
+    // Run auth lookup and paid map IDs in parallel to avoid sequential DB hits
+    const [user, paidMaps] = await Promise.all([
+        (0, mapAccessHelper_1.getUserFromToken)(authHeader),
+        map_model_1.Map.find({ isPaid: true }, '_id'),
+    ]);
+    const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
+    const paidMapIds = paidMaps.map(m => m._id.toString());
+    const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id));
+    const isPremium = user && [user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.MAP_EDITOR].includes(user.role);
     const searchTerm = typeof query.searchTerm === 'string' ? query.searchTerm.trim() : '';
     const lat = toNumber(query.lat);
     const lng = toNumber(query.lng);
     const hasGeo = Number.isFinite(lat) && Number.isFinite(lng);
     const sort = typeof query.sort === 'string' && query.sort.trim()
-        ? query.sort.trim()
+        ? query.sort
         : '-createdAt';
-    const limit = Number(query.limit) || 10;
-    const page = Number(query.page) || 1;
+    const page = Math.max(1, toNumber(query.page) || 1);
+    const limit = Math.max(1, toNumber(query.limit) || 10);
     const skip = (page - 1) * limit;
+    // 1. Build Place Query
     const match = {};
-    for (const key of ['status', 'map', 'country', 'category', 'type']) {
-        const value = query[key];
-        if (typeof value === 'string' && value.trim() && value !== 'undefined') {
-            match[key] = value.includes(',') ? { $in: value.split(',') } : value;
-        }
+    if (query.map) {
+        match.map = new mongoose_1.default.Types.ObjectId(query.map);
+    }
+    if (query.category) {
+        match.category = new mongoose_1.default.Types.ObjectId(query.category);
+    }
+    if (query.status) {
+        match.status = query.status;
+    }
+    else {
+        match.status = 'Published';
+    }
+    if (query.country) {
+        match.country = new RegExp(`^${escapeRegex(String(query.country).trim())}$`, 'i');
     }
     if (searchTerm) {
         const regex = new RegExp(escapeRegex(searchTerm), 'i');
@@ -124,59 +165,43 @@ const getAllPlaces = async (query) => {
         }
         match.$or = or;
     }
-    // 1. Fetch regular places if applicable
-    const queryType = query.type;
-    const shouldQueryPlaces = !queryType || queryType === 'Regular' || queryType.includes('Regular');
-    let places = [];
-    if (shouldQueryPlaces) {
-        let placeQuery = place_model_1.Place.find(hasGeo
-            ? {
-                ...match,
-                location: {
-                    $nearSphere: {
-                        $geometry: { type: 'Point', coordinates: [lng, lat] },
-                    },
+    let placeQuery = place_model_1.Place.find(hasGeo
+        ? {
+            ...match,
+            location: {
+                $nearSphere: {
+                    $geometry: { type: 'Point', coordinates: [lng, lat] },
                 },
-            }
-            : match)
-            .populate('category', 'name color icon status')
-            .populate('map', 'name country status isPaid')
-            .lean();
-        if (!hasGeo) {
-            placeQuery = placeQuery.sort(sort);
+            },
         }
-        places = await placeQuery;
+        : match)
+        .populate('category', 'name color icon status')
+        .populate('map', 'name isPaid price')
+        .lean();
+    if (!hasGeo) {
+        placeQuery = placeQuery.sort(sort);
     }
+    const places = await placeQuery;
     const formattedPlaces = places.map(p => ({
         ...p,
         _id: p._id.toString(),
+        type: 'Regular',
+        placeType: 'Regular',
     }));
-    // 2. Fetch businesses if applicable
-    const shouldQueryBusinesses = !queryType || queryType === 'Business' || queryType.includes('Business');
+    // 2. Build Business Query (if type is not strictly 'Regular' and no specific map filter is applied)
     let formattedBusinesses = [];
-    if (shouldQueryBusinesses) {
+    if (query.type !== 'Regular' && !query.map) {
         const businessMatch = {};
-        if (match.category) {
-            businessMatch.category = match.category;
+        if (query.category) {
+            businessMatch.category = new mongoose_1.default.Types.ObjectId(query.category);
         }
-        if (match.country) {
-            businessMatch['location.country'] = match.country;
+        if (query.country) {
+            businessMatch['location.country'] = new RegExp(`^${escapeRegex(String(query.country).trim())}$`, 'i');
         }
-        else if (match.map) {
-            if (typeof match.map === 'object' && match.map !== null && '$in' in match.map) {
-                const mapObjs = await map_model_1.Map.find({ _id: match.map }).select('name country').lean();
-                businessMatch['location.country'] = { $in: mapObjs.map(m => m.country || m.name) };
-            }
-            else {
-                const mapObj = await map_model_1.Map.findById(match.map).select('name country').lean();
-                if (mapObj) {
-                    businessMatch['location.country'] = mapObj.country || mapObj.name;
-                }
-            }
-        }
+        // Map place statuses to business statuses
         if (match.status) {
-            if (typeof match.status === 'object' && match.status !== null && '$in' in match.status) {
-                const statusObj = match.status;
+            const statusObj = match.status;
+            if (statusObj && statusObj.$in) {
                 const statuses = statusObj.$in.map((s) => {
                     if (s === 'Published')
                         return 'Approved';
@@ -275,14 +300,14 @@ const getAllPlaces = async (query) => {
                 valA = ((_c = a.category) === null || _c === void 0 ? void 0 : _c.name) || '';
                 valB = ((_d = b.category) === null || _d === void 0 ? void 0 : _d.name) || '';
             }
-            else if (sortField === 'createdAt' || sortField === 'updatedAt') {
-                valA = valA ? new Date(valA).getTime() : 0;
-                valB = valB ? new Date(valB).getTime() : 0;
+            else if (sortField === 'createdAt') {
+                valA = new Date(a.createdAt || 0).getTime();
+                valB = new Date(b.createdAt || 0).getTime();
             }
-            if (typeof valA === 'string')
-                valA = valA.toLowerCase();
-            if (typeof valB === 'string')
-                valB = valB.toLowerCase();
+            else {
+                valA = a[sortField] || '';
+                valB = b[sortField] || '';
+            }
             if (valA < valB)
                 return isDesc ? 1 : -1;
             if (valA > valB)
@@ -292,6 +317,26 @@ const getAllPlaces = async (query) => {
     }
     const total = combined.length;
     const paginatedData = combined.slice(skip, skip + limit);
+    const updatedData = paginatedData.map((place) => {
+        var _a;
+        const mapId = ((_a = place.map) === null || _a === void 0 ? void 0 : _a._id) || place.map;
+        const isLocked = !isPremium && mapId && lockedMapIds.includes(mapId.toString()) && place.type !== 'Business';
+        if (isLocked) {
+            // Keep teaser fields (name/media/category/location) for locked cards
+            const { description: _description, hours: _hours, privateInfo: _privateInfo, ...teaser } = place;
+            return {
+                ...teaser,
+                description: undefined,
+                hours: undefined,
+                privateInfo: undefined,
+                isLocked: true,
+            };
+        }
+        return {
+            ...place,
+            isLocked: false,
+        };
+    });
     return {
         meta: {
             total,
@@ -299,34 +344,55 @@ const getAllPlaces = async (query) => {
             limit,
             totalPage: Math.ceil(total / limit) || 0,
         },
-        data: paginatedData,
+        data: updatedData,
     };
 };
-const getPlaceById = async (id) => {
-    var _a, _b, _c, _d, _e, _f, _g;
-    const result = await place_model_1.Place.findById(id).populate('category').populate('map');
-    if (result)
-        return result;
-    // Fallback to checking Business collection
-    const business = await business_model_1.Business.findById(id).populate('category');
-    if (business) {
-        // Map Business fields to Place schema so frontend doesn't break
-        return {
-            ...business.toObject(),
-            type: 'Business',
-            placeType: 'Business',
-            media: ((_a = business.media) === null || _a === void 0 ? void 0 : _a.photos) || [],
-            menuImages: ((_b = business.media) === null || _b === void 0 ? void 0 : _b.menu) ? [business.media.menu] : [],
-            address: ((_c = business.location) === null || _c === void 0 ? void 0 : _c.address) || '',
-            country: ((_d = business.location) === null || _d === void 0 ? void 0 : _d.country) || '',
-            location: {
-                type: 'Point',
-                coordinates: ((_f = (_e = business.location) === null || _e === void 0 ? void 0 : _e.mapLocation) === null || _f === void 0 ? void 0 : _f.coordinates) || [],
-            },
-            map: { name: (_g = business.location) === null || _g === void 0 ? void 0 : _g.country },
-        };
+const getPlaceById = async (id, authHeader) => {
+    var _a, _b, _c, _d, _e, _f, _g, _h;
+    const [user, placeDoc] = await Promise.all([
+        (0, mapAccessHelper_1.getUserFromToken)(authHeader),
+        place_model_1.Place.findById(id).populate('category').populate('map'),
+    ]);
+    let result = placeDoc;
+    if (!result) {
+        // Fallback to checking Business collection
+        const business = await business_model_1.Business.findById(id).populate('category');
+        if (business) {
+            // Map Business fields to Place schema so frontend doesn't break
+            result = {
+                ...business.toObject(),
+                type: 'Business',
+                placeType: 'Business',
+                media: ((_a = business.media) === null || _a === void 0 ? void 0 : _a.photos) || [],
+                menuImages: ((_b = business.media) === null || _b === void 0 ? void 0 : _b.menu) ? [business.media.menu] : [],
+                address: ((_c = business.location) === null || _c === void 0 ? void 0 : _c.address) || '',
+                country: ((_d = business.location) === null || _d === void 0 ? void 0 : _d.country) || '',
+                location: {
+                    type: 'Point',
+                    coordinates: ((_f = (_e = business.location) === null || _e === void 0 ? void 0 : _e.mapLocation) === null || _f === void 0 ? void 0 : _f.coordinates) || [],
+                },
+                map: { name: (_g = business.location) === null || _g === void 0 ? void 0 : _g.country },
+            };
+        }
     }
-    throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Place not found');
+    if (!result) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Place not found');
+    }
+    const isPremium = user && [user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.MAP_EDITOR].includes(user.role);
+    const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
+    const mapId = ((_h = result.map) === null || _h === void 0 ? void 0 : _h._id) || result.map;
+    if (mapId) {
+        const isLocked = !accessibleMapIds.includes(mapId.toString());
+        if (!isPremium && isLocked) {
+            if (result.type !== 'Business') {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'This information and these benefits can be unlocked by purchasing your favorite map.');
+            }
+        }
+    }
+    const placeObj = typeof result.toObject === 'function' ? result.toObject() : result;
+    const isLocked = mapId && !accessibleMapIds.includes(mapId.toString()) && result.type !== 'Business';
+    placeObj.isLocked = !isPremium && !!isLocked;
+    return placeObj;
 };
 const incrementOpenCount = async (id) => {
     const result = await place_model_1.Place.findByIdAndUpdate(id, { $inc: { openCount: 1 } }, { new: true }).select('name openCount');
@@ -335,10 +401,35 @@ const incrementOpenCount = async (id) => {
     }
     return result;
 };
-const updatePlace = async (id, payload) => {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
-    await processPlaceTranslations(payload);
+const updatePlace = async (id, payload, userOrAuthHeader) => {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
+    const user = typeof userOrAuthHeader === 'string'
+        ? await (0, mapAccessHelper_1.getUserFromToken)(userOrAuthHeader)
+        : userOrAuthHeader;
+    const placeData = { ...payload };
+    const uploadedImages = (0, media_1.toStringArray)(placeData.images);
+    const uploadedDocs = (0, media_1.toStringArray)(placeData.documents);
+    if (uploadedImages.length || placeData.media) {
+        placeData.media = [...(0, media_1.toStringArray)(placeData.media), ...uploadedImages];
+    }
+    if (uploadedDocs.length || placeData.menuImages) {
+        placeData.menuImages = [...(0, media_1.toStringArray)(placeData.menuImages), ...uploadedDocs];
+    }
+    delete placeData.images;
+    delete placeData.documents;
     const isExist = await place_model_1.Place.findById(id);
+    if (isExist) {
+        // A place must belong to a map, verify access to the existing map
+        const mapId = ((_a = isExist.map) === null || _a === void 0 ? void 0 : _a._id) || isExist.map;
+        if (mapId) {
+            await (0, mapAccessHelper_1.verifyEditorEditAccess)(user, mapId.toString());
+        }
+        // If they are moving the place to a new map, verify access to the new map too
+        if (placeData.map && placeData.map.toString() !== (mapId === null || mapId === void 0 ? void 0 : mapId.toString())) {
+            await (0, mapAccessHelper_1.verifyEditorEditAccess)(user, placeData.map.toString());
+        }
+    }
+    await processPlaceTranslations(placeData);
     if (!isExist) {
         // Fallback: Check and update Business collection
         const isBusiness = await business_model_1.Business.findById(id);
@@ -354,11 +445,11 @@ const updatePlace = async (id, payload) => {
         if (payload.description)
             businessPayload.description = payload.description;
         // Address & coordinates mapping
-        if (payload.address || ((_a = payload.location) === null || _a === void 0 ? void 0 : _a.coordinates)) {
+        if (payload.address || ((_b = payload.location) === null || _b === void 0 ? void 0 : _b.coordinates)) {
             businessPayload.location = {
                 ...(isBusiness.location || {}),
                 ...(payload.address && { address: payload.address }),
-                ...(((_b = payload.location) === null || _b === void 0 ? void 0 : _b.coordinates) && {
+                ...(((_c = payload.location) === null || _c === void 0 ? void 0 : _c.coordinates) && {
                     mapLocation: {
                         type: 'Point',
                         coordinates: payload.location.coordinates,
@@ -405,21 +496,21 @@ const updatePlace = async (id, payload) => {
                 ...updatedBusiness.toObject(),
                 type: 'Business',
                 placeType: 'Business',
-                media: ((_c = updatedBusiness.media) === null || _c === void 0 ? void 0 : _c.photos) || [],
-                menuImages: ((_d = updatedBusiness.media) === null || _d === void 0 ? void 0 : _d.menu) ? [updatedBusiness.media.menu] : [],
-                address: ((_e = updatedBusiness.location) === null || _e === void 0 ? void 0 : _e.address) || '',
-                country: ((_f = updatedBusiness.location) === null || _f === void 0 ? void 0 : _f.country) || '',
+                media: ((_d = updatedBusiness.media) === null || _d === void 0 ? void 0 : _d.photos) || [],
+                menuImages: ((_e = updatedBusiness.media) === null || _e === void 0 ? void 0 : _e.menu) ? [updatedBusiness.media.menu] : [],
+                address: ((_f = updatedBusiness.location) === null || _f === void 0 ? void 0 : _f.address) || '',
+                country: ((_g = updatedBusiness.location) === null || _g === void 0 ? void 0 : _g.country) || '',
                 location: {
                     type: 'Point',
-                    coordinates: ((_h = (_g = updatedBusiness.location) === null || _g === void 0 ? void 0 : _g.mapLocation) === null || _h === void 0 ? void 0 : _h.coordinates) || [],
+                    coordinates: ((_j = (_h = updatedBusiness.location) === null || _h === void 0 ? void 0 : _h.mapLocation) === null || _j === void 0 ? void 0 : _j.coordinates) || [],
                 },
-                map: { name: (_j = updatedBusiness.location) === null || _j === void 0 ? void 0 : _j.country },
+                map: { name: (_k = updatedBusiness.location) === null || _k === void 0 ? void 0 : _k.country },
             };
         }
         return null;
     }
-    const nextCoords = (_k = payload.location) === null || _k === void 0 ? void 0 : _k.coordinates;
-    const prevCoords = (_l = isExist.location) === null || _l === void 0 ? void 0 : _l.coordinates;
+    const nextCoords = (_l = payload.location) === null || _l === void 0 ? void 0 : _l.coordinates;
+    const prevCoords = (_m = isExist.location) === null || _m === void 0 ? void 0 : _m.coordinates;
     const COORD_EPSILON = 1e-6;
     const coordsChanged = !!nextCoords &&
         (!prevCoords ||
@@ -501,6 +592,16 @@ const deletePlace = async (id) => {
         session.endSession();
     }
 };
+const extractCoordinates = async (url) => {
+    if (!url) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Google Maps URL is required');
+    }
+    const coordinates = await (0, mapHelper_1.getCoordinatesFromUrl)(url);
+    if (!coordinates) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Could not extract coordinates. Try using the full URL from your browser address bar.');
+    }
+    return coordinates;
+};
 exports.PlaceService = {
     createPlace,
     getAllPlaces,
@@ -508,4 +609,5 @@ exports.PlaceService = {
     incrementOpenCount,
     updatePlace,
     deletePlace,
+    extractCoordinates,
 };

@@ -8,7 +8,14 @@ import { IUser } from '../user/user.interface'
 import { JwtPayload } from 'jsonwebtoken'
 import { localizeDocument } from '../../helpers/localize'
 
-const planFields = ['name', 'description', 'features']
+const planFields = [
+  'name',
+  'description',
+  'features',
+  'planId.name',
+  'planId.description',
+  'planId.features',
+]
 
 // Get available subscription plans
 const getAvailablePlans = catchAsync(async (req: Request, res: Response) => {
@@ -82,7 +89,7 @@ const getUserSubscription = catchAsync(async (req: Request, res: Response) => {
       message: subscription
         ? 'Subscription retrieved successfully'
         : 'No active subscription found',
-      data: subscription || {},
+      data: subscription ? localizeDocument(subscription, req.lang, planFields) : {},
     })
   } else {
     const subscriptions = await subscriptionService.getUserSubscriptions(userId)
@@ -92,7 +99,7 @@ const getUserSubscription = catchAsync(async (req: Request, res: Response) => {
       message: subscriptions.length > 0
         ? 'Subscriptions retrieved successfully'
         : 'No active subscription found',
-      data: subscriptions,
+      data: localizeDocument(subscriptions, req.lang, planFields),
     })
   }
 })

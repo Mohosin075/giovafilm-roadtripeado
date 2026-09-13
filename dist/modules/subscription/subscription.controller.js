@@ -10,7 +10,14 @@ const sendResponse_1 = __importDefault(require("../../shared/sendResponse"));
 const subscription_service_1 = require("./subscription.service");
 const webhook_service_1 = require("./webhook.service");
 const localize_1 = require("../../helpers/localize");
-const planFields = ['name', 'description', 'features'];
+const planFields = [
+    'name',
+    'description',
+    'features',
+    'planId.name',
+    'planId.description',
+    'planId.features',
+];
 // Get available subscription plans
 const getAvailablePlans = (0, catchAsync_1.default)(async (req, res) => {
     const plans = await subscription_service_1.subscriptionService.getAvailablePlans();
@@ -70,7 +77,7 @@ const getUserSubscription = (0, catchAsync_1.default)(async (req, res) => {
             message: subscription
                 ? 'Subscription retrieved successfully'
                 : 'No active subscription found',
-            data: subscription || {},
+            data: subscription ? (0, localize_1.localizeDocument)(subscription, req.lang, planFields) : {},
         });
     }
     else {
@@ -81,7 +88,7 @@ const getUserSubscription = (0, catchAsync_1.default)(async (req, res) => {
             message: subscriptions.length > 0
                 ? 'Subscriptions retrieved successfully'
                 : 'No active subscription found',
-            data: subscriptions,
+            data: (0, localize_1.localizeDocument)(subscriptions, req.lang, planFields),
         });
     }
 });

@@ -35,10 +35,15 @@ const getAccessibleMapIds = async (user) => {
         const allMaps = await map_model_1.Map.find({}, '_id');
         return allMaps.map(m => m._id.toString());
     }
+    // Ensure full user data is available if user was passed from req.user (JwtPayload)
+    let fullUser = user;
+    if (user && !user.assignedMaps && !user.purchasedMaps && (user.authId || user._id)) {
+        fullUser = (await user_model_1.User.findById(user.authId || user._id)) || user;
+    }
     // Map Editor — only assigned maps + maps in assigned countries
-    if (user && user.role === user_1.USER_ROLES.MAP_EDITOR) {
-        const assignedMapIds = (user.assignedMaps || []).map((id) => id.toString());
-        const assignedCountries = user.assignedCountries || [];
+    if (fullUser && fullUser.role === user_1.USER_ROLES.MAP_EDITOR) {
+        const assignedMapIds = (fullUser.assignedMaps || []).map((id) => id.toString());
+        const assignedCountries = fullUser.assignedCountries || [];
         const countryMaps = assignedCountries.length > 0
             ? await map_model_1.Map.find({ country: { $in: assignedCountries } }, '_id')
             : [];
@@ -49,8 +54,8 @@ const getAccessibleMapIds = async (user) => {
     const freeMaps = await map_model_1.Map.find({ isPaid: false }, '_id');
     const freeMapIds = freeMaps.map(m => m._id.toString());
     // If user is logged in, append purchased maps
-    if (user && user.purchasedMaps) {
-        const purchasedMapIds = user.purchasedMaps.map((id) => id.toString());
+    if (fullUser && fullUser.purchasedMaps) {
+        const purchasedMapIds = fullUser.purchasedMaps.map((id) => id.toString());
         return Array.from(new Set([...freeMapIds, ...purchasedMapIds]));
     }
     return freeMapIds;
@@ -67,16 +72,20 @@ const verifyEditorEditAccess = async (user, mapId) => {
     if ([user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN].includes(user.role)) {
         return true;
     }
+    let fullUser = user;
+    if (!user.assignedMaps && (user.authId || user._id)) {
+        fullUser = (await user_model_1.User.findById(user.authId || user._id)) || user;
+    }
     // If Map Editor, check assigned maps and countries
-    if (user.role === user_1.USER_ROLES.MAP_EDITOR) {
+    if (fullUser.role === user_1.USER_ROLES.MAP_EDITOR) {
         const map = await map_model_1.Map.findById(mapId);
         if (!map) {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Map not found.');
         }
         const mapIdStr = map._id.toString();
         const mapCountry = map.country;
-        const isAssignedMap = (_a = user.assignedMaps) === null || _a === void 0 ? void 0 : _a.some((id) => id.toString() === mapIdStr);
-        const isAssignedCountry = mapCountry && ((_b = user.assignedCountries) === null || _b === void 0 ? void 0 : _b.includes(mapCountry));
+        const isAssignedMap = (_a = fullUser.assignedMaps) === null || _a === void 0 ? void 0 : _a.some((id) => id.toString() === mapIdStr);
+        const isAssignedCountry = mapCountry && ((_b = fullUser.assignedCountries) === null || _b === void 0 ? void 0 : _b.includes(mapCountry));
         if (isAssignedMap || isAssignedCountry) {
             return true;
         }
@@ -99,17 +108,21 @@ const verifyEditorBusinessAccess = async (user, businessCountry) => {
     if ([user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN].includes(user.role)) {
         return true;
     }
-    if (user.role !== user_1.USER_ROLES.MAP_EDITOR) {
+    let fullUser = user;
+    if (!user.assignedMaps && (user.authId || user._id)) {
+        fullUser = (await user_model_1.User.findById(user.authId || user._id)) || user;
+    }
+    if (fullUser.role !== user_1.USER_ROLES.MAP_EDITOR) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'You do not have permission to edit this resource.');
     }
     const country = (businessCountry || '').trim();
     if (!country) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'You are not authorized to edit offers for this business.');
     }
-    if ((_a = user.assignedCountries) === null || _a === void 0 ? void 0 : _a.includes(country)) {
+    if ((_a = fullUser.assignedCountries) === null || _a === void 0 ? void 0 : _a.includes(country)) {
         return true;
     }
-    const assignedMapIds = (user.assignedMaps || []).map((id) => id.toString());
+    const assignedMapIds = (fullUser.assignedMaps || []).map((id) => id.toString());
     if (assignedMapIds.length > 0) {
         const maps = await map_model_1.Map.find({ _id: { $in: assignedMapIds } }).select('name country');
         const matchesAssignedMap = maps.some(m => m.name === country || m.country === country);

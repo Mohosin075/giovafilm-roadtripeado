@@ -7,6 +7,14 @@ import { paginationFields } from '../../interfaces/pagination'
 import pick from '../../shared/pick'
 import { JwtPayload } from 'jsonwebtoken'
 import { getUserFromToken } from '../../helpers/mapAccessHelper'
+import { localizeDocument } from '../../helpers/localize'
+
+const reviewFields = [
+  'placeId.name',
+  'placeId.description',
+  'businessId.name',
+  'businessId.description',
+]
 
 const createReview = catchAsync(async (req: Request, res: Response) => {
   const result = await ReviewService.createReview(req.user!, req.body)
@@ -50,7 +58,7 @@ const getAllReviews = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Reviews retrieved successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, reviewFields),
   })
 })
 
@@ -68,7 +76,7 @@ const getReviewsByPlace = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Reviews retrieved successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, reviewFields),
   })
 })
 
@@ -86,7 +94,7 @@ const getReviewsByBusiness = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Reviews retrieved successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, reviewFields),
   })
 })
 
@@ -110,7 +118,7 @@ const getSingleReview = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Review retrieved successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, reviewFields),
   })
 })
 
@@ -122,7 +130,7 @@ const getMyReviews = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'My reviews retrieved successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, reviewFields),
   })
 })
 

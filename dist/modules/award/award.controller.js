@@ -8,6 +8,15 @@ const http_status_codes_1 = require("http-status-codes");
 const catchAsync_1 = __importDefault(require("../../shared/catchAsync"));
 const sendResponse_1 = __importDefault(require("../../shared/sendResponse"));
 const award_service_1 = require("./award.service");
+const localize_1 = require("../../helpers/localize");
+const awardFields = [
+    'config.title',
+    'config.description',
+    'config.mapId.name',
+    'config.mapId.description',
+    'map.name',
+    'map.description',
+];
 const getMyAwards = (0, catchAsync_1.default)(async (req, res) => {
     const { authId } = req.user;
     const result = await award_service_1.AwardServices.getMyAwards(authId);
@@ -15,7 +24,7 @@ const getMyAwards = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'User awards retrieved successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, awardFields),
     });
 });
 const redeemFreeMap = (0, catchAsync_1.default)(async (req, res) => {

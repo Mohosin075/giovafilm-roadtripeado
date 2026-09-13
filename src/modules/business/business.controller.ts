@@ -4,62 +4,24 @@ import catchAsync from '../../shared/catchAsync'
 import sendResponse from '../../shared/sendResponse'
 import { BusinessService } from './business.service'
 import { JwtPayload } from 'jsonwebtoken'
-import ApiError from '../../errors/ApiError'
-import { USER_ROLES } from '../../enum/user'
-import { getUserFromToken } from '../../helpers/mapAccessHelper'
 import { localizeDocument } from '../../helpers/localize'
 
-const businessFields = ['name', 'description', 'category.name']
-
-const resolveUserRole = (user: any): string | undefined =>
-  user?.role || user?.user?.role || user?.data?.role
-
-const isAdminRole = (role?: string) =>
-  !!role && [USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN].includes(role as any)
-
-const getBusinessOwnerId = (business: any): string | null => {
-  if (!business?.user) return null
-  return (business.user._id || business.user).toString()
-}
-
-const stripPrivateInfo = (business: any) => {
-  if (!business) return business
-  const obj =
-    typeof business.toObject === 'function' ? business.toObject() : { ...business }
-  delete obj.privateInfo
-  delete obj.adminReview
-  return obj
-}
+const businessFields = [
+  'name',
+  'description',
+  'category.name',
+  'address',
+  'accessDescription',
+  'atmosphere',
+  'location.address',
+]
 
 /**
  * Controller to handle business creation requests.
- * Extracts user ID from the JWT payload and injects into business data.
  */
 const createBusiness = catchAsync(async (req: Request, res: Response) => {
-  // Grab the user from the auth token
   const user = req.user as JwtPayload
-  const businessData = {
-    ...req.body,
-    user: user?.authId,
-  }
-
-  // Handle image upload from disk storage
-  if (req.body.images) {
-    if (!businessData.media) businessData.media = {}
-    businessData.media.photos = Array.isArray(req.body.images)
-      ? req.body.images
-      : [req.body.images]
-  }
-
-  // Handle menu/document upload from disk storage
-  if (req.body.documents) {
-    if (!businessData.media) businessData.media = {}
-    businessData.media.menu = Array.isArray(req.body.documents)
-      ? req.body.documents[0]
-      : req.body.documents
-  }
-
-  const result = await BusinessService.createBusiness(businessData)
+  const result = await BusinessService.createBusiness(req.body, user?.authId)
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
     success: true,
@@ -72,22 +34,13 @@ const createBusiness = catchAsync(async (req: Request, res: Response) => {
  * Controller to retrieve a paginated listing of all businesses.
  */
 const getAllBusinesses = catchAsync(async (req: Request, res: Response) => {
-  const user = await getUserFromToken(req.headers.authorization)
-  const result = await BusinessService.getAllBusinesses(req.query)
-
-  const data = result.data.map((biz: any) => {
-    const ownerId = getBusinessOwnerId(biz)
-    const canSeePrivate =
-      isAdminRole(user?.role) || (user && ownerId === user._id.toString())
-    return canSeePrivate ? biz : stripPrivateInfo(biz)
-  })
-
+  const result = await BusinessService.getAllBusinesses(req.query, req.headers.authorization)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Businesses retrieved successfully',
     meta: result.meta,
-    data: localizeDocument(data, req.lang, businessFields),
+    data: localizeDocument(result.data, req.lang, businessFields),
   })
 })
 
@@ -96,7 +49,6 @@ const getAllBusinesses = catchAsync(async (req: Request, res: Response) => {
  */
 const getMyBusinesses = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
-  // Assuming the user's ID is at user.authId based on createBusiness
   const result = await BusinessService.getMyBusinesses(user.authId, req.query)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -111,20 +63,12 @@ const getMyBusinesses = catchAsync(async (req: Request, res: Response) => {
  * Controller to retrieve single business detailed information by ID.
  */
 const getBusinessById = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params
-  const user = await getUserFromToken(req.headers.authorization)
-  const result = await BusinessService.getBusinessById(id)
-  const ownerId = getBusinessOwnerId(result)
-  const canSeePrivate =
-    isAdminRole(user?.role) || (user && ownerId === user._id.toString())
-
-  const finalData = canSeePrivate ? result : stripPrivateInfo(result)
-
+  const result = await BusinessService.getBusinessById(req.params.id, req.headers.authorization)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Business retrieved successfully',
-    data: localizeDocument(finalData, req.lang, businessFields),
+    data: localizeDocument(result, req.lang, businessFields),
   })
 })
 
@@ -132,74 +76,7 @@ const getBusinessById = catchAsync(async (req: Request, res: Response) => {
  * Controller to update a business submission.
  */
 const updateBusiness = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params
-  const authUser = req.user as JwtPayload
-  const existing = await BusinessService.getBusinessById(id)
-  if (!existing) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Business not found')
-  }
-
-  const ownerId = getBusinessOwnerId(existing)
-  const admin = isAdminRole(resolveUserRole(authUser))
-  if (!admin && ownerId !== authUser?.authId?.toString()) {
-    throw new ApiError(
-      StatusCodes.FORBIDDEN,
-      'You are not authorized to update this business',
-    )
-  }
-
-  const businessData = { ...req.body }
-
-  // Users cannot self-approve, self-verify, or toggle subscription
-  if (!admin) {
-    delete businessData.status
-    delete businessData.hasActiveSubscription
-    delete businessData.isAccuracyVerified
-    delete businessData.adminReview
-  }
-
-  const existingReview =
-    (existing as any).adminReview &&
-    typeof (existing as any).adminReview === 'object'
-      ? (existing as any).adminReview
-      : {}
-
-  if (businessData.adminReview) {
-    businessData.adminReview = {
-      ...existingReview,
-      ...businessData.adminReview,
-    }
-    if (typeof businessData.adminReview.locationPinVerified === 'boolean') {
-      businessData.isAccuracyVerified =
-        businessData.adminReview.locationPinVerified
-    }
-  }
-
-  if (typeof businessData.isAccuracyVerified === 'boolean') {
-    businessData.adminReview = {
-      ...existingReview,
-      ...businessData.adminReview,
-      locationPinVerified: businessData.isAccuracyVerified,
-    }
-  }
-
-  // Handle image upload from disk storage
-  if (req.body.images) {
-    if (!businessData.media) businessData.media = {}
-    businessData.media.photos = Array.isArray(req.body.images)
-      ? req.body.images
-      : [req.body.images]
-  }
-
-  // Handle menu/document upload from disk storage
-  if (req.body.documents) {
-    if (!businessData.media) businessData.media = {}
-    businessData.media.menu = Array.isArray(req.body.documents)
-      ? req.body.documents[0]
-      : req.body.documents
-  }
-
-  const result = await BusinessService.updateBusiness(id, businessData)
+  const result = await BusinessService.updateBusiness(req.params.id, req.body, req.user)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -227,23 +104,7 @@ const updateBusinessStatus = catchAsync(async (req: Request, res: Response) => {
  * Controller to handle permanent deletion of a business.
  */
 const deleteBusiness = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params
-  const authUser = req.user as JwtPayload
-  const existing = await BusinessService.getBusinessById(id)
-  if (!existing) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Business not found')
-  }
-
-  const ownerId = getBusinessOwnerId(existing)
-  const admin = isAdminRole(resolveUserRole(authUser))
-  if (!admin && ownerId !== authUser?.authId?.toString()) {
-    throw new ApiError(
-      StatusCodes.FORBIDDEN,
-      'You are not authorized to delete this business',
-    )
-  }
-
-  const result = await BusinessService.deleteBusiness(id)
+  const result = await BusinessService.deleteBusiness(req.params.id, req.user)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,

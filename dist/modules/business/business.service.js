@@ -13,45 +13,88 @@ const business_constants_1 = require("./business.constants");
 const offer_1 = require("../../enum/offer");
 const subscription_model_1 = require("../subscription/subscription.model");
 const autoTranslate_1 = require("../../utils/autoTranslate");
+const user_1 = require("../../enum/user");
+const mapAccessHelper_1 = require("../../helpers/mapAccessHelper");
+const resolveUserRole = (user) => { var _a, _b; return (user === null || user === void 0 ? void 0 : user.role) || ((_a = user === null || user === void 0 ? void 0 : user.user) === null || _a === void 0 ? void 0 : _a.role) || ((_b = user === null || user === void 0 ? void 0 : user.data) === null || _b === void 0 ? void 0 : _b.role); };
+const isAdminRole = (role) => !!role && [user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN].includes(role);
+const getBusinessOwnerId = (business) => {
+    if (!(business === null || business === void 0 ? void 0 : business.user))
+        return null;
+    return (business.user._id || business.user).toString();
+};
+const stripPrivateInfo = (business) => {
+    if (!business)
+        return business;
+    const obj = typeof business.toObject === 'function' ? business.toObject() : { ...business };
+    delete obj.privateInfo;
+    delete obj.adminReview;
+    return obj;
+};
 const processBusinessTranslations = async (payload) => {
     if (payload.name)
         payload.name = await (0, autoTranslate_1.autoTranslateField)(payload.name);
     if (payload.description)
         payload.description = await (0, autoTranslate_1.autoTranslateField)(payload.description);
 };
-const createBusiness = async (payload) => {
-    await processBusinessTranslations(payload);
-    payload.status = 'Pending'; // Always start as pending until admin approves
-    payload.hasActiveSubscription = false; // Explicitly start with no active subscription
-    const result = await business_model_1.Business.create(payload);
+const createBusiness = async (payload, userId) => {
+    const businessData = {
+        ...payload,
+        user: userId || payload.user,
+    };
+    if (payload.images) {
+        if (!businessData.media)
+            businessData.media = {};
+        businessData.media.photos = Array.isArray(payload.images)
+            ? payload.images
+            : [payload.images];
+    }
+    if (payload.documents) {
+        if (!businessData.media)
+            businessData.media = {};
+        businessData.media.menu = Array.isArray(payload.documents)
+            ? payload.documents[0]
+            : payload.documents;
+    }
+    await processBusinessTranslations(businessData);
+    businessData.status = 'Pending'; // Always start as pending until admin approves
+    businessData.hasActiveSubscription = false; // Explicitly start with no active subscription
+    const result = await business_model_1.Business.create(businessData);
     return result;
 };
 /**
  * Retrieves all businesses with support for queries (search, filter, sort, pagination).
- * @param query The query parameters from the request
- * @returns Paginated list of businesses and metadata
+ * Strips private admin info for non-owner/non-admin users.
  */
-const getAllBusinesses = async (query) => {
+const getAllBusinesses = async (query, authHeader) => {
+    const queryObj = { ...query };
     // If requesting specifically for the map, enforce active subscription and approved status
-    if (query.mapView === 'true') {
-        query.hasActiveSubscription = true;
-        query.status = 'Approved';
-        delete query.mapView;
+    if (queryObj.mapView === 'true') {
+        queryObj.hasActiveSubscription = true;
+        queryObj.status = 'Approved';
+        delete queryObj.mapView;
     }
     const businessQuery = new QueryBuilder_1.default(business_model_1.Business.find()
         .populate('user', 'name email profile')
         .populate('category', 'name color icon status')
-        .lean(), query)
+        .lean(), queryObj)
         .search(business_constants_1.businessSearchableFields)
         .filter()
         .sort()
         .paginate()
         .fields();
-    const result = await businessQuery.modelQuery;
-    const meta = await businessQuery.getPaginationInfo();
+    const [user, result, meta] = await Promise.all([
+        (0, mapAccessHelper_1.getUserFromToken)(authHeader),
+        businessQuery.modelQuery,
+        businessQuery.getPaginationInfo(),
+    ]);
+    const data = result.map((biz) => {
+        const ownerId = getBusinessOwnerId(biz);
+        const canSeePrivate = isAdminRole(user === null || user === void 0 ? void 0 : user.role) || (user && ownerId === user._id.toString());
+        return canSeePrivate ? biz : stripPrivateInfo(biz);
+    });
     return {
         meta,
-        data: result,
+        data,
     };
 };
 /**
@@ -105,29 +148,81 @@ const getMyBusinesses = async (userId, query) => {
 };
 /**
  * Retrieves a single business by its ID.
- * @param id The business document ID
- * @returns The business document or throws a NotFound error
+ * Strips private admin info for non-owner/non-admin users.
  */
-const getBusinessById = async (id) => {
-    const result = await business_model_1.Business.findById(id).populate('user category');
+const getBusinessById = async (id, authHeader) => {
+    const [user, result] = await Promise.all([
+        (0, mapAccessHelper_1.getUserFromToken)(authHeader),
+        business_model_1.Business.findById(id).populate('user category'),
+    ]);
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Business not found');
     }
-    return result;
+    const ownerId = getBusinessOwnerId(result);
+    const canSeePrivate = isAdminRole(user === null || user === void 0 ? void 0 : user.role) || (user && ownerId === user._id.toString());
+    return canSeePrivate ? result : stripPrivateInfo(result);
 };
 /**
- * Updates an existing business listing.
- * @param id The business document ID
- * @param payload The fields to update
- * @returns The updated business document or throws an error if not found
+ * Updates an existing business listing with permission and status enforcement.
  */
-const updateBusiness = async (id, payload) => {
-    const isExist = await business_model_1.Business.findById(id);
-    if (!isExist) {
+const updateBusiness = async (id, payload, authUser) => {
+    var _a;
+    const existing = await business_model_1.Business.findById(id);
+    if (!existing) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Business not found');
     }
-    await processBusinessTranslations(payload);
-    const result = await business_model_1.Business.findByIdAndUpdate(id, payload, {
+    const ownerId = getBusinessOwnerId(existing);
+    const admin = isAdminRole(resolveUserRole(authUser));
+    if (!admin && ownerId !== ((_a = authUser === null || authUser === void 0 ? void 0 : authUser.authId) === null || _a === void 0 ? void 0 : _a.toString())) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'You are not authorized to update this business');
+    }
+    const businessData = { ...payload };
+    // Users cannot self-approve, self-verify, or toggle subscription
+    if (!admin) {
+        delete businessData.status;
+        delete businessData.hasActiveSubscription;
+        delete businessData.isAccuracyVerified;
+        delete businessData.adminReview;
+    }
+    const existingReview = existing.adminReview &&
+        typeof existing.adminReview === 'object'
+        ? existing.adminReview
+        : {};
+    if (businessData.adminReview) {
+        businessData.adminReview = {
+            ...existingReview,
+            ...businessData.adminReview,
+        };
+        if (typeof businessData.adminReview.locationPinVerified === 'boolean') {
+            businessData.isAccuracyVerified =
+                businessData.adminReview.locationPinVerified;
+        }
+    }
+    if (typeof businessData.isAccuracyVerified === 'boolean') {
+        businessData.adminReview = {
+            ...existingReview,
+            ...businessData.adminReview,
+            locationPinVerified: businessData.isAccuracyVerified,
+        };
+    }
+    // Handle image upload from disk storage
+    if (payload.images) {
+        if (!businessData.media)
+            businessData.media = {};
+        businessData.media.photos = Array.isArray(payload.images)
+            ? payload.images
+            : [payload.images];
+    }
+    // Handle menu/document upload from disk storage
+    if (payload.documents) {
+        if (!businessData.media)
+            businessData.media = {};
+        businessData.media.menu = Array.isArray(payload.documents)
+            ? payload.documents[0]
+            : payload.documents;
+    }
+    await processBusinessTranslations(businessData);
+    const result = await business_model_1.Business.findByIdAndUpdate(id, businessData, {
         new: true,
         runValidators: true,
     }).populate('user category');
@@ -151,14 +246,18 @@ const updateBusinessStatus = async (id, status) => {
     return result;
 };
 /**
- * Deletes a business listing permanently.
- * @param id The business document ID
- * @returns The deleted business document
+ * Deletes a business listing permanently with permission check.
  */
-const deleteBusiness = async (id) => {
-    const isExist = await business_model_1.Business.findById(id);
-    if (!isExist) {
+const deleteBusiness = async (id, authUser) => {
+    var _a;
+    const existing = await business_model_1.Business.findById(id);
+    if (!existing) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Business not found');
+    }
+    const ownerId = getBusinessOwnerId(existing);
+    const admin = isAdminRole(resolveUserRole(authUser));
+    if (!admin && ownerId !== ((_a = authUser === null || authUser === void 0 ? void 0 : authUser.authId) === null || _a === void 0 ? void 0 : _a.toString())) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'You are not authorized to delete this business');
     }
     const result = await business_model_1.Business.findByIdAndDelete(id);
     return result;

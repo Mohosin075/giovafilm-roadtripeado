@@ -16,6 +16,8 @@ const map_constants_1 = require("./map.constants");
 const place_constants_1 = require("../place/place.constants");
 const business_constants_1 = require("../business/business.constants");
 const autoTranslate_1 = require("../../utils/autoTranslate");
+const mapAccessHelper_1 = require("../../helpers/mapAccessHelper");
+const user_1 = require("../../enum/user");
 const processMapTranslations = async (payload) => {
     if (payload.name)
         payload.name = await (0, autoTranslate_1.autoTranslateField)(payload.name);
@@ -27,11 +29,18 @@ const createMap = async (payload) => {
     const result = await map_model_1.Map.create(payload);
     return result;
 };
-const getAllMaps = async (query) => {
+const getAllMaps = async (query, authHeader) => {
+    const user = await (0, mapAccessHelper_1.getUserFromToken)(authHeader);
+    const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
+    const isAdmin = user && (user.role === user_1.USER_ROLES.ADMIN || user.role === user_1.USER_ROLES.SUPER_ADMIN);
+    const queryObj = { ...query };
+    if (!isAdmin) {
+        queryObj.isActive = 'true';
+    }
     let mapIds = [];
     // If category filter is provided, find maps that contain places with those categories
-    if (query.category) {
-        const categoryIds = query.category.split(',');
+    if (queryObj.category) {
+        const categoryIds = queryObj.category.split(',');
         const places = await place_model_1.Place.find({
             category: { $in: categoryIds },
         }).select('map');
@@ -40,8 +49,8 @@ const getAllMaps = async (query) => {
         if (mapIds.length === 0) {
             return {
                 meta: {
-                    page: Number(query.page) || 1,
-                    limit: Number(query.limit) || 10,
+                    page: Number(queryObj.page) || 1,
+                    limit: Number(queryObj.limit) || 10,
                     total: 0,
                     totalPage: 0,
                 },
@@ -49,12 +58,12 @@ const getAllMaps = async (query) => {
             };
         }
         // Add map ID filtering to the query
-        query._id = { $in: mapIds };
-        delete query.category; // Remove category from query as it's not a field in Map model
+        queryObj._id = { $in: mapIds };
+        delete queryObj.category; // Remove category from query as it's not a field in Map model
     }
     // Select only the fields needed for the list view — do NOT populate places (it's huge)
     // rating and totalReview are stored on the Map document itself and updated by review hooks
-    const mapQuery = new QueryBuilder_1.default(map_model_1.Map.find().select('-places'), query)
+    const mapQuery = new QueryBuilder_1.default(map_model_1.Map.find().select('-places'), queryObj)
         .search(map_constants_1.mapSearchableFields)
         .filter()
         .sort()
@@ -73,6 +82,7 @@ const getAllMaps = async (query) => {
     const populatedData = result.map((map) => {
         const mapObj = typeof map.toObject === 'function' ? map.toObject() : map;
         mapObj.placeCount = placeCountMap[mapObj._id.toString()] || 0;
+        mapObj.isLocked = !accessibleMapIds.includes(mapObj._id.toString());
         return mapObj;
     });
     return {
@@ -80,13 +90,18 @@ const getAllMaps = async (query) => {
         data: populatedData,
     };
 };
-const getMapById = async (id) => {
-    // Catalog / purchase UI only needs map summary — places come from discovery
-    const result = await map_model_1.Map.findById(id).select('-places').lean();
+const getMapById = async (id, authHeader) => {
+    const [user, result] = await Promise.all([
+        (0, mapAccessHelper_1.getUserFromToken)(authHeader),
+        map_model_1.Map.findById(id).select('-places').lean(),
+    ]);
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Map not found');
     }
-    return result;
+    const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
+    const mapObj = { ...result };
+    mapObj.isLocked = !accessibleMapIds.includes(mapObj._id.toString());
+    return mapObj;
 };
 const incrementViewCount = async (id) => {
     const result = await map_model_1.Map.findByIdAndUpdate(id, { $inc: { viewCount: 1 } }, { new: true }).select('name viewCount');
@@ -95,7 +110,8 @@ const incrementViewCount = async (id) => {
     }
     return result;
 };
-const updateMap = async (id, payload) => {
+const updateMap = async (id, payload, user) => {
+    await (0, mapAccessHelper_1.verifyEditorEditAccess)(user, id);
     console.log(payload, id);
     const isExist = await map_model_1.Map.findById(id);
     if (!isExist) {
@@ -178,7 +194,28 @@ const getAvailableCountries = async () => {
 const DISCOVERY_PLACE_FIELDS = 'name type status category map country address rating totalReview location media description entryCost hikeTime difficulty atmosphere schedules';
 const DISCOVERY_BUSINESS_FIELDS = 'name status category location rating totalReview hasActiveSubscription media description';
 const DISCOVERY_MAX_FETCH = 2000;
-const getDiscoveryData = async (query, lockedMapIds, isAdminOrEditor = false, preloadedMapObj) => {
+const getDiscoveryData = async (query, authHeaderOrLockedIds, rawIsAdminOrEditor = false, preloadedMapObj) => {
+    let lockedMapIds = [];
+    let isAdminOrEditor = false;
+    let targetMap = preloadedMapObj;
+    if (typeof authHeaderOrLockedIds === 'string' || authHeaderOrLockedIds === undefined) {
+        const user = await (0, mapAccessHelper_1.getUserFromToken)(authHeaderOrLockedIds);
+        const mapIdParam = query.map ? String(query.map) : undefined;
+        const [accessibleMapIds, paidMaps, foundTargetMap] = await Promise.all([
+            (0, mapAccessHelper_1.getAccessibleMapIds)(user),
+            map_model_1.Map.find({ isPaid: true }, '_id'),
+            mapIdParam ? map_model_1.Map.findById(mapIdParam).select('name country').lean() : null,
+        ]);
+        const paidMapIds = paidMaps.map(m => m._id.toString());
+        lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id));
+        isAdminOrEditor = !!(user && (user.role === 'admin' || user.role === 'map_editor'));
+        targetMap = foundTargetMap;
+    }
+    else if (Array.isArray(authHeaderOrLockedIds)) {
+        lockedMapIds = authHeaderOrLockedIds;
+        isAdminOrEditor = !!rawIsAdminOrEditor;
+        targetMap = preloadedMapObj;
+    }
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 10;
     // Prepare separate queries because Place and Business have different schemas
@@ -186,7 +223,7 @@ const getDiscoveryData = async (query, lockedMapIds, isAdminOrEditor = false, pr
     const businessQueryObj = { ...query };
     // 1. Handle "map" filter (Only applicable for Places, map businesses by their country)
     if (businessQueryObj.map) {
-        const mapObj = preloadedMapObj ||
+        const mapObj = targetMap ||
             (await map_model_1.Map.findById(businessQueryObj.map).select('name country').lean());
         if (mapObj) {
             businessQueryObj['location.country'] = mapObj.country || mapObj.name;

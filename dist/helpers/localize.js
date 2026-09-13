@@ -66,6 +66,13 @@ const localizeDocument = (data, lang = 'es', fields = []) => {
     if (Array.isArray(data)) {
         return data.map(item => (0, exports.localizeDocument)(item, lang, fields));
     }
+    // Handle paginated wrapper objects { meta: {...}, data: [...] }
+    if (data && typeof data === 'object' && Array.isArray(data.data)) {
+        return {
+            ...data,
+            data: data.data.map((item) => (0, exports.localizeDocument)(item, lang, fields)),
+        };
+    }
     // Handle Mongoose Lean or Document objects
     const obj = typeof data.toObject === 'function' ? data.toObject() : { ...data };
     fields.forEach(fieldPath => {

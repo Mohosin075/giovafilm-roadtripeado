@@ -13,6 +13,8 @@ const offer_1 = require("../../enum/offer");
 const business_model_1 = require("../business/business.model");
 const place_model_1 = require("../place/place.model");
 const autoTranslate_1 = require("../../utils/autoTranslate");
+const mapAccessHelper_1 = require("../../helpers/mapAccessHelper");
+const user_1 = require("../../enum/user");
 const processOfferTranslations = async (payload) => {
     if (payload.title)
         payload.title = await (0, autoTranslate_1.autoTranslateField)(payload.title);
@@ -22,18 +24,72 @@ const processOfferTranslations = async (payload) => {
         payload.buttonLabel = await (0, autoTranslate_1.autoTranslateField)(payload.buttonLabel);
 };
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const createOffer = async (payload) => {
-    await processOfferTranslations(payload);
-    if (payload.discountType === offer_1.DISCOUNT_TYPE.BOGO && !payload.bogoSecondType) {
-        payload.bogoSecondType = offer_1.BOGO_SECOND_TYPE.FREE;
+/** Strip paid-only fields from locked list items; keep teaser fields for cards. */
+const sanitizeLockedOffer = (offer) => {
+    const { description: _description, redemptionRules: _redemptionRules, ...safe } = offer;
+    return {
+        ...safe,
+        description: undefined,
+        redemptionRules: undefined,
+        isLocked: true,
+    };
+};
+const assertUserOwnsBusiness = async (user, businessId) => {
+    var _a, _b, _c;
+    if (!businessId) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'You can only manage offers for your own business');
     }
-    const status = payload.status || offer_1.OFFER_STATUS.ACTIVE;
-    if (status === offer_1.OFFER_STATUS.ACTIVE && (payload.place || payload.business)) {
+    const business = await business_model_1.Business.findById(businessId);
+    if (!business) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Business not found');
+    }
+    const ownerId = ((_b = (_a = business.user) === null || _a === void 0 ? void 0 : _a._id) === null || _b === void 0 ? void 0 : _b.toString()) || ((_c = business.user) === null || _c === void 0 ? void 0 : _c.toString());
+    if (ownerId !== user._id.toString()) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'You can only manage offers for your own business');
+    }
+    return business;
+};
+const createOffer = async (payload, authHeader) => {
+    var _a, _b;
+    const { images, ...offerData } = payload;
+    const user = await (0, mapAccessHelper_1.getUserFromToken)(authHeader);
+    if (user && user.role === user_1.USER_ROLES.USER) {
+        await assertUserOwnsBusiness(user, offerData.business);
+        delete offerData.place;
+    }
+    // Verify access for Map Editors
+    if (user && user.role === user_1.USER_ROLES.MAP_EDITOR) {
+        if (offerData.place) {
+            const place = await place_model_1.Place.findById(offerData.place);
+            if (!place)
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Place not found');
+            const mapId = ((_a = place.map) === null || _a === void 0 ? void 0 : _a._id) || place.map;
+            if (mapId) {
+                await (0, mapAccessHelper_1.verifyEditorEditAccess)(user, mapId.toString());
+            }
+        }
+        else if (offerData.business) {
+            const business = await business_model_1.Business.findById(offerData.business);
+            if (!business)
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Business not found');
+            await (0, mapAccessHelper_1.verifyEditorBusinessAccess)(user, (_b = business.location) === null || _b === void 0 ? void 0 : _b.country);
+        }
+    }
+    // Handle image upload from disk storage
+    if (images) {
+        offerData.photo = Array.isArray(images) ? images[0] : images;
+    }
+    await processOfferTranslations(offerData);
+    if (offerData.discountType === offer_1.DISCOUNT_TYPE.BOGO && !offerData.bogoSecondType) {
+        offerData.bogoSecondType = offer_1.BOGO_SECOND_TYPE.FREE;
+    }
+    const status = offerData.status || offer_1.OFFER_STATUS.ACTIVE;
+    if (status === offer_1.OFFER_STATUS.ACTIVE && (offerData.place || offerData.business)) {
         const query = [];
-        if (payload.place)
-            query.push({ place: payload.place });
-        if (payload.business)
-            query.push({ business: payload.business });
+        if (offerData.place)
+            query.push({ place: offerData.place });
+        if (offerData.business)
+            query.push({ business: offerData.business });
         if (query.length > 0) {
             const existingActiveOffer = await offer_model_1.Offer.findOne({
                 $or: query,
@@ -44,10 +100,10 @@ const createOffer = async (payload) => {
             }
         }
     }
-    const result = await offer_model_1.Offer.create(payload);
+    const result = await offer_model_1.Offer.create(offerData);
     return result;
 };
-const getAllOffers = async (query) => {
+const getAllOffers = async (query, authHeader) => {
     const queryObj = { ...query };
     // Extract custom query filters before QueryBuilder.filter() runs
     const country = typeof queryObj.country === 'string' ? queryObj.country.trim() : '';
@@ -135,33 +191,138 @@ const getAllOffers = async (query) => {
         .sort()
         .paginate()
         .fields();
-    const result = await offerQuery.modelQuery;
-    const meta = await offerQuery.getPaginationInfo();
+    // Concurrently run query, pagination, and user authentication
+    const [user, rawData, meta] = await Promise.all([
+        (0, mapAccessHelper_1.getUserFromToken)(authHeader),
+        offerQuery.modelQuery,
+        offerQuery.getPaginationInfo(),
+    ]);
+    const isPremium = user && ([user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.MAP_EDITOR].includes(user.role));
+    const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
+    const countries = rawData
+        .map((offer) => { var _a, _b, _c; return ((_b = (_a = offer.business) === null || _a === void 0 ? void 0 : _a.location) === null || _b === void 0 ? void 0 : _b.country) || ((_c = offer.business) === null || _c === void 0 ? void 0 : _c.country); })
+        .filter(Boolean);
+    const countryLookup = await (0, mapAccessHelper_1.buildCountryToMapIdLookup)(countries);
+    const updatedData = rawData.map((offer) => {
+        const placeMapId = (0, mapAccessHelper_1.resolveOfferMapId)(offer, countryLookup);
+        const isLocked = !isPremium && (!placeMapId || !accessibleMapIds.includes(placeMapId));
+        if (isLocked) {
+            return sanitizeLockedOffer({ ...offer, isLocked: true });
+        }
+        return {
+            ...offer,
+            isLocked: false,
+        };
+    });
     return {
         meta,
-        data: result,
+        data: updatedData,
     };
 };
-const getOfferById = async (id) => {
-    const result = await offer_model_1.Offer.findById(id)
-        .populate('place', 'name location media status category map country address')
-        .populate('business', 'name location media status category');
-    if (!result) {
+const getOfferById = async (id, authHeader) => {
+    const [user, rawResult] = await Promise.all([
+        (0, mapAccessHelper_1.getUserFromToken)(authHeader),
+        offer_model_1.Offer.findById(id)
+            .populate('place', 'name location media status category map country address')
+            .populate('business', 'name location media status category'),
+    ]);
+    if (!rawResult) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Offer not found');
+    }
+    const isPremium = user && ([user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.MAP_EDITOR].includes(user.role));
+    if (!isPremium) {
+        const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
+        const placeMapId = await (0, mapAccessHelper_1.resolveOfferMapIdAsync)(rawResult);
+        if (!placeMapId || !accessibleMapIds.includes(placeMapId)) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'This information and these benefits can be unlocked by purchasing your favorite map.');
+        }
+    }
+    let result = rawResult;
+    if (user) {
+        const [activeRedemption, userRedemptionCount] = await Promise.all([
+            offerRedemption_model_1.OfferRedemption.findOne({
+                user: user._id,
+                offer: id,
+                expiresAt: { $gt: new Date() },
+            }),
+            offerRedemption_model_1.OfferRedemption.countDocuments({
+                user: user._id,
+                offer: id,
+            }),
+        ]);
+        const offerObj = typeof result.toObject === 'function' ? result.toObject() : result;
+        result = {
+            ...offerObj,
+            activeRedemption,
+            userRedemptionCount,
+        };
     }
     return result;
 };
-const updateOffer = async (id, payload) => {
-    const isExist = await offer_model_1.Offer.findById(id);
-    if (!isExist) {
+const updateOffer = async (id, payload, authHeader) => {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+    const existingOffer = await offer_model_1.Offer.findById(id);
+    if (!existingOffer) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Offer not found');
     }
-    await processOfferTranslations(payload);
-    const targetStatus = payload.status || isExist.status;
-    const targetPlace = payload.place || isExist.place;
-    const targetBusiness = payload.business || isExist.business;
-    if (payload.discountType === offer_1.DISCOUNT_TYPE.BOGO && !payload.bogoSecondType) {
-        payload.bogoSecondType = isExist.bogoSecondType || offer_1.BOGO_SECOND_TYPE.FREE;
+    const { images, ...offerData } = payload;
+    const user = await (0, mapAccessHelper_1.getUserFromToken)(authHeader);
+    // getOfferById / raw model populates place/business — always resolve raw ids
+    const existingPlaceId = ((_b = (_a = existingOffer.place) === null || _a === void 0 ? void 0 : _a._id) === null || _b === void 0 ? void 0 : _b.toString()) ||
+        ((_c = existingOffer.place) === null || _c === void 0 ? void 0 : _c.toString()) ||
+        null;
+    const existingBusinessId = ((_e = (_d = existingOffer.business) === null || _d === void 0 ? void 0 : _d._id) === null || _e === void 0 ? void 0 : _e.toString()) ||
+        ((_f = existingOffer.business) === null || _f === void 0 ? void 0 : _f.toString()) ||
+        null;
+    if (user && user.role === user_1.USER_ROLES.USER) {
+        await assertUserOwnsBusiness(user, existingBusinessId || offerData.business);
+        delete offerData.business;
+        delete offerData.place;
+    }
+    if (user && user.role === user_1.USER_ROLES.MAP_EDITOR) {
+        // Check existing offer's place/business
+        if (existingPlaceId) {
+            const place = await place_model_1.Place.findById(existingPlaceId);
+            if (place) {
+                const mapId = ((_g = place.map) === null || _g === void 0 ? void 0 : _g._id) || place.map;
+                if (mapId) {
+                    await (0, mapAccessHelper_1.verifyEditorEditAccess)(user, mapId.toString());
+                }
+            }
+        }
+        else if (existingBusinessId) {
+            const business = await business_model_1.Business.findById(existingBusinessId);
+            if (business) {
+                await (0, mapAccessHelper_1.verifyEditorBusinessAccess)(user, (_h = business.location) === null || _h === void 0 ? void 0 : _h.country);
+            }
+        }
+        // Check new place/business if they are being updated
+        if (offerData.place && offerData.place !== existingPlaceId) {
+            const place = await place_model_1.Place.findById(offerData.place);
+            if (place) {
+                const mapId = ((_j = place.map) === null || _j === void 0 ? void 0 : _j._id) || place.map;
+                if (mapId) {
+                    await (0, mapAccessHelper_1.verifyEditorEditAccess)(user, mapId.toString());
+                }
+            }
+        }
+        else if (offerData.business && offerData.business !== existingBusinessId) {
+            const business = await business_model_1.Business.findById(offerData.business);
+            if (business) {
+                await (0, mapAccessHelper_1.verifyEditorBusinessAccess)(user, (_k = business.location) === null || _k === void 0 ? void 0 : _k.country);
+            }
+        }
+    }
+    // Handle image upload from disk storage
+    if (images) {
+        offerData.photo = Array.isArray(images) ? images[0] : images;
+    }
+    await processOfferTranslations(offerData);
+    const targetStatus = offerData.status || existingOffer.status;
+    const targetPlace = offerData.place || existingOffer.place;
+    const targetBusiness = offerData.business || existingOffer.business;
+    if (offerData.discountType === offer_1.DISCOUNT_TYPE.BOGO && !offerData.bogoSecondType) {
+        offerData.bogoSecondType = existingOffer.bogoSecondType || offer_1.BOGO_SECOND_TYPE.FREE;
     }
     if (targetStatus === offer_1.OFFER_STATUS.ACTIVE && (targetPlace || targetBusiness)) {
         const query = [];
@@ -180,17 +341,28 @@ const updateOffer = async (id, payload) => {
             }
         }
     }
-    const result = await offer_model_1.Offer.findByIdAndUpdate(id, payload, {
+    const result = await offer_model_1.Offer.findByIdAndUpdate(id, offerData, {
         new: true,
         runValidators: true,
     }).populate('place');
     return result;
 };
-const getOffersByPlaceOrBusinessId = async (id) => {
-    const result = await offer_model_1.Offer.findOne({
-        $or: [{ place: id }, { business: id }],
-    }).populate('place business');
-    return result;
+const getOffersByPlaceOrBusinessId = async (id, authHeader) => {
+    const [user, result] = await Promise.all([
+        (0, mapAccessHelper_1.getUserFromToken)(authHeader),
+        offer_model_1.Offer.findOne({
+            $or: [{ place: id }, { business: id }],
+        }).populate('place business'),
+    ]);
+    const isPremium = user && ([user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.MAP_EDITOR].includes(user.role));
+    let offerObj = null;
+    if (result) {
+        offerObj = typeof result.toObject === 'function' ? result.toObject() : result;
+        const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
+        const placeMapId = await (0, mapAccessHelper_1.resolveOfferMapIdAsync)(offerObj);
+        offerObj.isLocked = !isPremium && (!placeMapId || !accessibleMapIds.includes(placeMapId));
+    }
+    return offerObj;
 };
 const deleteOffer = async (id) => {
     const isExist = await offer_model_1.Offer.findById(id);
@@ -200,10 +372,24 @@ const deleteOffer = async (id) => {
     const result = await offer_model_1.Offer.findByIdAndDelete(id);
     return result;
 };
-const calculateDiscount = async (id, price) => {
-    const offer = await offer_model_1.Offer.findById(id);
+const calculateDiscount = async (id, price, authHeader) => {
+    if (price === undefined || isNaN(Number(price)) || Number(price) < 0) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Valid price must be provided');
+    }
+    const [user, offer] = await Promise.all([
+        (0, mapAccessHelper_1.getUserFromToken)(authHeader),
+        offer_model_1.Offer.findById(id),
+    ]);
     if (!offer) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Offer not found');
+    }
+    const isPremium = user && ([user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.MAP_EDITOR].includes(user.role));
+    if (!isPremium) {
+        const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
+        const placeMapId = await (0, mapAccessHelper_1.resolveOfferMapIdAsync)(offer);
+        if (!placeMapId || !accessibleMapIds.includes(placeMapId)) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'This information and these benefits can be unlocked by purchasing your favorite map.');
+        }
     }
     let discountAmount = 0;
     if (offer.discountType === offer_1.DISCOUNT_TYPE.PERCENTAGE) {
@@ -219,10 +405,21 @@ const calculateDiscount = async (id, price) => {
     const finalPrice = Math.max(0, price - discountAmount);
     return { originalPrice: price, discountAmount, finalPrice };
 };
-const redeemOffer = async (id, userId) => {
-    const offer = await offer_model_1.Offer.findById(id);
+const redeemOffer = async (id, userId, authHeader) => {
+    const [user, offer] = await Promise.all([
+        (0, mapAccessHelper_1.getUserFromToken)(authHeader),
+        offer_model_1.Offer.findById(id),
+    ]);
     if (!offer) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Offer not found');
+    }
+    const isPremium = user && ([user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.MAP_EDITOR].includes(user.role));
+    if (!isPremium) {
+        const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
+        const placeMapId = await (0, mapAccessHelper_1.resolveOfferMapIdAsync)(offer);
+        if (!placeMapId || !accessibleMapIds.includes(placeMapId)) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'This information and these benefits can be unlocked by purchasing your favorite map.');
+        }
     }
     if (offer.status !== offer_1.OFFER_STATUS.ACTIVE) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Offer is not active');

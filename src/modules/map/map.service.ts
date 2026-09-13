@@ -11,6 +11,12 @@ import { mapSearchableFields } from './map.constants'
 import { placeSearchableFields } from '../place/place.constants'
 import { businessSearchableFields } from '../business/business.constants'
 import { autoTranslateField } from '../../utils/autoTranslate'
+import {
+  getUserFromToken,
+  getAccessibleMapIds,
+  verifyEditorEditAccess,
+} from '../../helpers/mapAccessHelper'
+import { USER_ROLES } from '../../enum/user'
 
 const processMapTranslations = async (payload: Partial<IMap>) => {
   if (payload.name) payload.name = await autoTranslateField(payload.name)
@@ -23,12 +29,24 @@ const createMap = async (payload: IMap): Promise<IMap> => {
   return result
 }
 
-const getAllMaps = async (query: Record<string, unknown>) => {
+const getAllMaps = async (
+  query: Record<string, unknown>,
+  authHeader?: string,
+) => {
+  const user = await getUserFromToken(authHeader)
+  const accessibleMapIds = await getAccessibleMapIds(user)
+  const isAdmin = user && (user.role === USER_ROLES.ADMIN || user.role === USER_ROLES.SUPER_ADMIN)
+
+  const queryObj = { ...query }
+  if (!isAdmin) {
+    queryObj.isActive = 'true'
+  }
+
   let mapIds: mongoose.Types.ObjectId[] = []
 
   // If category filter is provided, find maps that contain places with those categories
-  if (query.category) {
-    const categoryIds = (query.category as string).split(',')
+  if (queryObj.category) {
+    const categoryIds = (queryObj.category as string).split(',')
     const places = await Place.find({
       category: { $in: categoryIds },
     }).select('map')
@@ -39,8 +57,8 @@ const getAllMaps = async (query: Record<string, unknown>) => {
     if (mapIds.length === 0) {
       return {
         meta: {
-          page: Number(query.page) || 1,
-          limit: Number(query.limit) || 10,
+          page: Number(queryObj.page) || 1,
+          limit: Number(queryObj.limit) || 10,
           total: 0,
           totalPage: 0,
         },
@@ -49,15 +67,15 @@ const getAllMaps = async (query: Record<string, unknown>) => {
     }
 
     // Add map ID filtering to the query
-    query._id = { $in: mapIds }
-    delete query.category // Remove category from query as it's not a field in Map model
+    queryObj._id = { $in: mapIds }
+    delete queryObj.category // Remove category from query as it's not a field in Map model
   }
 
   // Select only the fields needed for the list view — do NOT populate places (it's huge)
   // rating and totalReview are stored on the Map document itself and updated by review hooks
   const mapQuery = new QueryBuilder(
     Map.find().select('-places'),
-    query
+    queryObj,
   )
     .search(mapSearchableFields)
     .filter()
@@ -80,6 +98,7 @@ const getAllMaps = async (query: Record<string, unknown>) => {
   const populatedData = result.map((map: any) => {
     const mapObj = typeof map.toObject === 'function' ? map.toObject() : map
     mapObj.placeCount = placeCountMap[mapObj._id.toString()] || 0
+    mapObj.isLocked = !accessibleMapIds.includes(mapObj._id.toString())
     return mapObj
   })
 
@@ -89,14 +108,23 @@ const getAllMaps = async (query: Record<string, unknown>) => {
   }
 }
 
-const getMapById = async (id: string): Promise<any | null> => {
-  // Catalog / purchase UI only needs map summary — places come from discovery
-  const result = await Map.findById(id).select('-places').lean()
+const getMapById = async (
+  id: string,
+  authHeader?: string,
+): Promise<any | null> => {
+  const [user, result] = await Promise.all([
+    getUserFromToken(authHeader),
+    Map.findById(id).select('-places').lean(),
+  ])
   if (!result) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')
   }
 
-  return result
+  const accessibleMapIds = await getAccessibleMapIds(user)
+  const mapObj: any = { ...result }
+  mapObj.isLocked = !accessibleMapIds.includes(mapObj._id.toString())
+
+  return mapObj
 }
 
 const incrementViewCount = async (id: string) => {
@@ -111,7 +139,13 @@ const incrementViewCount = async (id: string) => {
   return result
 }
 
-const updateMap = async (id: string, payload: Partial<IMap>): Promise<IMap | null> => {
+const updateMap = async (
+  id: string,
+  payload: Partial<IMap>,
+  user?: any,
+): Promise<IMap | null> => {
+  await verifyEditorEditAccess(user, id)
+
   console.log(payload, id)
   const isExist = await Map.findById(id)
   if (!isExist) {
@@ -227,10 +261,32 @@ const DISCOVERY_MAX_FETCH = 2000
 
 const getDiscoveryData = async (
   query: Record<string, unknown>,
-  lockedMapIds?: string[],
-  isAdminOrEditor = false,
+  authHeaderOrLockedIds?: string | string[],
+  rawIsAdminOrEditor = false,
   preloadedMapObj?: any
 ) => {
+  let lockedMapIds: string[] = []
+  let isAdminOrEditor = false
+  let targetMap: any = preloadedMapObj
+
+  if (typeof authHeaderOrLockedIds === 'string' || authHeaderOrLockedIds === undefined) {
+    const user = await getUserFromToken(authHeaderOrLockedIds)
+    const mapIdParam = query.map ? String(query.map) : undefined
+    const [accessibleMapIds, paidMaps, foundTargetMap] = await Promise.all([
+      getAccessibleMapIds(user),
+      Map.find({ isPaid: true }, '_id'),
+      mapIdParam ? Map.findById(mapIdParam).select('name country').lean() : null,
+    ])
+    const paidMapIds = paidMaps.map(m => m._id.toString())
+    lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id))
+    isAdminOrEditor = !!(user && (user.role === 'admin' || user.role === 'map_editor'))
+    targetMap = foundTargetMap
+  } else if (Array.isArray(authHeaderOrLockedIds)) {
+    lockedMapIds = authHeaderOrLockedIds
+    isAdminOrEditor = !!rawIsAdminOrEditor
+    targetMap = preloadedMapObj
+  }
+
   const page = Number(query.page) || 1
   const limit = Number(query.limit) || 10
   
@@ -241,7 +297,7 @@ const getDiscoveryData = async (
   // 1. Handle "map" filter (Only applicable for Places, map businesses by their country)
   if (businessQueryObj.map) {
     const mapObj =
-      preloadedMapObj ||
+      targetMap ||
       (await Map.findById(businessQueryObj.map).select('name country').lean())
     if (mapObj) {
       businessQueryObj['location.country'] = mapObj.country || mapObj.name

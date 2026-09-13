@@ -8,31 +8,75 @@ import { businessSearchableFields } from './business.constants'
 import { OFFER_STATUS } from '../../enum/offer'
 import { Subscription } from '../subscription/subscription.model'
 import { autoTranslateField } from '../../utils/autoTranslate'
+import { USER_ROLES } from '../../enum/user'
+import { getUserFromToken } from '../../helpers/mapAccessHelper'
+
+const resolveUserRole = (user: any): string | undefined =>
+  user?.role || user?.user?.role || user?.data?.role
+
+const isAdminRole = (role?: string) =>
+  !!role && [USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN].includes(role as any)
+
+const getBusinessOwnerId = (business: any): string | null => {
+  if (!business?.user) return null
+  return (business.user._id || business.user).toString()
+}
+
+const stripPrivateInfo = (business: any) => {
+  if (!business) return business
+  const obj =
+    typeof business.toObject === 'function' ? business.toObject() : { ...business }
+  delete obj.privateInfo
+  delete obj.adminReview
+  return obj
+}
 
 const processBusinessTranslations = async (payload: Partial<IBusiness>) => {
   if (payload.name) payload.name = await autoTranslateField(payload.name)
   if (payload.description) payload.description = await autoTranslateField(payload.description)
 }
 
-const createBusiness = async (payload: IBusiness): Promise<IBusiness> => {
-  await processBusinessTranslations(payload)
-  payload.status = 'Pending' // Always start as pending until admin approves
-  payload.hasActiveSubscription = false // Explicitly start with no active subscription
-  const result = await Business.create(payload)
+const createBusiness = async (payload: any, userId?: string): Promise<IBusiness> => {
+  const businessData = {
+    ...payload,
+    user: userId || payload.user,
+  }
+
+  if (payload.images) {
+    if (!businessData.media) businessData.media = {}
+    businessData.media.photos = Array.isArray(payload.images)
+      ? payload.images
+      : [payload.images]
+  }
+
+  if (payload.documents) {
+    if (!businessData.media) businessData.media = {}
+    businessData.media.menu = Array.isArray(payload.documents)
+      ? payload.documents[0]
+      : payload.documents
+  }
+
+  await processBusinessTranslations(businessData)
+  businessData.status = 'Pending' // Always start as pending until admin approves
+  businessData.hasActiveSubscription = false // Explicitly start with no active subscription
+  const result = await Business.create(businessData)
   return result
 }
 
 /**
  * Retrieves all businesses with support for queries (search, filter, sort, pagination).
- * @param query The query parameters from the request
- * @returns Paginated list of businesses and metadata
+ * Strips private admin info for non-owner/non-admin users.
  */
-const getAllBusinesses = async (query: Record<string, unknown>) => {
+const getAllBusinesses = async (
+  query: Record<string, unknown>,
+  authHeader?: string,
+) => {
+  const queryObj = { ...query }
   // If requesting specifically for the map, enforce active subscription and approved status
-  if (query.mapView === 'true') {
-    query.hasActiveSubscription = true
-    query.status = 'Approved'
-    delete query.mapView
+  if (queryObj.mapView === 'true') {
+    queryObj.hasActiveSubscription = true
+    queryObj.status = 'Approved'
+    delete queryObj.mapView
   }
 
   const businessQuery = new QueryBuilder(
@@ -40,7 +84,7 @@ const getAllBusinesses = async (query: Record<string, unknown>) => {
       .populate('user', 'name email profile')
       .populate('category', 'name color icon status')
       .lean(),
-    query
+    queryObj,
   )
     .search(businessSearchableFields)
     .filter()
@@ -48,12 +92,22 @@ const getAllBusinesses = async (query: Record<string, unknown>) => {
     .paginate()
     .fields()
 
-  const result = await businessQuery.modelQuery
-  const meta = await businessQuery.getPaginationInfo()
+  const [user, result, meta] = await Promise.all([
+    getUserFromToken(authHeader),
+    businessQuery.modelQuery,
+    businessQuery.getPaginationInfo(),
+  ])
+
+  const data = result.map((biz: any) => {
+    const ownerId = getBusinessOwnerId(biz)
+    const canSeePrivate =
+      isAdminRole(user?.role) || (user && ownerId === user._id.toString())
+    return canSeePrivate ? biz : stripPrivateInfo(biz)
+  })
 
   return {
     meta,
-    data: result,
+    data,
   }
 }
 
@@ -124,33 +178,102 @@ const getMyBusinesses = async (userId: string, query: Record<string, unknown>) =
 
 /**
  * Retrieves a single business by its ID.
- * @param id The business document ID
- * @returns The business document or throws a NotFound error
+ * Strips private admin info for non-owner/non-admin users.
  */
-const getBusinessById = async (id: string): Promise<IBusiness | null> => {
-  const result = await Business.findById(id).populate('user category')
+const getBusinessById = async (
+  id: string,
+  authHeader?: string,
+): Promise<any | null> => {
+  const [user, result] = await Promise.all([
+    getUserFromToken(authHeader),
+    Business.findById(id).populate('user category'),
+  ])
   if (!result) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Business not found')
   }
-  return result
+
+  const ownerId = getBusinessOwnerId(result)
+  const canSeePrivate =
+    isAdminRole(user?.role) || (user && ownerId === user._id.toString())
+
+  return canSeePrivate ? result : stripPrivateInfo(result)
 }
 
 /**
- * Updates an existing business listing.
- * @param id The business document ID
- * @param payload The fields to update
- * @returns The updated business document or throws an error if not found
+ * Updates an existing business listing with permission and status enforcement.
  */
 const updateBusiness = async (
   id: string,
-  payload: Partial<IBusiness>,
+  payload: any,
+  authUser?: any,
 ): Promise<IBusiness | null> => {
-  const isExist = await Business.findById(id)
-  if (!isExist) {
+  const existing = await Business.findById(id)
+  if (!existing) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Business not found')
   }
-  await processBusinessTranslations(payload)
-  const result = await Business.findByIdAndUpdate(id, payload, {
+
+  const ownerId = getBusinessOwnerId(existing)
+  const admin = isAdminRole(resolveUserRole(authUser))
+  if (!admin && ownerId !== authUser?.authId?.toString()) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      'You are not authorized to update this business',
+    )
+  }
+
+  const businessData = { ...payload }
+
+  // Users cannot self-approve, self-verify, or toggle subscription
+  if (!admin) {
+    delete businessData.status
+    delete businessData.hasActiveSubscription
+    delete businessData.isAccuracyVerified
+    delete businessData.adminReview
+  }
+
+  const existingReview =
+    (existing as any).adminReview &&
+    typeof (existing as any).adminReview === 'object'
+      ? (existing as any).adminReview
+      : {}
+
+  if (businessData.adminReview) {
+    businessData.adminReview = {
+      ...existingReview,
+      ...businessData.adminReview,
+    }
+    if (typeof businessData.adminReview.locationPinVerified === 'boolean') {
+      businessData.isAccuracyVerified =
+        businessData.adminReview.locationPinVerified
+    }
+  }
+
+  if (typeof businessData.isAccuracyVerified === 'boolean') {
+    businessData.adminReview = {
+      ...existingReview,
+      ...businessData.adminReview,
+      locationPinVerified: businessData.isAccuracyVerified,
+    }
+  }
+
+  // Handle image upload from disk storage
+  if (payload.images) {
+    if (!businessData.media) businessData.media = {}
+    businessData.media.photos = Array.isArray(payload.images)
+      ? payload.images
+      : [payload.images]
+  }
+
+  // Handle menu/document upload from disk storage
+  if (payload.documents) {
+    if (!businessData.media) businessData.media = {}
+    businessData.media.menu = Array.isArray(payload.documents)
+      ? payload.documents[0]
+      : payload.documents
+  }
+
+  await processBusinessTranslations(businessData)
+  const result = await Business.findByIdAndUpdate(id, businessData, {
     new: true,
     runValidators: true,
   }).populate('user category')
@@ -184,18 +307,30 @@ const updateBusinessStatus = async (
 }
 
 /**
- * Deletes a business listing permanently.
- * @param id The business document ID
- * @returns The deleted business document
+ * Deletes a business listing permanently with permission check.
  */
-const deleteBusiness = async (id: string): Promise<IBusiness | null> => {
-  const isExist = await Business.findById(id)
-  if (!isExist) {
+const deleteBusiness = async (
+  id: string,
+  authUser?: any,
+): Promise<IBusiness | null> => {
+  const existing = await Business.findById(id)
+  if (!existing) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Business not found')
   }
+
+  const ownerId = getBusinessOwnerId(existing)
+  const admin = isAdminRole(resolveUserRole(authUser))
+  if (!admin && ownerId !== authUser?.authId?.toString()) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      'You are not authorized to delete this business',
+    )
+  }
+
   const result = await Business.findByIdAndDelete(id)
   return result
 }
+
 
 const getBusinessStats = async (businessId: string) => {
   const business = await Business.findById(businessId)

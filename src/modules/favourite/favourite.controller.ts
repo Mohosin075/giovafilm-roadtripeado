@@ -4,6 +4,19 @@ import catchAsync from '../../shared/catchAsync'
 import sendResponse from '../../shared/sendResponse'
 import { FavouriteService } from './favourite.service'
 import { JwtPayload } from 'jsonwebtoken'
+import { localizeDocument } from '../../helpers/localize'
+
+const favouriteFields = [
+  'map.name',
+  'map.description',
+  'place.name',
+  'place.description',
+  'offer.title',
+  'offer.name',
+  'offer.description',
+  'business.name',
+  'business.description',
+]
 
 const toggleFavourite = catchAsync(async (req: Request, res: Response) => {
   const userId = (req.user as JwtPayload).authId
@@ -24,7 +37,7 @@ const getMyFavourites = catchAsync(async (req: Request, res: Response) => {
     success: true,
     message: 'Favourites retrieved successfully',
     meta: result.meta,
-    data: result.data,
+    data: localizeDocument(result.data, req.lang, favouriteFields),
   })
 })
 

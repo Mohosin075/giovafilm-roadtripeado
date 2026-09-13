@@ -4,16 +4,23 @@ import catchAsync from '../../shared/catchAsync'
 import sendResponse from '../../shared/sendResponse'
 import { MapService } from './map.service'
 import { JwtPayload } from 'jsonwebtoken'
-import { jwtHelper } from '../../helpers/jwtHelper'
-import config from '../../config'
-import { Secret } from 'jsonwebtoken'
-import { USER_ROLES } from '../../enum/user'
-import { getUserFromToken, getAccessibleMapIds, verifyEditorEditAccess } from '../../helpers/mapAccessHelper'
-import { Map } from './map.model'
-import ApiError from '../../errors/ApiError'
 import { localizeDocument } from '../../helpers/localize'
 
 const mapFields = ['name', 'description']
+const discoveryFields = [
+  'name',
+  'description',
+  'access',
+  'entryCost',
+  'difficulty',
+  'hikeTime',
+  'atmosphere',
+  'services',
+  'schedules',
+  'accessibility.notes',
+  'recommendations.tips',
+  'category.name',
+]
 
 const createMap = catchAsync(async (req: Request, res: Response) => {
   const result = await MapService.createMap(req.body)
@@ -26,68 +33,28 @@ const createMap = catchAsync(async (req: Request, res: Response) => {
 })
 
 const getAllMaps = catchAsync(async (req: Request, res: Response) => {
-  const authorizationHeader = req.headers.authorization
-  const user = await getUserFromToken(authorizationHeader)
-  const accessibleMapIds = await getAccessibleMapIds(user)
-
-  const isAdmin = user && (user.role === USER_ROLES.ADMIN || user.role === USER_ROLES.SUPER_ADMIN)
-
-  const query = { ...req.query }
-  if (!isAdmin) {
-    query.isActive = 'true'
-  }
-
-  const result = await MapService.getAllMaps(query)
-
-  // Tag each map with isLocked (places are NOT populated in list view for performance)
-  const data = result.data.map((map: any) => {
-    const mapObj = typeof map.toObject === 'function' ? map.toObject() : map
-    const isLockedMap = !accessibleMapIds.includes(mapObj._id.toString())
-    mapObj.isLocked = isLockedMap
-    return mapObj
-  })
-
+  const result = await MapService.getAllMaps(req.query, req.headers.authorization)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Maps retrieved successfully',
     meta: result.meta,
-    data: localizeDocument(data, req.lang, mapFields),
+    data: localizeDocument(result.data, req.lang, mapFields),
   })
 })
 
 const getMapById = catchAsync(async (req: Request, res: Response) => {
-  const authorizationHeader = req.headers.authorization
-  const user = await getUserFromToken(authorizationHeader)
-  const accessibleMapIds = await getAccessibleMapIds(user)
-
-  const result = await MapService.getMapById(req.params.id)
-  if (!result) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')
-  }
-
-  const mapObj =
-    typeof (result as any).toObject === 'function'
-      ? (result as any).toObject()
-      : { ...result }
-  // Access flag for catalog UI; places are loaded via discovery, not nested here
-  mapObj.isLocked = !accessibleMapIds.includes(mapObj._id.toString())
-
+  const result = await MapService.getMapById(req.params.id, req.headers.authorization)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Map retrieved successfully',
-    data: localizeDocument(mapObj, req.lang, mapFields),
+    data: localizeDocument(result, req.lang, mapFields),
   })
 })
 
 const updateMap = catchAsync(async (req: Request, res: Response) => {
-  const user = await getUserFromToken(req.headers.authorization)
-  const mapId = req.params.id
-  
-  await verifyEditorEditAccess(user, mapId)
-
-  const result = await MapService.updateMap(mapId, req.body)
+  const result = await MapService.updateMap(req.params.id, req.body, req.user)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -149,30 +116,13 @@ const getAvailableCountries = catchAsync(async (req: Request, res: Response) => 
 })
 
 const getDiscoveryData = catchAsync(async (req: Request, res: Response) => {
-  const authorizationHeader = req.headers.authorization
-  const user = await getUserFromToken(authorizationHeader)
-  const mapIdParam = req.query.map ? String(req.query.map) : undefined
-
-  // Run accessible map IDs, paid maps lookup, and target map lookup in parallel
-  const [accessibleMapIds, paidMaps, targetMap] = await Promise.all([
-    getAccessibleMapIds(user),
-    Map.find({ isPaid: true }, '_id'),
-    mapIdParam ? Map.findById(mapIdParam).select('name country').lean() : null,
-  ])
-
-  const paidMapIds = paidMaps.map(m => m._id.toString())
-  const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id))
-
-  const isAdminOrEditor = !!(user && (user.role === 'admin' || user.role === 'map_editor'))
-  const result = await MapService.getDiscoveryData(req.query, lockedMapIds, isAdminOrEditor, targetMap)
-
-  const discoveryFields = ['name', 'description', 'access', 'entryCost', 'difficulty', 'hikeTime', 'atmosphere', 'services', 'schedules', 'accessibility.notes', 'recommendations.tips', 'category.name']
-
+  const result = await MapService.getDiscoveryData(req.query, req.headers.authorization)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Discovery data retrieved successfully',
-    data: localizeDocument(result, req.lang, discoveryFields),
+    meta: result.meta,
+    data: localizeDocument(result.data, req.lang, discoveryFields),
   })
 })
 

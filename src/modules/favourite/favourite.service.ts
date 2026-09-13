@@ -139,7 +139,7 @@ const getMyFavourites = async (userId: string, query: Record<string, unknown>) =
         localField: 'map',
         foreignField: '_id',
         pipeline: [
-          { $project: { name: 1, description: 1, images: 1 } },
+          { $project: { name: 1, name_es: 1, description: 1, description_es: 1, images: 1 } },
         ],
         as: 'map',
       },
@@ -151,7 +151,7 @@ const getMyFavourites = async (userId: string, query: Record<string, unknown>) =
         localField: 'place',
         foreignField: '_id',
         pipeline: [
-          { $project: { name: 1, description: 1, media: 1 } },
+          { $project: { name: 1, name_es: 1, description: 1, description_es: 1, media: 1 } },
         ],
         as: 'place',
       },
@@ -163,7 +163,7 @@ const getMyFavourites = async (userId: string, query: Record<string, unknown>) =
         localField: 'offer',
         foreignField: '_id',
         pipeline: [
-          { $project: { title: 1, name: 1, description: 1, image: 1, media: 1 } },
+          { $project: { title: 1, title_es: 1, name: 1, name_es: 1, description: 1, description_es: 1, image: 1, media: 1 } },
         ],
         as: 'offer',
       },
@@ -178,7 +178,9 @@ const getMyFavourites = async (userId: string, query: Record<string, unknown>) =
           {
             $project: {
               name: 1,
+              name_es: 1,
               description: 1,
+              description_es: 1,
               'media.photos': 1,
             },
           },

@@ -73,6 +73,14 @@ export const localizeDocument = <T extends Record<string, any>>(
     return data.map(item => localizeDocument(item, lang, fields))
   }
 
+  // Handle paginated wrapper objects { meta: {...}, data: [...] }
+  if (data && typeof data === 'object' && Array.isArray((data as any).data)) {
+    return {
+      ...data,
+      data: (data as any).data.map((item: any) => localizeDocument(item, lang, fields)),
+    }
+  }
+
   // Handle Mongoose Lean or Document objects
   const obj = typeof (data as any).toObject === 'function' ? (data as any).toObject() : { ...data }
 

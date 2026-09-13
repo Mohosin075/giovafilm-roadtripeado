@@ -11,6 +11,13 @@ const http_status_codes_1 = require("http-status-codes");
 const pagination_1 = require("../../interfaces/pagination");
 const pick_1 = __importDefault(require("../../shared/pick"));
 const mapAccessHelper_1 = require("../../helpers/mapAccessHelper");
+const localize_1 = require("../../helpers/localize");
+const reviewFields = [
+    'placeId.name',
+    'placeId.description',
+    'businessId.name',
+    'businessId.description',
+];
 const createReview = (0, catchAsync_1.default)(async (req, res) => {
     const result = await review_service_1.ReviewService.createReview(req.user, req.body);
     (0, sendResponse_1.default)(res, {
@@ -45,7 +52,7 @@ const getAllReviews = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Reviews retrieved successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, reviewFields),
     });
 });
 const getReviewsByPlace = (0, catchAsync_1.default)(async (req, res) => {
@@ -58,7 +65,7 @@ const getReviewsByPlace = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Reviews retrieved successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, reviewFields),
     });
 });
 const getReviewsByBusiness = (0, catchAsync_1.default)(async (req, res) => {
@@ -71,7 +78,7 @@ const getReviewsByBusiness = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Reviews retrieved successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, reviewFields),
     });
 });
 const deleteReview = (0, catchAsync_1.default)(async (req, res) => {
@@ -91,7 +98,7 @@ const getSingleReview = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Review retrieved successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, reviewFields),
     });
 });
 const getMyReviews = (0, catchAsync_1.default)(async (req, res) => {
@@ -101,7 +108,7 @@ const getMyReviews = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'My reviews retrieved successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, reviewFields),
     });
 });
 const approveReview = (0, catchAsync_1.default)(async (req, res) => {

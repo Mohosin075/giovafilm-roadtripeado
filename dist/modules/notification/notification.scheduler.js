@@ -92,8 +92,8 @@ class NotificationScheduler {
                 try {
                     await notification_service_1.NotificationServices.createNotification({
                         userId: user._id,
-                        title: 'Welcome to EventHub!',
-                        content: `Welcome aboard, ${user.name}! We're excited to have you join our community.`,
+                        title: '¡Bienvenido a Roadtripeado!',
+                        content: `¡Bienvenido, ${user.name}! Estamos emocionados de tenerte en nuestra comunidad.`,
                         type: notification_interface_1.NotificationType.WELCOME,
                         channel: notification_interface_1.NotificationChannel.BOTH,
                         priority: notification_interface_1.NotificationPriority.MEDIUM,
@@ -101,7 +101,7 @@ class NotificationScheduler {
                             welcomeEmailSent: true,
                         },
                         actionUrl: `${process.env.CLIENT_URL}/dashboard`,
-                        actionText: 'Get Started',
+                        actionText: 'Comenzar',
                     }, true);
                     // Mark welcome email as sent in user metadata
                     await user_model_1.User.findByIdAndUpdate(user._id, {

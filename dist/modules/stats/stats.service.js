@@ -13,6 +13,7 @@ const business_model_1 = require("../business/business.model");
 const payment_model_1 = require("../payment/payment.model");
 const usageView_model_1 = require("./usageView.model");
 const mongoose_1 = __importDefault(require("mongoose"));
+const localize_1 = require("../../helpers/localize");
 const getDashboardData = async () => {
     // Run all DB queries in parallel
     const [totalMaps, totalPlaces, activeOffers, recentMaps, recentPlaces, recentOffers, recentUsers,] = await Promise.all([
@@ -183,7 +184,7 @@ const applySelectedEntity = async (query, mapFilter, placeFilter, offerFilter) =
         return {
             mapIds: [],
             usagePlace: business
-                ? { name: business.name, count: business.viewCount || 0 }
+                ? { name: (0, localize_1.localizeField)(business.name), count: business.viewCount || 0 }
                 : undefined,
         };
     }
@@ -214,7 +215,7 @@ const applySelectedEntity = async (query, mapFilter, placeFilter, offerFilter) =
             return {
                 mapIds: [],
                 usagePlace: business
-                    ? { name: business.name, count: business.viewCount || 0 }
+                    ? { name: (0, localize_1.localizeField)(business.name), count: business.viewCount || 0 }
                     : undefined,
             };
         }
@@ -411,7 +412,7 @@ const getReportsData = async (query = {}) => {
         ]);
         const mapIds = mapAgg.map(r => new mongoose_1.default.Types.ObjectId(r._id));
         const maps = await map_model_1.Map.find({ _id: { $in: mapIds } }).select('name').lean();
-        const nameMap = new globalThis.Map(maps.map(m => [m._id.toString(), m.name]));
+        const nameMap = new globalThis.Map(maps.map(m => [m._id.toString(), (0, localize_1.localizeField)(m.name)]));
         mostViewedMaps = mapAgg.map(r => ({
             name: nameMap.get(String(r._id)) || 'Unknown Map',
             count: r.count || 0,
@@ -423,7 +424,7 @@ const getReportsData = async (query = {}) => {
             .limit(5)
             .select('name viewCount');
         mostViewedMaps = mostViewedMapsRaw.map(m => ({
-            name: m.name,
+            name: (0, localize_1.localizeField)(m.name),
             count: m.viewCount || 0,
         }));
     }
@@ -445,7 +446,7 @@ const getReportsData = async (query = {}) => {
         ]);
         const placeIds = placeAgg.map(r => new mongoose_1.default.Types.ObjectId(r._id));
         const places = await place_model_1.Place.find({ _id: { $in: placeIds } }).select('name').lean();
-        const nameMap = new globalThis.Map(places.map(p => [p._id.toString(), p.name]));
+        const nameMap = new globalThis.Map(places.map(p => [p._id.toString(), (0, localize_1.localizeField)(p.name)]));
         mostOpenedPlaces = placeAgg.map(r => ({
             name: nameMap.get(String(r._id)) || 'Unknown Place',
             count: r.count || 0,
@@ -457,7 +458,7 @@ const getReportsData = async (query = {}) => {
             .limit(5)
             .select('name openCount');
         mostOpenedPlaces = mostOpenedPlacesRaw.map(p => ({
-            name: p.name,
+            name: (0, localize_1.localizeField)(p.name),
             count: p.openCount || 0,
         }));
     }
@@ -478,7 +479,7 @@ const getReportsData = async (query = {}) => {
             { $sort: { count: -1 } },
             { $limit: 5 },
         ]);
-        const titleById = new globalThis.Map(scopedOffers.map((o) => [String(o._id), o.title]));
+        const titleById = new globalThis.Map(scopedOffers.map((o) => [String(o._id), (0, localize_1.localizeField)(o.title)]));
         const missingIds = redemptionAgg
             .map((r) => r._id)
             .filter((id) => !titleById.has(String(id)));
@@ -486,7 +487,7 @@ const getReportsData = async (query = {}) => {
             const extra = await offer_model_1.Offer.find({ _id: { $in: missingIds } })
                 .select('_id title')
                 .lean();
-            extra.forEach((o) => titleById.set(String(o._id), o.title));
+            extra.forEach((o) => titleById.set(String(o._id), (0, localize_1.localizeField)(o.title)));
         }
         mostRedeemedOffers = redemptionAgg.map((r) => ({
             name: titleById.get(String(r._id)) || 'Unknown offer',
@@ -499,7 +500,7 @@ const getReportsData = async (query = {}) => {
             .limit(5)
             .select('title redemptionsCount');
         mostRedeemedOffers = mostRedeemedOffersRaw.map(o => ({
-            name: o.title,
+            name: (0, localize_1.localizeField)(o.title),
             count: o.redemptionsCount || 0,
         }));
     }

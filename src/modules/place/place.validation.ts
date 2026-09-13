@@ -1,14 +1,22 @@
 import { z } from 'zod'
 import { placeDifficulty } from './place.constants'
 
+const translatableSchema = z.union([
+  z.string(),
+  z.object({
+    en: z.string().optional(),
+    es: z.string().optional(),
+  }),
+])
+
 export const createPlaceZodSchema = z.object({
   body: z.object({
-    name: z.string({ required_error: 'Place name is required' }),
+    name: translatableSchema,
     map: z.string({ required_error: 'Map ID is required' }),
     category: z.string({ required_error: 'Category ID is required' }),
     type: z.enum(['Business', 'Regular']).optional(),
     country: z.string().optional(),
-    description: z.string({ required_error: 'Description is required' }),
+    description: translatableSchema,
     media: z.array(z.string()).optional(),
     menuImages: z.array(z.string()).optional(),
     address: z.string({ required_error: 'Address is required' }),
@@ -19,16 +27,16 @@ export const createPlaceZodSchema = z.object({
         .length(2, 'Coordinates must have [longitude, latitude]')
         .nonempty(),
     }),
-    access: z.string().optional(),
+    access: translatableSchema.optional(),
     accessibility: z
       .object({
         features: z.array(z.string()).optional(),
-        notes: z.string().optional(),
+        notes: translatableSchema.optional(),
       })
       .optional(),
     recommendations: z
       .object({
-        tips: z.string().optional(),
+        tips: translatableSchema.optional(),
       })
       .optional(),
     services: z.array(z.string()).optional(),
@@ -41,13 +49,13 @@ export const createPlaceZodSchema = z.object({
     phone: z.string().optional(),
     website: z.string().optional(),
     instagram: z.string().optional(),
-    entryCost: z.string().optional(),
+    entryCost: translatableSchema.optional(),
     difficulty: z.preprocess(
       (val) => (val === '' || val === null ? undefined : val),
       z.enum(placeDifficulty as [string, ...string[]]).optional()
     ),
-    hikeTime: z.string().optional(),
-    atmosphere: z.string().optional(),
+    hikeTime: translatableSchema.optional(),
+    atmosphere: translatableSchema.optional(),
     status: z.enum(['Draft', 'Published']).default('Draft'),
     images: z.array(z.string()).optional(),
     documents: z.array(z.string()).optional(),
@@ -59,12 +67,12 @@ export const updatePlaceZodSchema = z.object({
     id: z.string({ required_error: 'Place ID is required' }),
   }),
   body: z.object({
-    name: z.string().optional(),
+    name: translatableSchema.optional(),
     map: z.string().optional(),
     category: z.string().optional(),
     type: z.enum(['Business', 'Regular']).optional(),
     country: z.string().optional(),
-    description: z.string().optional(),
+    description: translatableSchema.optional(),
     media: z.array(z.string()).optional(),
     menuImages: z.array(z.string()).optional(),
     address: z.string().optional(),
@@ -74,16 +82,16 @@ export const updatePlaceZodSchema = z.object({
         coordinates: z.array(z.number()).length(2),
       })
       .optional(),
-    access: z.string().optional(),
+    access: translatableSchema.optional(),
     accessibility: z
       .object({
         features: z.array(z.string()).optional(),
-        notes: z.string().optional(),
+        notes: translatableSchema.optional(),
       })
       .optional(),
     recommendations: z
       .object({
-        tips: z.string().optional(),
+        tips: translatableSchema.optional(),
       })
       .optional(),
     services: z.array(z.string()).optional(),
@@ -96,13 +104,13 @@ export const updatePlaceZodSchema = z.object({
     phone: z.string().optional(),
     website: z.string().optional(),
     instagram: z.string().optional(),
-    entryCost: z.string().optional(),
+    entryCost: translatableSchema.optional(),
     difficulty: z.preprocess(
       (val) => (val === '' || val === null ? undefined : val),
       z.enum(placeDifficulty as [string, ...string[]]).optional()
     ),
-    hikeTime: z.string().optional(),
-    atmosphere: z.string().optional(),
+    hikeTime: translatableSchema.optional(),
+    atmosphere: translatableSchema.optional(),
     status: z.enum(['Draft', 'Published']).optional(),
     images: z.array(z.string()).optional(),
     documents: z.array(z.string()).optional(),

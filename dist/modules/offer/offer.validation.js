@@ -38,15 +38,22 @@ const refineDiscount = (data, ctx) => {
         }
     }
 };
+const translatableSchema = zod_1.z.union([
+    zod_1.z.string(),
+    zod_1.z.object({
+        en: zod_1.z.string().optional(),
+        es: zod_1.z.string().optional(),
+    }),
+]);
 exports.createOfferZodSchema = zod_1.z.object({
     body: zod_1.z
         .object({
-        title: zod_1.z.string({ required_error: 'Title is required' }),
+        title: translatableSchema,
         photo: zod_1.z.string().optional(),
         images: zod_1.z.any().optional(),
         place: zod_1.z.string().optional(),
         business: zod_1.z.string().optional(),
-        description: zod_1.z.string({ required_error: 'Description is required' }),
+        description: translatableSchema,
         discountType: zod_1.z.nativeEnum(offer_1.DISCOUNT_TYPE, {
             required_error: 'Discount Type is required',
         }),
@@ -58,7 +65,7 @@ exports.createOfferZodSchema = zod_1.z.object({
         maxRedemptions: zod_1.z.number().optional(),
         totalRedemptionLimit: zod_1.z.number().optional().nullable(),
         redemptionRules: zod_1.z.array(zod_1.z.string()).optional(),
-        buttonLabel: zod_1.z.string().optional(),
+        buttonLabel: translatableSchema.optional(),
         redemptionDuration: zod_1.z.number().optional(),
         status: zod_1.z.nativeEnum(offer_1.OFFER_STATUS).default(offer_1.OFFER_STATUS.ACTIVE),
         redemptionsCount: zod_1.z.number().default(0),
@@ -71,12 +78,12 @@ exports.updateOfferZodSchema = zod_1.z.object({
     }),
     body: zod_1.z
         .object({
-        title: zod_1.z.string().optional(),
+        title: translatableSchema.optional(),
         photo: zod_1.z.string().optional(),
         images: zod_1.z.any().optional(),
         place: zod_1.z.string().optional(),
         business: zod_1.z.string().optional(),
-        description: zod_1.z.string().optional(),
+        description: translatableSchema.optional(),
         discountType: zod_1.z.nativeEnum(offer_1.DISCOUNT_TYPE).optional(),
         discountValue: zod_1.z.union([zod_1.z.string(), zod_1.z.number()]).optional(),
         bogoSecondType: zod_1.z.nativeEnum(offer_1.BOGO_SECOND_TYPE).optional(),
@@ -86,7 +93,7 @@ exports.updateOfferZodSchema = zod_1.z.object({
         maxRedemptions: zod_1.z.number().optional(),
         totalRedemptionLimit: zod_1.z.number().optional().nullable(),
         redemptionRules: zod_1.z.array(zod_1.z.string()).optional(),
-        buttonLabel: zod_1.z.string().optional(),
+        buttonLabel: translatableSchema.optional(),
         redemptionDuration: zod_1.z.number().optional(),
         status: zod_1.z.nativeEnum(offer_1.OFFER_STATUS).optional(),
         redemptionsCount: zod_1.z.number().nonnegative().optional(),

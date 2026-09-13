@@ -60,6 +60,9 @@ app.use((0, cors_1.default)({
 }));
 // Cookie parser
 app.use((0, cookie_parser_1.default)());
+// Language Parser Middleware
+const language_1 = require("./middleware/language");
+app.use(language_1.languageMiddleware);
 // Logging — only in development
 const morgan_1 = __importDefault(require("morgan"));
 if (process.env.NODE_ENV !== 'production') {

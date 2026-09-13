@@ -7,11 +7,18 @@ const dayScheduleSchema = zod_1.z.object({
     openTime: zod_1.z.string({ required_error: 'Open time is required' }),
     closeTime: zod_1.z.string({ required_error: 'Close time is required' }),
 });
+const translatableSchema = zod_1.z.union([
+    zod_1.z.string(),
+    zod_1.z.object({
+        en: zod_1.z.string().optional(),
+        es: zod_1.z.string().optional(),
+    }),
+]);
 exports.createBusinessZodSchema = zod_1.z.object({
     body: zod_1.z.object({
-        name: zod_1.z.string({ required_error: 'Business name is required' }),
+        name: translatableSchema,
         category: zod_1.z.string({ required_error: 'Category ID is required' }),
-        description: zod_1.z.string({ required_error: 'Business description is required' }),
+        description: translatableSchema,
         contact: zod_1.z.object({
             phone: zod_1.z.string({ required_error: 'Public phone number is required' }),
             website: zod_1.z.string().url('Invalid website URL').optional().or(zod_1.z.literal('')),
@@ -48,9 +55,9 @@ exports.createBusinessZodSchema = zod_1.z.object({
 });
 exports.updateBusinessZodSchema = zod_1.z.object({
     body: zod_1.z.object({
-        name: zod_1.z.string().optional(),
+        name: translatableSchema.optional(),
         category: zod_1.z.string().optional(),
-        description: zod_1.z.string().optional(),
+        description: translatableSchema.optional(),
         contact: zod_1.z.object({
             phone: zod_1.z.string().optional(),
             website: zod_1.z.string().url().optional().or(zod_1.z.literal('')),

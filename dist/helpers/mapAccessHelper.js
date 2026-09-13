@@ -9,6 +9,7 @@ const jwtHelper_1 = require("./jwtHelper");
 const user_model_1 = require("../modules/user/user.model");
 const map_model_1 = require("../modules/map/map.model");
 const user_1 = require("../enum/user");
+const localize_1 = require("./localize");
 const getUserFromToken = async (authorizationHeader) => {
     if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
         return null;
@@ -153,7 +154,7 @@ const buildCountryToMapIdLookup = async (countries) => {
     const lookup = {};
     for (const m of maps) {
         if (m.name)
-            lookup[m.name] = m._id.toString();
+            lookup[(0, localize_1.localizeField)(m.name)] = m._id.toString();
         if (m.country)
             lookup[m.country] = m._id.toString();
     }

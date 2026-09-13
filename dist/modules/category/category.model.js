@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Category = void 0;
 const mongoose_1 = require("mongoose");
 const CategorySchema = new mongoose_1.Schema({
-    name: { type: String, required: true, trim: true },
+    name: { type: mongoose_1.Schema.Types.Mixed, required: true },
     color: { type: String, required: true, trim: true },
     icon: { type: String, trim: true },
     status: {

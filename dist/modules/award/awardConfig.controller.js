@@ -8,13 +8,15 @@ const http_status_codes_1 = require("http-status-codes");
 const catchAsync_1 = __importDefault(require("../../shared/catchAsync"));
 const sendResponse_1 = __importDefault(require("../../shared/sendResponse"));
 const awardConfig_service_1 = require("./awardConfig.service");
+const localize_1 = require("../../helpers/localize");
+const awardFields = ['title', 'description'];
 const getAllAwardConfigs = (0, catchAsync_1.default)(async (req, res) => {
     const result = await awardConfig_service_1.AwardConfigServices.getAllAwardConfigs();
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Award configurations retrieved successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, awardFields),
     });
 });
 const updateAwardConfig = (0, catchAsync_1.default)(async (req, res) => {
@@ -34,7 +36,7 @@ const updateAwardConfig = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Award configuration updated successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, awardFields),
     });
 });
 const createAwardConfig = (0, catchAsync_1.default)(async (req, res) => {
@@ -51,7 +53,7 @@ const createAwardConfig = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.CREATED,
         success: true,
         message: 'Award configuration created successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, awardFields),
     });
 });
 const deleteAwardConfig = (0, catchAsync_1.default)(async (req, res) => {

@@ -10,8 +10,15 @@ import mongoose from 'mongoose'
 import { mapSearchableFields } from './map.constants'
 import { placeSearchableFields } from '../place/place.constants'
 import { businessSearchableFields } from '../business/business.constants'
+import { autoTranslateField } from '../../utils/autoTranslate'
+
+const processMapTranslations = async (payload: Partial<IMap>) => {
+  if (payload.name) payload.name = await autoTranslateField(payload.name)
+  if (payload.description) payload.description = await autoTranslateField(payload.description)
+}
 
 const createMap = async (payload: IMap): Promise<IMap> => {
+  await processMapTranslations(payload)
   const result = await Map.create(payload)
   return result
 }
@@ -110,7 +117,7 @@ const updateMap = async (id: string, payload: Partial<IMap>): Promise<IMap | nul
   if (!isExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')
   }
-
+  await processMapTranslations(payload)
   const result = await Map.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,

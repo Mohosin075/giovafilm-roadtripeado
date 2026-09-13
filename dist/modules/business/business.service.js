@@ -12,12 +12,15 @@ const QueryBuilder_1 = __importDefault(require("../../builder/QueryBuilder"));
 const business_constants_1 = require("./business.constants");
 const offer_1 = require("../../enum/offer");
 const subscription_model_1 = require("../subscription/subscription.model");
-/**
- * Creates a new business listing and sets it as Pending.
- * @param payload The business data to be created
- * @returns The newly created business document
- */
+const autoTranslate_1 = require("../../utils/autoTranslate");
+const processBusinessTranslations = async (payload) => {
+    if (payload.name)
+        payload.name = await (0, autoTranslate_1.autoTranslateField)(payload.name);
+    if (payload.description)
+        payload.description = await (0, autoTranslate_1.autoTranslateField)(payload.description);
+};
 const createBusiness = async (payload) => {
+    await processBusinessTranslations(payload);
     payload.status = 'Pending'; // Always start as pending until admin approves
     payload.hasActiveSubscription = false; // Explicitly start with no active subscription
     const result = await business_model_1.Business.create(payload);
@@ -123,6 +126,7 @@ const updateBusiness = async (id, payload) => {
     if (!isExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Business not found');
     }
+    await processBusinessTranslations(payload);
     const result = await business_model_1.Business.findByIdAndUpdate(id, payload, {
         new: true,
         runValidators: true,

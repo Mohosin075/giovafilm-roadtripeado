@@ -11,6 +11,9 @@ import { USER_ROLES } from '../../enum/user'
 import { getUserFromToken, getAccessibleMapIds, verifyEditorEditAccess } from '../../helpers/mapAccessHelper'
 import { Map } from './map.model'
 import ApiError from '../../errors/ApiError'
+import { localizeDocument } from '../../helpers/localize'
+
+const mapFields = ['name', 'description']
 
 const createMap = catchAsync(async (req: Request, res: Response) => {
   const result = await MapService.createMap(req.body)
@@ -18,7 +21,7 @@ const createMap = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.CREATED,
     success: true,
     message: 'Map created successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, mapFields),
   })
 })
 
@@ -49,7 +52,7 @@ const getAllMaps = catchAsync(async (req: Request, res: Response) => {
     success: true,
     message: 'Maps retrieved successfully',
     meta: result.meta,
-    data,
+    data: localizeDocument(data, req.lang, mapFields),
   })
 })
 
@@ -74,7 +77,7 @@ const getMapById = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Map retrieved successfully',
-    data: mapObj,
+    data: localizeDocument(mapObj, req.lang, mapFields),
   })
 })
 
@@ -89,7 +92,7 @@ const updateMap = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Map updated successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, mapFields),
   })
 })
 
@@ -99,7 +102,7 @@ const deleteMap = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Map deleted successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, mapFields),
   })
 })
 
@@ -121,7 +124,7 @@ const getPurchasedMaps = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Purchased maps retrieved successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, mapFields),
   })
 })
 
@@ -163,11 +166,13 @@ const getDiscoveryData = catchAsync(async (req: Request, res: Response) => {
   const isAdminOrEditor = !!(user && (user.role === 'admin' || user.role === 'map_editor'))
   const result = await MapService.getDiscoveryData(req.query, lockedMapIds, isAdminOrEditor, targetMap)
 
+  const discoveryFields = ['name', 'description', 'access', 'entryCost', 'hikeTime', 'atmosphere', 'accessibility.notes', 'recommendations.tips', 'category.name']
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Discovery data retrieved successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, discoveryFields),
   })
 })
 

@@ -4,11 +4,11 @@ import { ICategory } from './category.interface'
 import { Category } from './category.model'
 import QueryBuilder from '../../builder/QueryBuilder'
 import { categorySearchableFields } from './category.constants'
+import { autoTranslateField } from '../../utils/autoTranslate'
 
 const createCategory = async (payload: ICategory): Promise<ICategory> => {
-  const isExist = await Category.findOne({ name: payload.name })
-  if (isExist) {
-    throw new ApiError(StatusCodes.CONFLICT, 'Category already exists')
+  if (payload.name) {
+    payload.name = await autoTranslateField(payload.name)
   }
   const result = await Category.create(payload)
   return result
@@ -46,6 +46,10 @@ const updateCategory = async (
   const isExist = await Category.findById(id)
   if (!isExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Category not found')
+  }
+
+  if (payload.name) {
+    payload.name = await autoTranslateField(payload.name)
   }
 
   const result = await Category.findByIdAndUpdate(id, payload, {

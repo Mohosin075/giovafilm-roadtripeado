@@ -14,6 +14,8 @@ const place_model_1 = require("../place/place.model");
 const business_model_1 = require("../business/business.model");
 const user_1 = require("../../enum/user");
 const offerRedemption_model_1 = require("./offerRedemption.model");
+const localize_1 = require("../../helpers/localize");
+const offerFields = ['title', 'description', 'buttonLabel', 'place.name', 'business.name'];
 /** Strip paid-only fields from locked list items; keep teaser fields for cards. */
 const sanitizeLockedOffer = (offer) => {
     const { description, redemptionRules, ...safe } = offer;
@@ -74,7 +76,7 @@ const createOffer = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.CREATED,
         success: true,
         message: 'Offer created successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, offerFields),
     });
 });
 const getAllOffers = (0, catchAsync_1.default)(async (req, res) => {
@@ -106,7 +108,7 @@ const getAllOffers = (0, catchAsync_1.default)(async (req, res) => {
         success: true,
         message: 'Offers retrieved successfully',
         meta: result.meta,
-        data: updatedData,
+        data: (0, localize_1.localizeDocument)(updatedData, req.lang, offerFields),
     });
 });
 const getOfferById = (0, catchAsync_1.default)(async (req, res) => {
@@ -144,7 +146,7 @@ const getOfferById = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Offer retrieved successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, offerFields),
     });
 });
 const updateOffer = (0, catchAsync_1.default)(async (req, res) => {
@@ -212,7 +214,7 @@ const updateOffer = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Offer updated successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, offerFields),
     });
 });
 const getOffersByPlaceOrBusinessId = (0, catchAsync_1.default)(async (req, res) => {
@@ -232,7 +234,7 @@ const getOffersByPlaceOrBusinessId = (0, catchAsync_1.default)(async (req, res) 
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Offers retrieved successfully',
-        data: offerObj,
+        data: (0, localize_1.localizeDocument)(offerObj, req.lang, offerFields),
     });
 });
 const deleteOffer = (0, catchAsync_1.default)(async (req, res) => {

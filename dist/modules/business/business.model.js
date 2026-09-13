@@ -9,9 +9,8 @@ const BusinessSchema = new mongoose_1.Schema({
         required: true,
     },
     name: {
-        type: String,
+        type: mongoose_1.Schema.Types.Mixed,
         required: true,
-        trim: true,
     },
     category: {
         type: mongoose_1.Schema.Types.ObjectId,
@@ -19,7 +18,7 @@ const BusinessSchema = new mongoose_1.Schema({
         required: true,
     },
     description: {
-        type: String,
+        type: mongoose_1.Schema.Types.Mixed,
         required: true,
     },
     contact: {

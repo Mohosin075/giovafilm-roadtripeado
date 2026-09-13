@@ -1,11 +1,12 @@
 import { Model, Types } from 'mongoose'
 import { IAwardType } from './award.interface'
+import { TranslatableString } from '../../interfaces/i18n.interface'
 
 export interface IAwardConfig {
   _id: Types.ObjectId
   type: IAwardType
-  title: string
-  description: string
+  title: TranslatableString
+  description: TranslatableString
   coverPhoto?: string
   target: number
   fileUrl?: string

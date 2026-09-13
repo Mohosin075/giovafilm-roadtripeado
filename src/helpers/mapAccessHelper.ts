@@ -4,6 +4,7 @@ import { jwtHelper } from './jwtHelper'
 import { User } from '../modules/user/user.model'
 import { Map } from '../modules/map/map.model'
 import { USER_ROLES } from '../enum/user'
+import { localizeField } from './localize'
 
 export const getUserFromToken = async (authorizationHeader?: string) => {
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
@@ -186,7 +187,7 @@ export const buildCountryToMapIdLookup = async (
 
   const lookup: Record<string, string> = {}
   for (const m of maps) {
-    if (m.name) lookup[m.name] = m._id.toString()
+    if (m.name) lookup[localizeField(m.name)] = m._id.toString()
     if (m.country) lookup[m.country] = m._id.toString()
   }
   return lookup

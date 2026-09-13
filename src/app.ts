@@ -81,6 +81,10 @@ app.use(
 // Cookie parser
 app.use(cookieParser())
 
+// Language Parser Middleware
+import { languageMiddleware } from './middleware/language'
+app.use(languageMiddleware)
+
 // Logging — only in development
 import morgan from 'morgan'
 if (process.env.NODE_ENV !== 'production') {

@@ -12,13 +12,15 @@ const user_1 = require("../../enum/user");
 const mapAccessHelper_1 = require("../../helpers/mapAccessHelper");
 const map_model_1 = require("./map.model");
 const ApiError_1 = __importDefault(require("../../errors/ApiError"));
+const localize_1 = require("../../helpers/localize");
+const mapFields = ['name', 'description'];
 const createMap = (0, catchAsync_1.default)(async (req, res) => {
     const result = await map_service_1.MapService.createMap(req.body);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.CREATED,
         success: true,
         message: 'Map created successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, mapFields),
     });
 });
 const getAllMaps = (0, catchAsync_1.default)(async (req, res) => {
@@ -43,7 +45,7 @@ const getAllMaps = (0, catchAsync_1.default)(async (req, res) => {
         success: true,
         message: 'Maps retrieved successfully',
         meta: result.meta,
-        data,
+        data: (0, localize_1.localizeDocument)(data, req.lang, mapFields),
     });
 });
 const getMapById = (0, catchAsync_1.default)(async (req, res) => {
@@ -63,7 +65,7 @@ const getMapById = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Map retrieved successfully',
-        data: mapObj,
+        data: (0, localize_1.localizeDocument)(mapObj, req.lang, mapFields),
     });
 });
 const updateMap = (0, catchAsync_1.default)(async (req, res) => {
@@ -75,7 +77,7 @@ const updateMap = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Map updated successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, mapFields),
     });
 });
 const deleteMap = (0, catchAsync_1.default)(async (req, res) => {
@@ -84,7 +86,7 @@ const deleteMap = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Map deleted successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, mapFields),
     });
 });
 const purchaseMap = (0, catchAsync_1.default)(async (req, res) => {
@@ -104,7 +106,7 @@ const getPurchasedMaps = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Purchased maps retrieved successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, mapFields),
     });
 });
 const incrementViewCount = (0, catchAsync_1.default)(async (req, res) => {
@@ -139,11 +141,12 @@ const getDiscoveryData = (0, catchAsync_1.default)(async (req, res) => {
     const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id));
     const isAdminOrEditor = !!(user && (user.role === 'admin' || user.role === 'map_editor'));
     const result = await map_service_1.MapService.getDiscoveryData(req.query, lockedMapIds, isAdminOrEditor, targetMap);
+    const discoveryFields = ['name', 'description', 'access', 'entryCost', 'hikeTime', 'atmosphere', 'accessibility.notes', 'recommendations.tips', 'category.name'];
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Discovery data retrieved successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, discoveryFields),
     });
 });
 exports.MapController = {

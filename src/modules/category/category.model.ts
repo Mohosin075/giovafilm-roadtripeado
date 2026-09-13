@@ -3,7 +3,7 @@ import { ICategory, CategoryModel } from './category.interface'
 
 const CategorySchema = new Schema<ICategory, CategoryModel>(
   {
-    name: { type: String, required: true, trim: true },
+    name: { type: Schema.Types.Mixed, required: true },
     color: { type: String, required: true, trim: true },
     icon: { type: String,  trim: true },
     status: {

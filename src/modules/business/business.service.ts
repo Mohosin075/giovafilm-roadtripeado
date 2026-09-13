@@ -7,14 +7,15 @@ import QueryBuilder from '../../builder/QueryBuilder'
 import { businessSearchableFields } from './business.constants'
 import { OFFER_STATUS } from '../../enum/offer'
 import { Subscription } from '../subscription/subscription.model'
+import { autoTranslateField } from '../../utils/autoTranslate'
 
-/**
- * Creates a new business listing and sets it as Pending.
- * @param payload The business data to be created
- * @returns The newly created business document
- */
+const processBusinessTranslations = async (payload: Partial<IBusiness>) => {
+  if (payload.name) payload.name = await autoTranslateField(payload.name)
+  if (payload.description) payload.description = await autoTranslateField(payload.description)
+}
 
 const createBusiness = async (payload: IBusiness): Promise<IBusiness> => {
+  await processBusinessTranslations(payload)
   payload.status = 'Pending' // Always start as pending until admin approves
   payload.hasActiveSubscription = false // Explicitly start with no active subscription
   const result = await Business.create(payload)
@@ -148,6 +149,7 @@ const updateBusiness = async (
   if (!isExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Business not found')
   }
+  await processBusinessTranslations(payload)
   const result = await Business.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,

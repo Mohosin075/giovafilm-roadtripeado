@@ -4,11 +4,11 @@ exports.Offer = void 0;
 const mongoose_1 = require("mongoose");
 const offer_1 = require("../../enum/offer");
 const OfferSchema = new mongoose_1.Schema({
-    title: { type: String, required: true, trim: true },
+    title: { type: mongoose_1.Schema.Types.Mixed, required: true },
     photo: { type: String },
     place: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Place' },
     business: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Business' },
-    description: { type: String, required: true },
+    description: { type: mongoose_1.Schema.Types.Mixed, required: true },
     discountType: {
         type: String,
         enum: Object.values(offer_1.DISCOUNT_TYPE),
@@ -25,7 +25,7 @@ const OfferSchema = new mongoose_1.Schema({
     maxRedemptions: { type: Number },
     totalRedemptionLimit: { type: Number },
     redemptionRules: { type: [String], default: [] },
-    buttonLabel: { type: String, default: 'Redeem Offer' },
+    buttonLabel: { type: mongoose_1.Schema.Types.Mixed, default: 'Redeem Offer' },
     redemptionDuration: { type: Number, default: 5 }, // Default to 5 minutes
     status: {
         type: String,

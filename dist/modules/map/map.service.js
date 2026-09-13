@@ -15,7 +15,15 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const map_constants_1 = require("./map.constants");
 const place_constants_1 = require("../place/place.constants");
 const business_constants_1 = require("../business/business.constants");
+const autoTranslate_1 = require("../../utils/autoTranslate");
+const processMapTranslations = async (payload) => {
+    if (payload.name)
+        payload.name = await (0, autoTranslate_1.autoTranslateField)(payload.name);
+    if (payload.description)
+        payload.description = await (0, autoTranslate_1.autoTranslateField)(payload.description);
+};
 const createMap = async (payload) => {
+    await processMapTranslations(payload);
     const result = await map_model_1.Map.create(payload);
     return result;
 };
@@ -93,6 +101,7 @@ const updateMap = async (id, payload) => {
     if (!isExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Map not found');
     }
+    await processMapTranslations(payload);
     const result = await map_model_1.Map.findByIdAndUpdate(id, payload, {
         new: true,
         runValidators: true,

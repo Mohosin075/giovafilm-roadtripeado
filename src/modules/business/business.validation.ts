@@ -6,11 +6,19 @@ const dayScheduleSchema = z.object({
   closeTime: z.string({ required_error: 'Close time is required' }),
 })
 
+const translatableSchema = z.union([
+  z.string(),
+  z.object({
+    en: z.string().optional(),
+    es: z.string().optional(),
+  }),
+])
+
 export const createBusinessZodSchema = z.object({
   body: z.object({
-    name: z.string({ required_error: 'Business name is required' }),
+    name: translatableSchema,
     category: z.string({ required_error: 'Category ID is required' }),
-    description: z.string({ required_error: 'Business description is required' }),
+    description: translatableSchema,
     contact: z.object({
       phone: z.string({ required_error: 'Public phone number is required' }),
       website: z.string().url('Invalid website URL').optional().or(z.literal('')),
@@ -48,9 +56,9 @@ export const createBusinessZodSchema = z.object({
 
 export const updateBusinessZodSchema = z.object({
   body: z.object({
-    name: z.string().optional(),
+    name: translatableSchema.optional(),
     category: z.string().optional(),
-    description: z.string().optional(),
+    description: translatableSchema.optional(),
     contact: z.object({
       phone: z.string().optional(),
       website: z.string().url().optional().or(z.literal('')),

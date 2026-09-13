@@ -3,6 +3,9 @@ import { StatusCodes } from 'http-status-codes'
 import catchAsync from '../../shared/catchAsync'
 import sendResponse from '../../shared/sendResponse'
 import { AwardConfigServices } from './awardConfig.service'
+import { localizeDocument } from '../../helpers/localize'
+
+const awardFields = ['title', 'description']
 
 const getAllAwardConfigs = catchAsync(async (req: Request, res: Response) => {
   const result = await AwardConfigServices.getAllAwardConfigs()
@@ -10,7 +13,7 @@ const getAllAwardConfigs = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Award configurations retrieved successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, awardFields),
   })
 })
 
@@ -33,7 +36,7 @@ const updateAwardConfig = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Award configuration updated successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, awardFields),
   })
 })
 
@@ -51,7 +54,7 @@ const createAwardConfig = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.CREATED,
     success: true,
     message: 'Award configuration created successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, awardFields),
   })
 })
 

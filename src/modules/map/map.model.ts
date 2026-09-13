@@ -3,8 +3,8 @@ import { IMap, MapModel } from './map.interface'
 
 const MapSchema = new Schema<IMap, MapModel>(
   {
-    name: { type: String, required: true, trim: true },
-    description: { type: String, required: true },
+    name: { type: Schema.Types.Mixed, required: true },
+    description: { type: Schema.Types.Mixed, required: true },
     price: { type: Number, required: true, default: 0 },
     images: [{ type: String, required: true }],
     features: [{ type: String, default: [] }],

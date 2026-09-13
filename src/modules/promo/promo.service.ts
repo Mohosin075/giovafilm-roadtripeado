@@ -11,6 +11,7 @@ import { Payment } from '../payment/payment.model'
 import { PromoLink } from './promo.model'
 import { IPromoLink } from './promo.interface'
 import { io } from '../../server'
+import { localizeField } from '../../helpers/localize'
 
 const verifyPromoCode = async (
   code: string,
@@ -39,7 +40,7 @@ const verifyPromoCode = async (
   if (mapId) {
     const map = await Map.findById(mapId).select('name')
     if (map) {
-      mapName = map.name
+      mapName = localizeField(map.name)
     }
   }
 

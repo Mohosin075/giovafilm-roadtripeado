@@ -42,15 +42,23 @@ const refineDiscount = (
   }
 }
 
+const translatableSchema = z.union([
+  z.string(),
+  z.object({
+    en: z.string().optional(),
+    es: z.string().optional(),
+  }),
+])
+
 export const createOfferZodSchema = z.object({
   body: z
     .object({
-      title: z.string({ required_error: 'Title is required' }),
+      title: translatableSchema,
       photo: z.string().optional(),
       images: z.any().optional(),
       place: z.string().optional(),
       business: z.string().optional(),
-      description: z.string({ required_error: 'Description is required' }),
+      description: translatableSchema,
       discountType: z.nativeEnum(DISCOUNT_TYPE, {
         required_error: 'Discount Type is required',
       }),
@@ -62,7 +70,7 @@ export const createOfferZodSchema = z.object({
       maxRedemptions: z.number().optional(),
       totalRedemptionLimit: z.number().optional().nullable(),
       redemptionRules: z.array(z.string()).optional(),
-      buttonLabel: z.string().optional(),
+      buttonLabel: translatableSchema.optional(),
       redemptionDuration: z.number().optional(),
       status: z.nativeEnum(OFFER_STATUS).default(OFFER_STATUS.ACTIVE),
       redemptionsCount: z.number().default(0),
@@ -76,12 +84,12 @@ export const updateOfferZodSchema = z.object({
   }),
   body: z
     .object({
-      title: z.string().optional(),
+      title: translatableSchema.optional(),
       photo: z.string().optional(),
       images: z.any().optional(),
       place: z.string().optional(),
       business: z.string().optional(),
-      description: z.string().optional(),
+      description: translatableSchema.optional(),
       discountType: z.nativeEnum(DISCOUNT_TYPE).optional(),
       discountValue: z.union([z.string(), z.number()]).optional(),
       bogoSecondType: z.nativeEnum(BOGO_SECOND_TYPE).optional(),
@@ -91,7 +99,7 @@ export const updateOfferZodSchema = z.object({
       maxRedemptions: z.number().optional(),
       totalRedemptionLimit: z.number().optional().nullable(),
       redemptionRules: z.array(z.string()).optional(),
-      buttonLabel: z.string().optional(),
+      buttonLabel: translatableSchema.optional(),
       redemptionDuration: z.number().optional(),
       status: z.nativeEnum(OFFER_STATUS).optional(),
       redemptionsCount: z.number().nonnegative().optional(),

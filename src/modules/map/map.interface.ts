@@ -1,9 +1,10 @@
 import { Model, Types } from 'mongoose'
+import { TranslatableString } from '../../interfaces/i18n.interface'
 
 export interface IMap {
   _id: Types.ObjectId
-  name: string
-  description: string
+  name: TranslatableString
+  description: TranslatableString
   price: number
   images: string[] // Multiple images
   features: string[] // Key features list

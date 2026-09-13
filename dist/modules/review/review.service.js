@@ -421,14 +421,14 @@ const approveReview = async (id) => {
                 : (_b = (await business_model_1.Business.findById(existingReview.businessId).select('name').lean())) === null || _b === void 0 ? void 0 : _b.name;
             await notification_service_1.NotificationServices.createNotification({
                 userId: reviewerId,
-                title: 'Review Approved! 🎉',
-                content: `Your review for "${targetName || 'location'}" was approved! You earned +${points} explorer points.`,
+                title: '¡Reseña aprobada! 🎉',
+                content: `¡Tu reseña sobre "${targetName || 'lugar'}" fue aprobada! Ganaste +${points} puntos de explorador.`,
                 type: notification_interface_1.NotificationType.SYSTEM_ALERT,
                 priority: notification_interface_1.NotificationPriority.HIGH,
                 actionUrl: existingReview.placeId
                     ? `/places/${existingReview.placeId}`
                     : `/places/${existingReview.businessId}?type=business`,
-                actionText: 'View Review',
+                actionText: 'Ver Reseña',
             });
         }
         catch (notifErr) {
@@ -461,12 +461,12 @@ const rejectReview = async (id) => {
             : (_b = (await business_model_1.Business.findById(existingReview.businessId).select('name').lean())) === null || _b === void 0 ? void 0 : _b.name;
         await notification_service_1.NotificationServices.createNotification({
             userId: existingReview.reviewer.toString(),
-            title: 'Review Status Update',
-            content: `Your review for "${targetName || 'location'}" was not approved by our moderation team.`,
+            title: 'Actualización del estado de la reseña',
+            content: `Tu reseña sobre "${targetName || 'lugar'}" no fue aprobada por nuestro equipo de moderación.`,
             type: notification_interface_1.NotificationType.SYSTEM_ALERT,
             priority: notification_interface_1.NotificationPriority.MEDIUM,
             actionUrl: '/profile/contributions-reviews',
-            actionText: 'My Reviews',
+            actionText: 'Mis Reseñas',
         });
     }
     catch (notifErr) {

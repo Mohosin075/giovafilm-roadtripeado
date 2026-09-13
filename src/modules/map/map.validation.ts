@@ -1,9 +1,17 @@
 import { z } from 'zod'
 
+const translatableSchema = z.union([
+  z.string(),
+  z.object({
+    en: z.string().optional(),
+    es: z.string().optional(),
+  }),
+])
+
 export const createMapZodSchema = z.object({
   body: z.object({
-    name: z.string({ required_error: 'Name is required' }),
-    description: z.string({ required_error: 'Description is required' }),
+    name: translatableSchema,
+    description: translatableSchema,
     price: z.number().nonnegative().default(0),
     images: z.array(z.string()).min(1, 'At least one image is required'),
     features: z.array(z.string()).default([]),
@@ -22,8 +30,8 @@ export const updateMapZodSchema = z.object({
     id: z.string({ required_error: 'Map ID is required' }),
   }),
   body: z.object({
-    name: z.string().optional(),
-    description: z.string().optional(),
+    name: translatableSchema.optional(),
+    description: translatableSchema.optional(),
     price: z.number().nonnegative().optional(),
     images: z.array(z.string()).optional(),
     features: z.array(z.string()).optional(),

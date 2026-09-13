@@ -7,6 +7,9 @@ import { JwtPayload } from 'jsonwebtoken'
 import ApiError from '../../errors/ApiError'
 import { USER_ROLES } from '../../enum/user'
 import { getUserFromToken } from '../../helpers/mapAccessHelper'
+import { localizeDocument } from '../../helpers/localize'
+
+const businessFields = ['name', 'description', 'category.name']
 
 const resolveUserRole = (user: any): string | undefined =>
   user?.role || user?.user?.role || user?.data?.role
@@ -60,8 +63,8 @@ const createBusiness = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: StatusCodes.CREATED,
     success: true,
-    message: 'Business created successfully and is pending approval',
-    data: result,
+    message: 'Business submitted successfully and is pending approval',
+    data: localizeDocument(result, req.lang, businessFields),
   })
 })
 
@@ -84,7 +87,7 @@ const getAllBusinesses = catchAsync(async (req: Request, res: Response) => {
     success: true,
     message: 'Businesses retrieved successfully',
     meta: result.meta,
-    data,
+    data: localizeDocument(data, req.lang, businessFields),
   })
 })
 
@@ -100,7 +103,7 @@ const getMyBusinesses = catchAsync(async (req: Request, res: Response) => {
     success: true,
     message: 'My businesses retrieved successfully',
     meta: result.meta,
-    data: result.data,
+    data: localizeDocument(result.data, req.lang, businessFields),
   })
 })
 
@@ -115,11 +118,13 @@ const getBusinessById = catchAsync(async (req: Request, res: Response) => {
   const canSeePrivate =
     isAdminRole(user?.role) || (user && ownerId === user._id.toString())
 
+  const finalData = canSeePrivate ? result : stripPrivateInfo(result)
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Business retrieved successfully',
-    data: canSeePrivate ? result : stripPrivateInfo(result),
+    data: localizeDocument(finalData, req.lang, businessFields),
   })
 })
 
@@ -199,7 +204,7 @@ const updateBusiness = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Business updated successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, businessFields),
   })
 })
 

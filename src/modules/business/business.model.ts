@@ -9,9 +9,8 @@ const BusinessSchema = new Schema<IBusiness, BusinessModel>(
       required: true,
     },
     name: {
-      type: String,
+      type: Schema.Types.Mixed,
       required: true,
-      trim: true,
     },
     category: {
       type: Schema.Types.ObjectId,
@@ -19,7 +18,7 @@ const BusinessSchema = new Schema<IBusiness, BusinessModel>(
       required: true,
     },
     description: {
-      type: String,
+      type: Schema.Types.Mixed,
       required: true,
     },
     contact: {

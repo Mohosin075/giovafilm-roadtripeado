@@ -3,14 +3,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.updatePlaceZodSchema = exports.createPlaceZodSchema = void 0;
 const zod_1 = require("zod");
 const place_constants_1 = require("./place.constants");
+const translatableSchema = zod_1.z.union([
+    zod_1.z.string(),
+    zod_1.z.object({
+        en: zod_1.z.string().optional(),
+        es: zod_1.z.string().optional(),
+    }),
+]);
 exports.createPlaceZodSchema = zod_1.z.object({
     body: zod_1.z.object({
-        name: zod_1.z.string({ required_error: 'Place name is required' }),
+        name: translatableSchema,
         map: zod_1.z.string({ required_error: 'Map ID is required' }),
         category: zod_1.z.string({ required_error: 'Category ID is required' }),
         type: zod_1.z.enum(['Business', 'Regular']).optional(),
         country: zod_1.z.string().optional(),
-        description: zod_1.z.string({ required_error: 'Description is required' }),
+        description: translatableSchema,
         media: zod_1.z.array(zod_1.z.string()).optional(),
         menuImages: zod_1.z.array(zod_1.z.string()).optional(),
         address: zod_1.z.string({ required_error: 'Address is required' }),
@@ -21,16 +28,16 @@ exports.createPlaceZodSchema = zod_1.z.object({
                 .length(2, 'Coordinates must have [longitude, latitude]')
                 .nonempty(),
         }),
-        access: zod_1.z.string().optional(),
+        access: translatableSchema.optional(),
         accessibility: zod_1.z
             .object({
             features: zod_1.z.array(zod_1.z.string()).optional(),
-            notes: zod_1.z.string().optional(),
+            notes: translatableSchema.optional(),
         })
             .optional(),
         recommendations: zod_1.z
             .object({
-            tips: zod_1.z.string().optional(),
+            tips: translatableSchema.optional(),
         })
             .optional(),
         services: zod_1.z.array(zod_1.z.string()).optional(),
@@ -43,10 +50,10 @@ exports.createPlaceZodSchema = zod_1.z.object({
         phone: zod_1.z.string().optional(),
         website: zod_1.z.string().optional(),
         instagram: zod_1.z.string().optional(),
-        entryCost: zod_1.z.string().optional(),
+        entryCost: translatableSchema.optional(),
         difficulty: zod_1.z.preprocess((val) => (val === '' || val === null ? undefined : val), zod_1.z.enum(place_constants_1.placeDifficulty).optional()),
-        hikeTime: zod_1.z.string().optional(),
-        atmosphere: zod_1.z.string().optional(),
+        hikeTime: translatableSchema.optional(),
+        atmosphere: translatableSchema.optional(),
         status: zod_1.z.enum(['Draft', 'Published']).default('Draft'),
         images: zod_1.z.array(zod_1.z.string()).optional(),
         documents: zod_1.z.array(zod_1.z.string()).optional(),
@@ -57,12 +64,12 @@ exports.updatePlaceZodSchema = zod_1.z.object({
         id: zod_1.z.string({ required_error: 'Place ID is required' }),
     }),
     body: zod_1.z.object({
-        name: zod_1.z.string().optional(),
+        name: translatableSchema.optional(),
         map: zod_1.z.string().optional(),
         category: zod_1.z.string().optional(),
         type: zod_1.z.enum(['Business', 'Regular']).optional(),
         country: zod_1.z.string().optional(),
-        description: zod_1.z.string().optional(),
+        description: translatableSchema.optional(),
         media: zod_1.z.array(zod_1.z.string()).optional(),
         menuImages: zod_1.z.array(zod_1.z.string()).optional(),
         address: zod_1.z.string().optional(),
@@ -72,16 +79,16 @@ exports.updatePlaceZodSchema = zod_1.z.object({
             coordinates: zod_1.z.array(zod_1.z.number()).length(2),
         })
             .optional(),
-        access: zod_1.z.string().optional(),
+        access: translatableSchema.optional(),
         accessibility: zod_1.z
             .object({
             features: zod_1.z.array(zod_1.z.string()).optional(),
-            notes: zod_1.z.string().optional(),
+            notes: translatableSchema.optional(),
         })
             .optional(),
         recommendations: zod_1.z
             .object({
-            tips: zod_1.z.string().optional(),
+            tips: translatableSchema.optional(),
         })
             .optional(),
         services: zod_1.z.array(zod_1.z.string()).optional(),
@@ -94,10 +101,10 @@ exports.updatePlaceZodSchema = zod_1.z.object({
         phone: zod_1.z.string().optional(),
         website: zod_1.z.string().optional(),
         instagram: zod_1.z.string().optional(),
-        entryCost: zod_1.z.string().optional(),
+        entryCost: translatableSchema.optional(),
         difficulty: zod_1.z.preprocess((val) => (val === '' || val === null ? undefined : val), zod_1.z.enum(place_constants_1.placeDifficulty).optional()),
-        hikeTime: zod_1.z.string().optional(),
-        atmosphere: zod_1.z.string().optional(),
+        hikeTime: translatableSchema.optional(),
+        atmosphere: translatableSchema.optional(),
         status: zod_1.z.enum(['Draft', 'Published']).optional(),
         images: zod_1.z.array(zod_1.z.string()).optional(),
         documents: zod_1.z.array(zod_1.z.string()).optional(),

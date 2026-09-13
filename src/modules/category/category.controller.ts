@@ -3,6 +3,7 @@ import { StatusCodes } from 'http-status-codes'
 import catchAsync from '../../shared/catchAsync'
 import sendResponse from '../../shared/sendResponse'
 import { CategoryService } from './category.service'
+import { localizeDocument } from '../../helpers/localize'
 
 const createCategory = catchAsync(async (req: Request, res: Response) => {
   const categoryData = { ...req.body }
@@ -24,7 +25,7 @@ const createCategory = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.CREATED,
     success: true,
     message: 'Category created successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, ['name']),
   })
 })
 
@@ -35,7 +36,7 @@ const getAllCategories = catchAsync(async (req: Request, res: Response) => {
     success: true,
     message: 'Categories retrieved successfully',
     meta: result.meta,
-    data: result.data,
+    data: localizeDocument(result.data, req.lang, ['name']),
   })
 })
 
@@ -53,7 +54,7 @@ const getCategoryById = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Category retrieved successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, ['name']),
   })
 })
 
@@ -91,7 +92,7 @@ const updateCategory = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Category updated successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, ['name']),
   })
 })
 
@@ -109,7 +110,7 @@ const deleteCategory = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Category deleted successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, ['name']),
   })
 })
 

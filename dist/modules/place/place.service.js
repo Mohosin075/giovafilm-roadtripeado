@@ -12,6 +12,28 @@ const category_model_1 = require("../category/category.model");
 const mongoose_1 = __importDefault(require("mongoose"));
 const reverseGeocoding_1 = require("../../utils/reverseGeocoding");
 const business_model_1 = require("../business/business.model");
+const autoTranslate_1 = require("../../utils/autoTranslate");
+const processPlaceTranslations = async (payload) => {
+    var _a, _b;
+    if (payload.name)
+        payload.name = await (0, autoTranslate_1.autoTranslateField)(payload.name);
+    if (payload.description)
+        payload.description = await (0, autoTranslate_1.autoTranslateField)(payload.description);
+    if (payload.access)
+        payload.access = await (0, autoTranslate_1.autoTranslateField)(payload.access);
+    if (payload.entryCost)
+        payload.entryCost = await (0, autoTranslate_1.autoTranslateField)(payload.entryCost);
+    if (payload.hikeTime)
+        payload.hikeTime = await (0, autoTranslate_1.autoTranslateField)(payload.hikeTime);
+    if (payload.atmosphere)
+        payload.atmosphere = await (0, autoTranslate_1.autoTranslateField)(payload.atmosphere);
+    if ((_a = payload.accessibility) === null || _a === void 0 ? void 0 : _a.notes) {
+        payload.accessibility.notes = await (0, autoTranslate_1.autoTranslateField)(payload.accessibility.notes);
+    }
+    if ((_b = payload.recommendations) === null || _b === void 0 ? void 0 : _b.tips) {
+        payload.recommendations.tips = await (0, autoTranslate_1.autoTranslateField)(payload.recommendations.tips);
+    }
+};
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const toNumber = (value) => {
     const parsed = typeof value === 'string' || typeof value === 'number' ? Number(value) : NaN;
@@ -305,6 +327,7 @@ const incrementOpenCount = async (id) => {
 };
 const updatePlace = async (id, payload) => {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
+    await processPlaceTranslations(payload);
     const isExist = await place_model_1.Place.findById(id);
     if (!isExist) {
         // Fallback: Check and update Business collection

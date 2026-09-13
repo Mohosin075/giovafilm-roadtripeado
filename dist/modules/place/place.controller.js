@@ -14,6 +14,8 @@ const ApiError_1 = __importDefault(require("../../errors/ApiError"));
 const mapHelper_1 = require("../../utils/mapHelper");
 const user_1 = require("../../enum/user");
 const media_1 = require("../../utils/media");
+const localize_1 = require("../../helpers/localize");
+const placeFields = ['name', 'description', 'access', 'entryCost', 'hikeTime', 'atmosphere', 'accessibility.notes', 'recommendations.tips', 'category.name'];
 const createPlace = (0, catchAsync_1.default)(async (req, res) => {
     const user = await (0, mapAccessHelper_1.getUserFromToken)(req.headers.authorization);
     // A place must belong to a map, verify access
@@ -39,7 +41,7 @@ const createPlace = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.CREATED,
         success: true,
         message: 'Place created successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, placeFields),
     });
 });
 const getAllPlaces = (0, catchAsync_1.default)(async (req, res) => {
@@ -79,7 +81,7 @@ const getAllPlaces = (0, catchAsync_1.default)(async (req, res) => {
         success: true,
         message: 'Places retrieved successfully',
         meta: result.meta,
-        data: updatedData,
+        data: (0, localize_1.localizeDocument)(updatedData, req.lang, placeFields),
     });
 });
 const getPlaceById = (0, catchAsync_1.default)(async (req, res) => {
@@ -109,7 +111,7 @@ const getPlaceById = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Place retrieved successfully',
-        data: placeObj,
+        data: (0, localize_1.localizeDocument)(placeObj, req.lang, placeFields),
     });
 });
 const updatePlace = (0, catchAsync_1.default)(async (req, res) => {
@@ -148,7 +150,7 @@ const updatePlace = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Place updated successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, placeFields),
     });
 });
 const deletePlace = (0, catchAsync_1.default)(async (req, res) => {

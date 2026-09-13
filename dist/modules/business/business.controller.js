@@ -11,6 +11,8 @@ const business_service_1 = require("./business.service");
 const ApiError_1 = __importDefault(require("../../errors/ApiError"));
 const user_1 = require("../../enum/user");
 const mapAccessHelper_1 = require("../../helpers/mapAccessHelper");
+const localize_1 = require("../../helpers/localize");
+const businessFields = ['name', 'description', 'category.name'];
 const resolveUserRole = (user) => { var _a, _b; return (user === null || user === void 0 ? void 0 : user.role) || ((_a = user === null || user === void 0 ? void 0 : user.user) === null || _a === void 0 ? void 0 : _a.role) || ((_b = user === null || user === void 0 ? void 0 : user.data) === null || _b === void 0 ? void 0 : _b.role); };
 const isAdminRole = (role) => !!role && [user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN].includes(role);
 const getBusinessOwnerId = (business) => {
@@ -57,8 +59,8 @@ const createBusiness = (0, catchAsync_1.default)(async (req, res) => {
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.CREATED,
         success: true,
-        message: 'Business created successfully and is pending approval',
-        data: result,
+        message: 'Business submitted successfully and is pending approval',
+        data: (0, localize_1.localizeDocument)(result, req.lang, businessFields),
     });
 });
 /**
@@ -77,7 +79,7 @@ const getAllBusinesses = (0, catchAsync_1.default)(async (req, res) => {
         success: true,
         message: 'Businesses retrieved successfully',
         meta: result.meta,
-        data,
+        data: (0, localize_1.localizeDocument)(data, req.lang, businessFields),
     });
 });
 /**
@@ -92,7 +94,7 @@ const getMyBusinesses = (0, catchAsync_1.default)(async (req, res) => {
         success: true,
         message: 'My businesses retrieved successfully',
         meta: result.meta,
-        data: result.data,
+        data: (0, localize_1.localizeDocument)(result.data, req.lang, businessFields),
     });
 });
 /**
@@ -104,11 +106,12 @@ const getBusinessById = (0, catchAsync_1.default)(async (req, res) => {
     const result = await business_service_1.BusinessService.getBusinessById(id);
     const ownerId = getBusinessOwnerId(result);
     const canSeePrivate = isAdminRole(user === null || user === void 0 ? void 0 : user.role) || (user && ownerId === user._id.toString());
+    const finalData = canSeePrivate ? result : stripPrivateInfo(result);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Business retrieved successfully',
-        data: canSeePrivate ? result : stripPrivateInfo(result),
+        data: (0, localize_1.localizeDocument)(finalData, req.lang, businessFields),
     });
 });
 /**
@@ -177,7 +180,7 @@ const updateBusiness = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Business updated successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, businessFields),
     });
 });
 /**

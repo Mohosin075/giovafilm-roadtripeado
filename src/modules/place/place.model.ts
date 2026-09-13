@@ -4,7 +4,7 @@ import { placeDifficulty } from './place.constants'
 
 const PlaceSchema = new Schema<IPlace, PlaceModel>(
   {
-    name: { type: String, required: true, trim: true },
+    name: { type: Schema.Types.Mixed, required: true },
     map: { type: Schema.Types.ObjectId, ref: 'Map', required: true },
     category: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
     type: {
@@ -13,7 +13,7 @@ const PlaceSchema = new Schema<IPlace, PlaceModel>(
       default: 'Regular',
     },
     country: { type: String, required: true },
-    description: { type: String, required: true },
+    description: { type: Schema.Types.Mixed, required: true },
     media: { type: [String], default: [] },
     menuImages: { type: [String], default: [] },
     address: { type: String, required: true },
@@ -29,13 +29,13 @@ const PlaceSchema = new Schema<IPlace, PlaceModel>(
         required: true,
       },
     },
-    access: { type: String },
+    access: { type: Schema.Types.Mixed },
     accessibility: {
       features: { type: [String], default: [] },
-      notes: { type: String },
+      notes: { type: Schema.Types.Mixed },
     },
     recommendations: {
-      tips: { type: String },
+      tips: { type: Schema.Types.Mixed },
     },
     services: { type: [String], default: [] },
     schedules: { type: String },
@@ -43,15 +43,15 @@ const PlaceSchema = new Schema<IPlace, PlaceModel>(
     phone: { type: String, default: "" },
     website: { type: String, default: "" },
     instagram: { type: String, default: "" },
-    entryCost: { type: String },
+    entryCost: { type: Schema.Types.Mixed },
     difficulty: {
       type: String,
       enum: placeDifficulty,
       default: 'Easy',
       set: (v: string) => (v === '' ? undefined : v),
     },
-    hikeTime: { type: String },
-    atmosphere: { type: String },
+    hikeTime: { type: Schema.Types.Mixed },
+    atmosphere: { type: Schema.Types.Mixed },
     status: {
       type: String,
       enum: ['Draft', 'Published'],

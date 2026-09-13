@@ -20,6 +20,9 @@ import { Place } from '../place/place.model'
 import { Business } from '../business/business.model'
 import { USER_ROLES } from '../../enum/user'
 import { OfferRedemption } from './offerRedemption.model'
+import { localizeDocument } from '../../helpers/localize'
+
+const offerFields = ['title', 'description', 'buttonLabel', 'place.name', 'business.name']
 
 /** Strip paid-only fields from locked list items; keep teaser fields for cards. */
 const sanitizeLockedOffer = (offer: any) => {
@@ -92,7 +95,7 @@ const createOffer = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.CREATED,
     success: true,
     message: 'Offer created successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, offerFields),
   })
 })
 
@@ -133,7 +136,7 @@ const getAllOffers = catchAsync(async (req: Request, res: Response) => {
     success: true,
     message: 'Offers retrieved successfully',
     meta: result.meta,
-    data: updatedData,
+    data: localizeDocument(updatedData, req.lang, offerFields),
   })
 })
 
@@ -184,7 +187,7 @@ const getOfferById = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Offer retrieved successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, offerFields),
   })
 })
 
@@ -259,7 +262,7 @@ const updateOffer = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Offer updated successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, offerFields),
   })
 })
 
@@ -286,7 +289,7 @@ const getOffersByPlaceOrBusinessId = catchAsync(async (req: Request, res: Respon
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Offers retrieved successfully',
-    data: offerObj,
+    data: localizeDocument(offerObj, req.lang, offerFields),
   })
 })
 

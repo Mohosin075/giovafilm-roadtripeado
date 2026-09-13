@@ -12,8 +12,18 @@ const QueryBuilder_1 = __importDefault(require("../../builder/QueryBuilder"));
 const offer_1 = require("../../enum/offer");
 const business_model_1 = require("../business/business.model");
 const place_model_1 = require("../place/place.model");
+const autoTranslate_1 = require("../../utils/autoTranslate");
+const processOfferTranslations = async (payload) => {
+    if (payload.title)
+        payload.title = await (0, autoTranslate_1.autoTranslateField)(payload.title);
+    if (payload.description)
+        payload.description = await (0, autoTranslate_1.autoTranslateField)(payload.description);
+    if (payload.buttonLabel)
+        payload.buttonLabel = await (0, autoTranslate_1.autoTranslateField)(payload.buttonLabel);
+};
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const createOffer = async (payload) => {
+    await processOfferTranslations(payload);
     if (payload.discountType === offer_1.DISCOUNT_TYPE.BOGO && !payload.bogoSecondType) {
         payload.bogoSecondType = offer_1.BOGO_SECOND_TYPE.FREE;
     }
@@ -146,6 +156,7 @@ const updateOffer = async (id, payload) => {
     if (!isExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Offer not found');
     }
+    await processOfferTranslations(payload);
     const targetStatus = payload.status || isExist.status;
     const targetPlace = payload.place || isExist.place;
     const targetBusiness = payload.business || isExist.business;

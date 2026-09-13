@@ -9,6 +9,9 @@ import ApiError from '../../errors/ApiError'
 import { getCoordinatesFromUrl } from '../../utils/mapHelper'
 import { USER_ROLES } from '../../enum/user'
 import { toStringArray } from '../../utils/media'
+import { localizeDocument } from '../../helpers/localize'
+
+const placeFields = ['name', 'description', 'access', 'entryCost', 'hikeTime', 'atmosphere', 'accessibility.notes', 'recommendations.tips', 'category.name']
 
 const createPlace = catchAsync(async (req: Request, res: Response) => {
   const user = await getUserFromToken(req.headers.authorization)
@@ -37,7 +40,7 @@ const createPlace = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.CREATED,
     success: true,
     message: 'Place created successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, placeFields),
   })
 })
 
@@ -83,7 +86,7 @@ const getAllPlaces = catchAsync(async (req: Request, res: Response) => {
     success: true,
     message: 'Places retrieved successfully',
     meta: result.meta,
-    data: updatedData,
+    data: localizeDocument(updatedData, req.lang, placeFields),
   })
 })
 
@@ -122,7 +125,7 @@ const getPlaceById = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Place retrieved successfully',
-    data: placeObj,
+    data: localizeDocument(placeObj, req.lang, placeFields),
   })
 })
 
@@ -165,7 +168,7 @@ const updatePlace = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Place updated successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, placeFields),
   })
 })
 

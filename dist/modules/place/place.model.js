@@ -4,7 +4,7 @@ exports.Place = void 0;
 const mongoose_1 = require("mongoose");
 const place_constants_1 = require("./place.constants");
 const PlaceSchema = new mongoose_1.Schema({
-    name: { type: String, required: true, trim: true },
+    name: { type: mongoose_1.Schema.Types.Mixed, required: true },
     map: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Map', required: true },
     category: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Category', required: true },
     type: {
@@ -13,7 +13,7 @@ const PlaceSchema = new mongoose_1.Schema({
         default: 'Regular',
     },
     country: { type: String, required: true },
-    description: { type: String, required: true },
+    description: { type: mongoose_1.Schema.Types.Mixed, required: true },
     media: { type: [String], default: [] },
     menuImages: { type: [String], default: [] },
     address: { type: String, required: true },
@@ -29,13 +29,13 @@ const PlaceSchema = new mongoose_1.Schema({
             required: true,
         },
     },
-    access: { type: String },
+    access: { type: mongoose_1.Schema.Types.Mixed },
     accessibility: {
         features: { type: [String], default: [] },
-        notes: { type: String },
+        notes: { type: mongoose_1.Schema.Types.Mixed },
     },
     recommendations: {
-        tips: { type: String },
+        tips: { type: mongoose_1.Schema.Types.Mixed },
     },
     services: { type: [String], default: [] },
     schedules: { type: String },
@@ -43,15 +43,15 @@ const PlaceSchema = new mongoose_1.Schema({
     phone: { type: String, default: "" },
     website: { type: String, default: "" },
     instagram: { type: String, default: "" },
-    entryCost: { type: String },
+    entryCost: { type: mongoose_1.Schema.Types.Mixed },
     difficulty: {
         type: String,
         enum: place_constants_1.placeDifficulty,
         default: 'Easy',
         set: (v) => (v === '' ? undefined : v),
     },
-    hikeTime: { type: String },
-    atmosphere: { type: String },
+    hikeTime: { type: mongoose_1.Schema.Types.Mixed },
+    atmosphere: { type: mongoose_1.Schema.Types.Mixed },
     status: {
         type: String,
         enum: ['Draft', 'Published'],

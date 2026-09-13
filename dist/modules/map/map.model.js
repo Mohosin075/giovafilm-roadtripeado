@@ -3,8 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Map = void 0;
 const mongoose_1 = require("mongoose");
 const MapSchema = new mongoose_1.Schema({
-    name: { type: String, required: true, trim: true },
-    description: { type: String, required: true },
+    name: { type: mongoose_1.Schema.Types.Mixed, required: true },
+    description: { type: mongoose_1.Schema.Types.Mixed, required: true },
     price: { type: Number, required: true, default: 0 },
     images: [{ type: String, required: true }],
     features: [{ type: String, default: [] }],

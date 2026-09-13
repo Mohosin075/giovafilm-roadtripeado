@@ -4,11 +4,11 @@ import { OFFER_STATUS, DISCOUNT_TYPE, BOGO_SECOND_TYPE } from '../../enum/offer'
 
 const OfferSchema = new Schema<IOffer, OfferModel>(
   {
-    title: { type: String, required: true, trim: true },
+    title: { type: Schema.Types.Mixed, required: true },
     photo: { type: String },
     place: { type: Schema.Types.ObjectId, ref: 'Place' },
     business: { type: Schema.Types.ObjectId, ref: 'Business' },
-    description: { type: String, required: true },
+    description: { type: Schema.Types.Mixed, required: true },
     discountType: {
       type: String,
       enum: Object.values(DISCOUNT_TYPE),
@@ -25,7 +25,7 @@ const OfferSchema = new Schema<IOffer, OfferModel>(
     maxRedemptions: { type: Number },
     totalRedemptionLimit: { type: Number },
     redemptionRules: { type: [String], default: [] },
-    buttonLabel: { type: String, default: 'Redeem Offer' },
+    buttonLabel: { type: Schema.Types.Mixed, default: 'Redeem Offer' },
     redemptionDuration: { type: Number, default: 5 }, // Default to 5 minutes
     status: {
       type: String,

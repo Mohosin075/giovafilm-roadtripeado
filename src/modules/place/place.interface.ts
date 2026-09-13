@@ -1,13 +1,14 @@
 import { Model, Types } from 'mongoose'
+import { TranslatableString } from '../../interfaces/i18n.interface'
 
 export interface IPlace {
   _id: Types.ObjectId
-  name: string
+  name: TranslatableString
   map: Types.ObjectId // Ref Map
   category: Types.ObjectId // Ref Category
   type: 'Business' | 'Regular'
   country?: string // Country name
-  description: string
+  description: TranslatableString
   media: string[]
   menuImages?: string[]
   address: string
@@ -15,13 +16,13 @@ export interface IPlace {
     type: 'Point'
     coordinates: [number, number] // [longitude, latitude]
   }
-  access?: string
+  access?: TranslatableString
   accessibility?: {
     features: string[]
-    notes?: string
+    notes?: TranslatableString
   }
   recommendations?: {
-    tips?: string
+    tips?: TranslatableString
   }
   services?: string[]
   schedules?: string
@@ -29,10 +30,10 @@ export interface IPlace {
   phone?: string
   website?: string
   instagram?: string
-  entryCost?: string
+  entryCost?: TranslatableString
   difficulty?: 'Easy' | 'Moderate' | 'Hard'
-  hikeTime?: string
-  atmosphere?: string
+  hikeTime?: TranslatableString
+  atmosphere?: TranslatableString
   status: 'Draft' | 'Published'
   rating?: number
   totalReview?: number

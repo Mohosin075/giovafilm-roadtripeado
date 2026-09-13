@@ -67,10 +67,18 @@ const getAllAwardConfigs = async (): Promise<IAwardConfig[]> => {
   return await AwardConfig.find({}).populate('mapId').sort({ createdAt: 1 })
 }
 
+import { autoTranslateField } from '../../utils/autoTranslate'
+
+const processAwardTranslations = async (payload: Partial<IAwardConfig>) => {
+  if (payload.title) payload.title = await autoTranslateField(payload.title)
+  if (payload.description) payload.description = await autoTranslateField(payload.description)
+}
+
 const updateAwardConfig = async (
   id: string,
   payload: Partial<IAwardConfig>
 ): Promise<IAwardConfig | null> => {
+  await processAwardTranslations(payload)
   const result = await AwardConfig.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,
@@ -81,6 +89,7 @@ const updateAwardConfig = async (
 const createAwardConfig = async (
   payload: IAwardConfig
 ): Promise<IAwardConfig> => {
+  await processAwardTranslations(payload)
   const result = await AwardConfig.create(payload)
   return result
 }

@@ -9,8 +9,8 @@ class NotificationIntegration {
         try {
             await notification_service_1.NotificationServices.createNotification({
                 userId: receiverId,
-                title: 'New Message',
-                content: `You have a new message: "${message.substring(0, 100)}..."`,
+                title: 'Nuevo Mensaje',
+                content: `Tienes un nuevo mensaje: "${message.substring(0, 100)}..."`,
                 type: notification_interface_1.NotificationType.NEW_MESSAGE,
                 channel: notification_interface_1.NotificationChannel.IN_APP,
                 priority: notification_interface_1.NotificationPriority.MEDIUM,
@@ -19,7 +19,7 @@ class NotificationIntegration {
                     messagePreview: message.substring(0, 100),
                 },
                 actionUrl: `${process.env.CLIENT_URL}/messages/${senderId}`,
-                actionText: 'View Message',
+                actionText: 'Ver Mensaje',
             });
         }
         catch (error) {
@@ -33,8 +33,8 @@ class NotificationIntegration {
                 return;
             await notification_service_1.NotificationServices.createNotification({
                 userId: user._id,
-                title: 'Password Reset Request',
-                content: `Use this code to reset your password: ${resetCode}`,
+                title: 'Solicitud de Restablecimiento de Contraseña',
+                content: `Usa este código para restablecer tu contraseña: ${resetCode}`,
                 type: notification_interface_1.NotificationType.PASSWORD_RESET,
                 channel: notification_interface_1.NotificationChannel.EMAIL,
                 priority: notification_interface_1.NotificationPriority.URGENT,
@@ -54,8 +54,8 @@ class NotificationIntegration {
                 return;
             await notification_service_1.NotificationServices.createNotification({
                 userId: user._id,
-                title: 'Verify Your Account',
-                content: 'Please verify your email address to complete your registration.',
+                title: 'Verifica tu Cuenta',
+                content: 'Por favor verifica tu dirección de correo electrónico para completar tu registro.',
                 type: notification_interface_1.NotificationType.ACCOUNT_VERIFICATION,
                 channel: notification_interface_1.NotificationChannel.EMAIL,
                 priority: notification_interface_1.NotificationPriority.HIGH,

@@ -65,7 +65,15 @@ const getAllAwardConfigs = async () => {
     await seedAwardConfigs();
     return await awardConfig_model_1.AwardConfig.find({}).populate('mapId').sort({ createdAt: 1 });
 };
+const autoTranslate_1 = require("../../utils/autoTranslate");
+const processAwardTranslations = async (payload) => {
+    if (payload.title)
+        payload.title = await (0, autoTranslate_1.autoTranslateField)(payload.title);
+    if (payload.description)
+        payload.description = await (0, autoTranslate_1.autoTranslateField)(payload.description);
+};
 const updateAwardConfig = async (id, payload) => {
+    await processAwardTranslations(payload);
     const result = await awardConfig_model_1.AwardConfig.findByIdAndUpdate(id, payload, {
         new: true,
         runValidators: true,
@@ -73,6 +81,7 @@ const updateAwardConfig = async (id, payload) => {
     return result;
 };
 const createAwardConfig = async (payload) => {
+    await processAwardTranslations(payload);
     const result = await awardConfig_model_1.AwardConfig.create(payload);
     return result;
 };

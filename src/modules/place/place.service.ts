@@ -7,6 +7,22 @@ import { Category } from '../category/category.model'
 import mongoose from 'mongoose'
 import { getCountryFromCoordinates } from '../../utils/reverseGeocoding'
 import { Business } from '../business/business.model'
+import { autoTranslateField } from '../../utils/autoTranslate'
+
+const processPlaceTranslations = async (payload: Partial<IPlace>) => {
+  if (payload.name) payload.name = await autoTranslateField(payload.name)
+  if (payload.description) payload.description = await autoTranslateField(payload.description)
+  if (payload.access) payload.access = await autoTranslateField(payload.access)
+  if (payload.entryCost) payload.entryCost = await autoTranslateField(payload.entryCost)
+  if (payload.hikeTime) payload.hikeTime = await autoTranslateField(payload.hikeTime)
+  if (payload.atmosphere) payload.atmosphere = await autoTranslateField(payload.atmosphere)
+  if (payload.accessibility?.notes) {
+    payload.accessibility.notes = await autoTranslateField(payload.accessibility.notes)
+  }
+  if (payload.recommendations?.tips) {
+    payload.recommendations.tips = await autoTranslateField(payload.recommendations.tips)
+  }
+}
 
 const escapeRegex = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -342,6 +358,7 @@ const updatePlace = async (
   id: string,
   payload: Partial<IPlace>,
 ): Promise<any | null> => {
+  await processPlaceTranslations(payload)
   const isExist = await Place.findById(id)
   if (!isExist) {
     // Fallback: Check and update Business collection

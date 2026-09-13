@@ -16,6 +16,7 @@ const user_model_1 = require("../user/user.model");
 const payment_model_1 = require("../payment/payment.model");
 const promo_model_1 = require("./promo.model");
 const server_1 = require("../../server");
+const localize_1 = require("../../helpers/localize");
 const verifyPromoCode = async (code, userMapId) => {
     const promoLink = await promo_model_1.PromoLink.findOne({ code });
     if (!promoLink) {
@@ -33,7 +34,7 @@ const verifyPromoCode = async (code, userMapId) => {
     if (mapId) {
         const map = await map_model_1.Map.findById(mapId).select('name');
         if (map) {
-            mapName = map.name;
+            mapName = (0, localize_1.localizeField)(map.name);
         }
     }
     return {

@@ -1,4 +1,5 @@
 import { Model, Types } from 'mongoose'
+import { TranslatableString } from '../../interfaces/i18n.interface'
 
 export type BusinessStatus = 'Pending' | 'Approved' | 'Rejected'
 export type DaySchedule = {
@@ -10,9 +11,9 @@ export type DaySchedule = {
 export interface IBusiness {
   _id: Types.ObjectId
   user: Types.ObjectId // The user who submitted the business
-  name: string
+  name: TranslatableString
   category: Types.ObjectId // Ref to Category
-  description: string
+  description: TranslatableString
   contact: {
     phone: string
     website?: string

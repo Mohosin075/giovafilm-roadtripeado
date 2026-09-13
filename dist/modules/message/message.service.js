@@ -29,8 +29,8 @@ const sendMessageToDB = async (payload) => {
         io.emit(`updateChatList::${payload === null || payload === void 0 ? void 0 : payload.sender}`);
         io.emit(`updateChatList::${payload === null || payload === void 0 ? void 0 : payload.receiver}`);
         const data = {
-            text: `${sender === null || sender === void 0 ? void 0 : sender.name} send you message.`,
-            title: 'Received Message',
+            text: `${sender === null || sender === void 0 ? void 0 : sender.name} te envió un mensaje.`,
+            title: 'Mensaje Recibido',
             link: payload === null || payload === void 0 ? void 0 : payload.chatId,
             direction: 'message',
             receiver: payload.receiver,

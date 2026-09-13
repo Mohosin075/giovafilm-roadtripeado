@@ -7,6 +7,7 @@ import { Business } from '../business/business.model'
 import { Payment } from '../payment/payment.model'
 import { UsageView } from './usageView.model'
 import mongoose from 'mongoose'
+import { localizeField } from '../../helpers/localize'
 import {
   IDashboardData,
   IRecentActivity,
@@ -223,7 +224,7 @@ const applySelectedEntity = async (
     return {
       mapIds: [],
       usagePlace: business
-        ? { name: business.name, count: (business as any).viewCount || 0 }
+        ? { name: localizeField(business.name), count: (business as any).viewCount || 0 }
         : undefined,
     }
   }
@@ -255,7 +256,7 @@ const applySelectedEntity = async (
       return {
         mapIds: [],
         usagePlace: business
-          ? { name: business.name, count: (business as any).viewCount || 0 }
+          ? { name: localizeField(business.name), count: (business as any).viewCount || 0 }
           : undefined,
       }
     } else {
@@ -482,7 +483,7 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
     ])
     const mapIds = mapAgg.map(r => new mongoose.Types.ObjectId(r._id))
     const maps = await Map.find({ _id: { $in: mapIds } }).select('name').lean()
-    const nameMap = new globalThis.Map<string, string>(maps.map(m => [m._id.toString(), m.name]))
+    const nameMap = new globalThis.Map<string, string>(maps.map(m => [m._id.toString(), localizeField(m.name)]))
     mostViewedMaps = mapAgg.map(r => ({
       name: nameMap.get(String(r._id)) || 'Unknown Map',
       count: r.count || 0,
@@ -493,7 +494,7 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
       .limit(5)
       .select('name viewCount')
     mostViewedMaps = mostViewedMapsRaw.map(m => ({
-      name: m.name,
+      name: localizeField(m.name),
       count: (m as any).viewCount || 0,
     }))
   }
@@ -517,7 +518,7 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
     ])
     const placeIds = placeAgg.map(r => new mongoose.Types.ObjectId(r._id))
     const places = await Place.find({ _id: { $in: placeIds } }).select('name').lean()
-    const nameMap = new globalThis.Map<string, string>(places.map(p => [p._id.toString(), p.name]))
+    const nameMap = new globalThis.Map<string, string>(places.map(p => [p._id.toString(), localizeField(p.name)]))
     mostOpenedPlaces = placeAgg.map(r => ({
       name: nameMap.get(String(r._id)) || 'Unknown Place',
       count: r.count || 0,
@@ -528,7 +529,7 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
       .limit(5)
       .select('name openCount')
     mostOpenedPlaces = mostOpenedPlacesRaw.map(p => ({
-      name: p.name,
+      name: localizeField(p.name),
       count: (p as any).openCount || 0,
     }))
   }
@@ -551,7 +552,7 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
       { $limit: 5 },
     ])
     const titleById = new globalThis.Map<string, string>(
-      scopedOffers.map((o: any) => [String(o._id), o.title]),
+      scopedOffers.map((o: any) => [String(o._id), localizeField(o.title)]),
     )
     const missingIds = redemptionAgg
       .map((r: any) => r._id)
@@ -560,7 +561,7 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
       const extra = await Offer.find({ _id: { $in: missingIds } })
         .select('_id title')
         .lean()
-      extra.forEach((o: any) => titleById.set(String(o._id), o.title))
+      extra.forEach((o: any) => titleById.set(String(o._id), localizeField(o.title)))
     }
     mostRedeemedOffers = redemptionAgg.map((r: any) => ({
       name: titleById.get(String(r._id)) || 'Unknown offer',
@@ -572,7 +573,7 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
       .limit(5)
       .select('title redemptionsCount')
     mostRedeemedOffers = mostRedeemedOffersRaw.map(o => ({
-      name: o.title,
+      name: localizeField(o.title),
       count: o.redemptionsCount || 0,
     }))
   }

@@ -102,7 +102,7 @@ class EmailProvider {
         return this.sendTemplateEmail(to, 'welcome', {
             userName,
             actionUrl: `${config_1.default.clientUrl}/dashboard`,
-            actionText: 'Go to Dashboard',
+            actionText: 'Ir al Panel de Control',
         });
     }
     async sendPasswordReset(to, resetCode, userName) {
@@ -111,7 +111,7 @@ class EmailProvider {
             resetCode,
             expiryMinutes: 30,
             actionUrl: `${config_1.default.clientUrl}/reset-password?code=${resetCode}`,
-            actionText: 'Reset Password',
+            actionText: 'Restablecer Contraseña',
         });
     }
     async sendAccountVerification(to, userName, verificationToken) {
@@ -120,7 +120,7 @@ class EmailProvider {
             userName,
             verificationUrl,
             actionUrl: verificationUrl,
-            actionText: 'Verify Account',
+            actionText: 'Verificar Cuenta',
         });
     }
 }

@@ -8,6 +8,7 @@ const http_status_codes_1 = require("http-status-codes");
 const catchAsync_1 = __importDefault(require("../../shared/catchAsync"));
 const sendResponse_1 = __importDefault(require("../../shared/sendResponse"));
 const category_service_1 = require("./category.service");
+const localize_1 = require("../../helpers/localize");
 const createCategory = (0, catchAsync_1.default)(async (req, res) => {
     const categoryData = { ...req.body };
     // Backward compatibility: support existing "images" field.
@@ -26,7 +27,7 @@ const createCategory = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.CREATED,
         success: true,
         message: 'Category created successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, ['name']),
     });
 });
 const getAllCategories = (0, catchAsync_1.default)(async (req, res) => {
@@ -36,7 +37,7 @@ const getAllCategories = (0, catchAsync_1.default)(async (req, res) => {
         success: true,
         message: 'Categories retrieved successfully',
         meta: result.meta,
-        data: result.data,
+        data: (0, localize_1.localizeDocument)(result.data, req.lang, ['name']),
     });
 });
 const getCategoryById = (0, catchAsync_1.default)(async (req, res) => {
@@ -53,7 +54,7 @@ const getCategoryById = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Category retrieved successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, ['name']),
     });
 });
 const updateCategory = (0, catchAsync_1.default)(async (req, res) => {
@@ -88,7 +89,7 @@ const updateCategory = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Category updated successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, ['name']),
     });
 });
 const deleteCategory = (0, catchAsync_1.default)(async (req, res) => {
@@ -105,7 +106,7 @@ const deleteCategory = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Category deleted successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, ['name']),
     });
 });
 exports.CategoryController = {

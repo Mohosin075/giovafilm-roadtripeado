@@ -8,11 +8,19 @@ import { offerSearchableFields } from './offer.constants'
 import { BOGO_SECOND_TYPE, DISCOUNT_TYPE, OFFER_STATUS } from '../../enum/offer'
 import { Business } from '../business/business.model'
 import { Place } from '../place/place.model'
+import { autoTranslateField } from '../../utils/autoTranslate'
+
+const processOfferTranslations = async (payload: Partial<IOffer>) => {
+  if (payload.title) payload.title = await autoTranslateField(payload.title)
+  if (payload.description) payload.description = await autoTranslateField(payload.description)
+  if (payload.buttonLabel) payload.buttonLabel = await autoTranslateField(payload.buttonLabel)
+}
 
 const escapeRegex = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 const createOffer = async (payload: IOffer): Promise<IOffer> => {
+  await processOfferTranslations(payload)
   if (payload.discountType === DISCOUNT_TYPE.BOGO && !payload.bogoSecondType) {
     payload.bogoSecondType = BOGO_SECOND_TYPE.FREE
   }
@@ -177,6 +185,7 @@ const updateOffer = async (
   if (!isExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Offer not found')
   }
+  await processOfferTranslations(payload)
 
   const targetStatus = payload.status || isExist.status
   const targetPlace = payload.place || isExist.place

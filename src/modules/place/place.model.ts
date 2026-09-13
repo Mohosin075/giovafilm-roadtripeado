@@ -44,12 +44,7 @@ const PlaceSchema = new Schema<IPlace, PlaceModel>(
     website: { type: String, default: "" },
     instagram: { type: String, default: "" },
     entryCost: { type: Schema.Types.Mixed },
-    difficulty: {
-      type: String,
-      enum: placeDifficulty,
-      default: 'Easy',
-      set: (v: string) => (v === '' ? undefined : v),
-    },
+    difficulty: { type: Schema.Types.Mixed },
     hikeTime: { type: Schema.Types.Mixed },
     atmosphere: { type: Schema.Types.Mixed },
     status: {

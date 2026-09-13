@@ -13,6 +13,7 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const reverseGeocoding_1 = require("../../utils/reverseGeocoding");
 const business_model_1 = require("../business/business.model");
 const autoTranslate_1 = require("../../utils/autoTranslate");
+const place_constants_1 = require("./place.constants");
 const processPlaceTranslations = async (payload) => {
     var _a, _b;
     if (payload.name)
@@ -23,6 +24,14 @@ const processPlaceTranslations = async (payload) => {
         payload.access = await (0, autoTranslate_1.autoTranslateField)(payload.access);
     if (payload.entryCost)
         payload.entryCost = await (0, autoTranslate_1.autoTranslateField)(payload.entryCost);
+    if (payload.difficulty) {
+        if (typeof payload.difficulty === 'string' && place_constants_1.difficultyMap[payload.difficulty]) {
+            payload.difficulty = place_constants_1.difficultyMap[payload.difficulty];
+        }
+        else {
+            payload.difficulty = await (0, autoTranslate_1.autoTranslateField)(payload.difficulty);
+        }
+    }
     if (payload.hikeTime)
         payload.hikeTime = await (0, autoTranslate_1.autoTranslateField)(payload.hikeTime);
     if (payload.atmosphere)
@@ -54,6 +63,7 @@ const createPlace = async (payload) => {
             payload.country = 'Unknown'; // Fallback
         }
     }
+    await processPlaceTranslations(payload);
     const session = await mongoose_1.default.startSession();
     try {
         session.startTransaction();

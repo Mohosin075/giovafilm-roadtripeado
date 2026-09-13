@@ -50,10 +50,7 @@ export const createPlaceZodSchema = z.object({
     website: z.string().optional(),
     instagram: z.string().optional(),
     entryCost: translatableSchema.optional(),
-    difficulty: z.preprocess(
-      (val) => (val === '' || val === null ? undefined : val),
-      z.enum(placeDifficulty as [string, ...string[]]).optional()
-    ),
+    difficulty: translatableSchema.optional(),
     hikeTime: translatableSchema.optional(),
     atmosphere: translatableSchema.optional(),
     status: z.enum(['Draft', 'Published']).default('Draft'),
@@ -105,10 +102,7 @@ export const updatePlaceZodSchema = z.object({
     website: z.string().optional(),
     instagram: z.string().optional(),
     entryCost: translatableSchema.optional(),
-    difficulty: z.preprocess(
-      (val) => (val === '' || val === null ? undefined : val),
-      z.enum(placeDifficulty as [string, ...string[]]).optional()
-    ),
+    difficulty: translatableSchema.optional(),
     hikeTime: translatableSchema.optional(),
     atmosphere: translatableSchema.optional(),
     status: z.enum(['Draft', 'Published']).optional(),

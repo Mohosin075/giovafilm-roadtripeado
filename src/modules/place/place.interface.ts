@@ -31,7 +31,7 @@ export interface IPlace {
   website?: string
   instagram?: string
   entryCost?: TranslatableString
-  difficulty?: 'Easy' | 'Moderate' | 'Hard'
+  difficulty?: TranslatableString
   hikeTime?: TranslatableString
   atmosphere?: TranslatableString
   status: 'Draft' | 'Published'

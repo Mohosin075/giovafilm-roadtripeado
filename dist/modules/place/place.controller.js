@@ -15,7 +15,7 @@ const mapHelper_1 = require("../../utils/mapHelper");
 const user_1 = require("../../enum/user");
 const media_1 = require("../../utils/media");
 const localize_1 = require("../../helpers/localize");
-const placeFields = ['name', 'description', 'access', 'entryCost', 'hikeTime', 'atmosphere', 'accessibility.notes', 'recommendations.tips', 'category.name'];
+const placeFields = ['name', 'description', 'access', 'entryCost', 'difficulty', 'hikeTime', 'atmosphere', 'accessibility.notes', 'recommendations.tips', 'category.name'];
 const createPlace = (0, catchAsync_1.default)(async (req, res) => {
     const user = await (0, mapAccessHelper_1.getUserFromToken)(req.headers.authorization);
     // A place must belong to a map, verify access

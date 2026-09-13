@@ -8,12 +8,20 @@ import mongoose from 'mongoose'
 import { getCountryFromCoordinates } from '../../utils/reverseGeocoding'
 import { Business } from '../business/business.model'
 import { autoTranslateField } from '../../utils/autoTranslate'
+import { difficultyMap } from './place.constants'
 
 const processPlaceTranslations = async (payload: Partial<IPlace>) => {
   if (payload.name) payload.name = await autoTranslateField(payload.name)
   if (payload.description) payload.description = await autoTranslateField(payload.description)
   if (payload.access) payload.access = await autoTranslateField(payload.access)
   if (payload.entryCost) payload.entryCost = await autoTranslateField(payload.entryCost)
+  if (payload.difficulty) {
+    if (typeof payload.difficulty === 'string' && difficultyMap[payload.difficulty]) {
+      payload.difficulty = difficultyMap[payload.difficulty]
+    } else {
+      payload.difficulty = await autoTranslateField(payload.difficulty)
+    }
+  }
   if (payload.hikeTime) payload.hikeTime = await autoTranslateField(payload.hikeTime)
   if (payload.atmosphere) payload.atmosphere = await autoTranslateField(payload.atmosphere)
   if (payload.accessibility?.notes) {
@@ -46,6 +54,8 @@ const createPlace = async (payload: IPlace): Promise<IPlace> => {
       payload.country = 'Unknown' // Fallback
     }
   }
+
+  await processPlaceTranslations(payload)
 
   const session = await mongoose.startSession()
   try {

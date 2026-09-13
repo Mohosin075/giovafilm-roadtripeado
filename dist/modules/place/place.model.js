@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Place = void 0;
 const mongoose_1 = require("mongoose");
-const place_constants_1 = require("./place.constants");
 const PlaceSchema = new mongoose_1.Schema({
     name: { type: mongoose_1.Schema.Types.Mixed, required: true },
     map: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Map', required: true },
@@ -44,12 +43,7 @@ const PlaceSchema = new mongoose_1.Schema({
     website: { type: String, default: "" },
     instagram: { type: String, default: "" },
     entryCost: { type: mongoose_1.Schema.Types.Mixed },
-    difficulty: {
-        type: String,
-        enum: place_constants_1.placeDifficulty,
-        default: 'Easy',
-        set: (v) => (v === '' ? undefined : v),
-    },
+    difficulty: { type: mongoose_1.Schema.Types.Mixed },
     hikeTime: { type: mongoose_1.Schema.Types.Mixed },
     atmosphere: { type: mongoose_1.Schema.Types.Mixed },
     status: {

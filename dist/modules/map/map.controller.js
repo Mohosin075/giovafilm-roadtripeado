@@ -141,7 +141,7 @@ const getDiscoveryData = (0, catchAsync_1.default)(async (req, res) => {
     const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id));
     const isAdminOrEditor = !!(user && (user.role === 'admin' || user.role === 'map_editor'));
     const result = await map_service_1.MapService.getDiscoveryData(req.query, lockedMapIds, isAdminOrEditor, targetMap);
-    const discoveryFields = ['name', 'description', 'access', 'entryCost', 'hikeTime', 'atmosphere', 'accessibility.notes', 'recommendations.tips', 'category.name'];
+    const discoveryFields = ['name', 'description', 'access', 'entryCost', 'difficulty', 'hikeTime', 'atmosphere', 'accessibility.notes', 'recommendations.tips', 'category.name'];
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,

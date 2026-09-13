@@ -1,6 +1,16 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.localizeDocument = exports.localizeField = void 0;
+const legacyDifficultyMap = {
+    easy: { en: 'Easy', es: 'Fácil' },
+    moderate: { en: 'Moderate', es: 'Moderado' },
+    hard: { en: 'Hard', es: 'Difícil' },
+    fácil: { en: 'Easy', es: 'Fácil' },
+    facil: { en: 'Easy', es: 'Fácil' },
+    moderado: { en: 'Moderate', es: 'Moderado' },
+    difícil: { en: 'Hard', es: 'Difícil' },
+    dificil: { en: 'Hard', es: 'Difícil' },
+};
 /**
  * Safely extracts a single localized string for the requested language ('en' | 'es').
  * Handles legacy string fields (backward compatibility), nulls, and fallback order.
@@ -8,9 +18,14 @@ exports.localizeDocument = exports.localizeField = void 0;
 const localizeField = (field, lang = 'es') => {
     if (field === null || field === undefined)
         return '';
-    // Legacy DB compatibility: if field is a plain string, return it directly
-    if (typeof field === 'string')
+    // Legacy DB compatibility: if field is a plain string
+    if (typeof field === 'string') {
+        const lower = field.trim().toLowerCase();
+        if (legacyDifficultyMap[lower]) {
+            return legacyDifficultyMap[lower][lang];
+        }
         return field;
+    }
     // If object { en, es }
     if (typeof field === 'object') {
         const primary = field[lang];

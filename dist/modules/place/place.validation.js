@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.updatePlaceZodSchema = exports.createPlaceZodSchema = void 0;
 const zod_1 = require("zod");
-const place_constants_1 = require("./place.constants");
 const translatableSchema = zod_1.z.union([
     zod_1.z.string(),
     zod_1.z.object({
@@ -51,7 +50,7 @@ exports.createPlaceZodSchema = zod_1.z.object({
         website: zod_1.z.string().optional(),
         instagram: zod_1.z.string().optional(),
         entryCost: translatableSchema.optional(),
-        difficulty: zod_1.z.preprocess((val) => (val === '' || val === null ? undefined : val), zod_1.z.enum(place_constants_1.placeDifficulty).optional()),
+        difficulty: translatableSchema.optional(),
         hikeTime: translatableSchema.optional(),
         atmosphere: translatableSchema.optional(),
         status: zod_1.z.enum(['Draft', 'Published']).default('Draft'),
@@ -102,7 +101,7 @@ exports.updatePlaceZodSchema = zod_1.z.object({
         website: zod_1.z.string().optional(),
         instagram: zod_1.z.string().optional(),
         entryCost: translatableSchema.optional(),
-        difficulty: zod_1.z.preprocess((val) => (val === '' || val === null ? undefined : val), zod_1.z.enum(place_constants_1.placeDifficulty).optional()),
+        difficulty: translatableSchema.optional(),
         hikeTime: translatableSchema.optional(),
         atmosphere: translatableSchema.optional(),
         status: zod_1.z.enum(['Draft', 'Published']).optional(),

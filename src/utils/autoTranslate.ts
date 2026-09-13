@@ -1,10 +1,85 @@
 import { translate } from '@vitalets/google-translate-api'
+import axios from 'axios'
 import { I18nString, TranslatableString } from '../interfaces/i18n.interface'
+
+/**
+ * Decodes standard HTML entities in translation responses
+ */
+const decodeHTMLEntities = (str: string): string => {
+  return str
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+}
+
+/**
+ * Robust multi-provider translation pipeline.
+ * Tries Google Translate API -> MyMemory API -> GTX Endpoint -> Original Text fallback.
+ */
+const translateWithFallback = async (
+  text: string,
+  sourceLang: 'en' | 'es',
+  targetLang: 'en' | 'es'
+): Promise<string> => {
+  if (!text || !text.trim()) return text
+
+  // 1. Try @vitalets/google-translate-api
+  try {
+    const res = await translate(text, { from: sourceLang, to: targetLang })
+    if (res?.text && res.text.trim() !== '') {
+      return res.text.trim()
+    }
+  } catch (error) {
+    // Suppress warning if secondary providers succeed
+  }
+
+  // 2. Try MyMemory Translation API
+  try {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${targetLang}`
+    const response = await axios.get(url, { timeout: 5000 })
+    const translatedText = response.data?.responseData?.translatedText
+    if (
+      translatedText &&
+      typeof translatedText === 'string' &&
+      !translatedText.startsWith('QUERY LENGTH LIMIT EXCEEDED') &&
+      !translatedText.startsWith('MYMEMORY WARNING') &&
+      !translatedText.includes('IS AN INVALID TARGET LANGUAGE')
+    ) {
+      return decodeHTMLEntities(translatedText.trim())
+    }
+  } catch (error) {
+    // MyMemory failed
+  }
+
+  // 3. Try Google Translate Web Client Fallback (GTX endpoint with custom User-Agent)
+  try {
+    const gtxUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`
+    const gtxRes = await axios.get(gtxUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+      timeout: 5000,
+    })
+    if (gtxRes.data && Array.isArray(gtxRes.data[0])) {
+      const translatedParts = gtxRes.data[0].map((part: any) => part[0]).join('')
+      if (translatedParts) return translatedParts.trim()
+    }
+  } catch (error) {
+    // GTX fallback failed
+  }
+
+  console.warn(`[AutoTranslate] All translation providers failed for text: "${text.slice(0, 30)}..."`)
+  return text
+}
 
 /**
  * Ensures a field is converted to { en, es }.
  * If only one language is provided or a legacy string is passed,
- * auto-translates to the missing language via @vitalets/google-translate-api.
+ * auto-translates to the missing language via multi-provider translation pipeline.
  */
 export const autoTranslateField = async (
   input: TranslatableString | undefined | null,
@@ -14,7 +89,7 @@ export const autoTranslateField = async (
     return { en: '', es: '' }
   }
 
-  // If already an object containing both en and es, return as-is
+  // If already an object containing both en and es, return as-is or translate missing side
   if (typeof input === 'object' && input !== null) {
     const enVal = (input.en || '').trim()
     const esVal = (input.es || '').trim()
@@ -24,11 +99,13 @@ export const autoTranslateField = async (
     }
 
     if (esVal && !enVal) {
-      return await autoTranslateField(esVal, 'es')
+      const translated = await translateWithFallback(esVal, 'es', 'en')
+      return { es: esVal, en: translated }
     }
 
     if (enVal && !esVal) {
-      return await autoTranslateField(enVal, 'en')
+      const translated = await translateWithFallback(enVal, 'en', 'es')
+      return { en: enVal, es: translated }
     }
   }
 
@@ -38,20 +115,11 @@ export const autoTranslateField = async (
   }
 
   const targetLang = sourceLang === 'es' ? 'en' : 'es'
+  const translated = await translateWithFallback(text, sourceLang, targetLang)
 
-  try {
-    const res = await translate(text, { from: sourceLang, to: targetLang })
-    const translatedText = res.text || text
-    return {
-      [sourceLang]: text,
-      [targetLang]: translatedText,
-    } as unknown as I18nString
-  } catch (error) {
-    // Fail-safe: log warning silently and fallback to using original text for both
-    console.warn(`[AutoTranslate] Fallback used for text: "${text.slice(0, 30)}..." due to error:`, error)
-    return {
-      en: text,
-      es: text,
-    }
-  }
+  return {
+    [sourceLang]: text,
+    [targetLang]: translated,
+  } as unknown as I18nString
 }
+

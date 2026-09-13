@@ -9,6 +9,8 @@ const catchAsync_1 = __importDefault(require("../../shared/catchAsync"));
 const sendResponse_1 = __importDefault(require("../../shared/sendResponse"));
 const subscription_service_1 = require("./subscription.service");
 const webhook_service_1 = require("./webhook.service");
+const localize_1 = require("../../helpers/localize");
+const planFields = ['name', 'description', 'features'];
 // Get available subscription plans
 const getAvailablePlans = (0, catchAsync_1.default)(async (req, res) => {
     const plans = await subscription_service_1.subscriptionService.getAvailablePlans();
@@ -16,7 +18,7 @@ const getAvailablePlans = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Subscription plans retrieved successfully',
-        data: plans,
+        data: (0, localize_1.localizeDocument)(plans, req.lang, planFields),
     });
 });
 // Get specific plan by ID
@@ -27,7 +29,7 @@ const getPlanById = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Subscription plan retrieved successfully',
-        data: plan,
+        data: (0, localize_1.localizeDocument)(plan, req.lang, planFields),
     });
 });
 // Check trial eligibility
@@ -170,7 +172,7 @@ const createSubscriptionPlan = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.CREATED,
         success: true,
         message: 'Subscription plan created successfully',
-        data: plan,
+        data: (0, localize_1.localizeDocument)(plan, req.lang, planFields),
     });
 });
 // Admin: Update subscription plan
@@ -181,7 +183,7 @@ const updateSubscriptionPlan = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Subscription plan updated successfully',
-        data: plan,
+        data: (0, localize_1.localizeDocument)(plan, req.lang, planFields),
     });
 });
 // Admin: Delete subscription plan (soft delete)
@@ -203,7 +205,7 @@ const getAllPlans = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'All subscription plans retrieved successfully',
-        data: plans,
+        data: (0, localize_1.localizeDocument)(plans, req.lang, planFields),
     });
 });
 // Admin: Get all user subscriptions

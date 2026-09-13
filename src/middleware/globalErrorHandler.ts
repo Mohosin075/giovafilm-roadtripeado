@@ -7,6 +7,7 @@ import handleZodError from '../errors/handleZodError'
 import handleCastError from '../errors/handleCastError'
 import handleValidationError from '../errors/handleValidationError'
 import ApiError from '../errors/ApiError'
+import { translateMessage } from '../helpers/translateMessage'
 
 const globalErrorHandler: ErrorRequestHandler = (
   error,
@@ -50,10 +51,17 @@ const globalErrorHandler: ErrorRequestHandler = (
     errorMessages = error.message ? [{ path: '', message: error.message }] : []
   }
 
+  const lang = req.lang || 'es'
+  const localizedMessage = translateMessage(message, lang)
+  const localizedErrorMessages = errorMessages.map(err => ({
+    ...err,
+    message: translateMessage(err.message, lang),
+  }))
+
   res.status(statusCode).json({
     success: false,
-    message,
-    errorMessages,
+    message: localizedMessage,
+    errorMessages: localizedErrorMessages,
     stack: config.node_env === 'production' ? undefined : error?.stack,
   })
 }

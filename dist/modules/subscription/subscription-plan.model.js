@@ -4,12 +4,11 @@ exports.SubscriptionPlan = void 0;
 const mongoose_1 = require("mongoose");
 const subscriptionPlanSchema = new mongoose_1.Schema({
     name: {
-        type: String,
+        type: mongoose_1.Schema.Types.Mixed,
         required: true,
-        unique: true,
     },
     description: {
-        type: String,
+        type: mongoose_1.Schema.Types.Mixed,
         required: true,
     },
     price: {
@@ -37,12 +36,10 @@ const subscriptionPlanSchema = new mongoose_1.Schema({
         default: 10,
         min: 0,
     },
-    features: [
-        {
-            type: String,
-            required: true,
-        },
-    ],
+    features: {
+        type: [mongoose_1.Schema.Types.Mixed],
+        default: [],
+    },
     maxPhotos: {
         type: Number,
         default: 1,

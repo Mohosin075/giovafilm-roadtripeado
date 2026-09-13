@@ -2,17 +2,18 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.subscriptionValidation = exports.createBillingPortalSchema = exports.applyCouponSchema = exports.attachPaymentMethodSchema = exports.subscriptionAnalyticsSchema = exports.bulkUpdatePlansSchema = exports.checkTrialEligibilitySchema = exports.webhookHeaderSchema = exports.planParamsSchema = exports.subscriptionParamsSchema = exports.getPlansQuerySchema = exports.verifyCheckoutSessionSchema = exports.createCheckoutSessionSchema = exports.updateSubscriptionSchema = exports.createSubscriptionSchema = exports.updateSubscriptionPlanSchema = exports.createSubscriptionPlanSchema = void 0;
 const zod_1 = require("zod");
+const translatableSchema = zod_1.z.union([
+    zod_1.z.string(),
+    zod_1.z.object({
+        en: zod_1.z.string().optional(),
+        es: zod_1.z.string().optional(),
+    }),
+]);
 // Subscription Plan Validation
 exports.createSubscriptionPlanSchema = zod_1.z.object({
     body: zod_1.z.object({
-        name: zod_1.z
-            .string()
-            .min(1, 'Plan name is required')
-            .max(100, 'Plan name too long'),
-        description: zod_1.z
-            .string()
-            .min(1, 'Description is required')
-            .max(500, 'Description too long'),
+        name: translatableSchema,
+        description: translatableSchema,
         price: zod_1.z.number().min(0, 'Price must be non-negative'),
         currency: zod_1.z
             .string()
@@ -30,7 +31,7 @@ exports.createSubscriptionPlanSchema = zod_1.z.object({
             .min(0, 'Trial period must be non-negative')
             .default(10),
         features: zod_1.z
-            .array(zod_1.z.string().min(1, 'Feature cannot be empty'))
+            .array(translatableSchema)
             .min(1, 'At least one feature is required'),
         maxPhotos: zod_1.z.number().min(1, 'Max photos must be at least 1').optional(),
         priority: zod_1.z.number().optional(),
@@ -38,16 +39,8 @@ exports.createSubscriptionPlanSchema = zod_1.z.object({
 });
 exports.updateSubscriptionPlanSchema = zod_1.z.object({
     body: zod_1.z.object({
-        name: zod_1.z
-            .string()
-            .min(1, 'Plan name is required')
-            .max(100, 'Plan name too long')
-            .optional(),
-        description: zod_1.z
-            .string()
-            .min(1, 'Description is required')
-            .max(500, 'Description too long')
-            .optional(),
+        name: translatableSchema.optional(),
+        description: translatableSchema.optional(),
         price: zod_1.z.number().min(0, 'Price must be non-negative').optional(),
         currency: zod_1.z
             .string()
@@ -65,7 +58,7 @@ exports.updateSubscriptionPlanSchema = zod_1.z.object({
             .min(0, 'Trial period must be non-negative')
             .optional(),
         features: zod_1.z
-            .array(zod_1.z.string().min(1, 'Feature cannot be empty'))
+            .array(translatableSchema)
             .min(1, 'At least one feature is required')
             .optional(),
         isActive: zod_1.z.boolean().optional(),

@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.localizeDocument = exports.localizeField = void 0;
-const legacyDifficultyMap = {
+const knownValuesMap = {
+    // Difficulty
     easy: { en: 'Easy', es: 'Fácil' },
     moderate: { en: 'Moderate', es: 'Moderado' },
     hard: { en: 'Hard', es: 'Difícil' },
@@ -10,6 +11,26 @@ const legacyDifficultyMap = {
     moderado: { en: 'Moderate', es: 'Moderado' },
     difícil: { en: 'Hard', es: 'Difícil' },
     dificil: { en: 'Hard', es: 'Difícil' },
+    // Place Services
+    'family friendly': { en: 'Family Friendly', es: 'Familiar' },
+    'familiar': { en: 'Family Friendly', es: 'Familiar' },
+    'apto para familias': { en: 'Family Friendly', es: 'Familiar' },
+    'food nearby': { en: 'Food Nearby', es: 'Comida cercana' },
+    'comida cercana': { en: 'Food Nearby', es: 'Comida cercana' },
+    'guided tour': { en: 'Guided Tour', es: 'Visitas guiadas' },
+    'visitas guiadas': { en: 'Guided Tour', es: 'Visitas guiadas' },
+    'visita guiada': { en: 'Guided Tour', es: 'Visitas guiadas' },
+    'parking': { en: 'Parking', es: 'Estacionamiento' },
+    'estacionamiento': { en: 'Parking', es: 'Estacionamiento' },
+    'pet friendly': { en: 'Pet Friendly', es: 'Se admiten mascotas' },
+    'se admiten mascotas': { en: 'Pet Friendly', es: 'Se admiten mascotas' },
+    'restrooms': { en: 'Restrooms', es: 'Baños' },
+    'baños': { en: 'Restrooms', es: 'Baños' },
+    'banos': { en: 'Restrooms', es: 'Baños' },
+    'wifi': { en: 'Wifi', es: 'Wifi' },
+    // Schedules
+    'always open': { en: 'Always open', es: 'Siempre abierto' },
+    'siempre abierto': { en: 'Always open', es: 'Siempre abierto' },
 };
 /**
  * Safely extracts a single localized string for the requested language ('en' | 'es').
@@ -18,11 +39,11 @@ const legacyDifficultyMap = {
 const localizeField = (field, lang = 'es') => {
     if (field === null || field === undefined)
         return '';
-    // Legacy DB compatibility: if field is a plain string
+    // Legacy DB compatibility & known translation dictionary
     if (typeof field === 'string') {
         const lower = field.trim().toLowerCase();
-        if (legacyDifficultyMap[lower]) {
-            return legacyDifficultyMap[lower][lang];
+        if (knownValuesMap[lower]) {
+            return knownValuesMap[lower][lang];
         }
         return field;
     }

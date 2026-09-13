@@ -5,6 +5,9 @@ const emailHelper_1 = require("../../helpers/emailHelper");
 const emailTemplate_1 = require("../../shared/emailTemplate");
 const user_model_1 = require("../user/user.model");
 const subscription_plan_model_1 = require("./subscription-plan.model");
+const localize_1 = require("../../helpers/localize");
+const toText = (val) => (0, localize_1.localizeField)(val, 'es');
+const toFeatures = (list) => (Array.isArray(list) ? list.map((item) => (0, localize_1.localizeField)(item, 'es')) : []);
 class EmailNotificationService {
     // Send welcome email when subscription is created
     async sendSubscriptionWelcomeEmail(subscription, plan, isTrialing = false) {
@@ -17,13 +20,13 @@ class EmailNotificationService {
             const emailData = emailTemplate_1.emailTemplate.subscriptionWelcome({
                 name: user.name || 'Valued Customer',
                 email: user.email,
-                planName: plan.name,
+                planName: toText(plan.name),
                 planPrice: plan.price,
                 planInterval: plan.interval,
                 isTrialing,
                 trialDays: plan.trialPeriodDays,
                 trialEndDate: subscription.trialEnd || undefined,
-                features: plan.features,
+                features: toFeatures(plan.features),
                 dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`,
             });
             await emailHelper_1.emailHelper.sendEmail(emailData);
@@ -42,7 +45,7 @@ class EmailNotificationService {
             const emailData = emailTemplate_1.emailTemplate.trialEnding({
                 name: user.name || 'Valued Customer',
                 email: user.email,
-                planName: plan.name,
+                planName: toText(plan.name),
                 daysLeft,
                 trialEndDate: subscription.trialEnd,
                 planPrice: plan.price,
@@ -89,7 +92,7 @@ class EmailNotificationService {
                 return;
             // Try to get plan name
             const plan = await subscription_plan_model_1.SubscriptionPlan.findById(subscription.planId);
-            const planName = plan ? plan.name : 'Your Plan';
+            const planName = plan ? toText(plan.name) : 'Your Plan';
             const emailData = emailTemplate_1.emailTemplate.paymentFailed({
                 name: user.name || 'Valued Customer',
                 email: user.email,
@@ -118,7 +121,7 @@ class EmailNotificationService {
             const emailData = emailTemplate_1.emailTemplate.subscriptionCanceled({
                 name: user.name || 'Valued Customer',
                 email: user.email,
-                planName: plan.name,
+                planName: toText(plan.name),
                 canceledAt,
                 accessUntil: subscription.currentPeriodEnd,
                 feedbackUrl: `${process.env.FRONTEND_URL}/feedback`,
@@ -142,7 +145,7 @@ class EmailNotificationService {
             const emailData = emailTemplate_1.emailTemplate.planChange({
                 name: user.name || 'Valued Customer',
                 email: user.email,
-                newPlanName: newPlan.name,
+                newPlanName: toText(newPlan.name),
                 newPlanPrice: newPlan.price,
                 planInterval: newPlan.interval,
                 isUpgrade,
@@ -150,7 +153,7 @@ class EmailNotificationService {
                 prorationNote: isUpgrade
                     ? `You've been charged $${priceDifference.toFixed(2)} for the remaining billing period.`
                     : `You'll receive a $${priceDifference.toFixed(2)} credit on your next invoice.`,
-                features: newPlan.features,
+                features: toFeatures(newPlan.features),
                 dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`,
                 billingUrl: `${process.env.FRONTEND_URL}/billing`,
             });

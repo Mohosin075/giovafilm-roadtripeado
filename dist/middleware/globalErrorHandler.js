@@ -9,6 +9,7 @@ const handleZodError_1 = __importDefault(require("../errors/handleZodError"));
 const handleCastError_1 = __importDefault(require("../errors/handleCastError"));
 const handleValidationError_1 = __importDefault(require("../errors/handleValidationError"));
 const ApiError_1 = __importDefault(require("../errors/ApiError"));
+const translateMessage_1 = require("../helpers/translateMessage");
 const globalErrorHandler = (error, req, res, next) => {
     var _a, _b;
     // Safe logging
@@ -45,10 +46,16 @@ const globalErrorHandler = (error, req, res, next) => {
         message = error.message || message;
         errorMessages = error.message ? [{ path: '', message: error.message }] : [];
     }
+    const lang = req.lang || 'es';
+    const localizedMessage = (0, translateMessage_1.translateMessage)(message, lang);
+    const localizedErrorMessages = errorMessages.map(err => ({
+        ...err,
+        message: (0, translateMessage_1.translateMessage)(err.message, lang),
+    }));
     res.status(statusCode).json({
         success: false,
-        message,
-        errorMessages,
+        message: localizedMessage,
+        errorMessages: localizedErrorMessages,
         stack: config_1.default.node_env === 'production' ? undefined : error === null || error === void 0 ? void 0 : error.stack,
     });
 };

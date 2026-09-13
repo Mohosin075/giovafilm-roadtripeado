@@ -10,12 +10,11 @@ const subscriptionPlanSchema = new Schema<
 >(
   {
     name: {
-      type: String,
+      type: Schema.Types.Mixed,
       required: true,
-      unique: true,
     },
     description: {
-      type: String,
+      type: Schema.Types.Mixed,
       required: true,
     },
     price: {
@@ -43,12 +42,10 @@ const subscriptionPlanSchema = new Schema<
       default: 10,
       min: 0,
     },
-    features: [
-      {
-        type: String,
-        required: true,
-      },
-    ],
+    features: {
+      type: [Schema.Types.Mixed],
+      default: [],
+    },
     maxPhotos: {
       type: Number,
       default: 1,

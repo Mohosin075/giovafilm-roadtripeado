@@ -1,16 +1,17 @@
 import { Model, Types } from 'mongoose'
+import { TranslatableString } from '../../interfaces/i18n.interface'
 
 // Subscription Plan Interface
 export interface ISubscriptionPlan {
   _id?: Types.ObjectId
-  name: string
-  description: string
+  name: TranslatableString
+  description: TranslatableString
   price: number
   currency: string
   interval: 'month' | 'year'
   intervalCount: number
   trialPeriodDays: number
-  features: string[]
+  features: TranslatableString[] | string[]
   maxPhotos: number
   isActive: boolean
   stripePriceId: string

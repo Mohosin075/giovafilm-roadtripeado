@@ -47,6 +47,16 @@ const subscription_plan_model_1 = require("./subscription-plan.model");
 const email_notification_service_1 = require("./email-notification.service");
 const QueryBuilder_1 = __importDefault(require("../../builder/QueryBuilder"));
 const business_model_1 = require("../business/business.model");
+const autoTranslate_1 = require("../../utils/autoTranslate");
+const processPlanTranslations = async (payload) => {
+    if (payload.name)
+        payload.name = await (0, autoTranslate_1.autoTranslateField)(payload.name);
+    if (payload.description)
+        payload.description = await (0, autoTranslate_1.autoTranslateField)(payload.description);
+    if (payload.features && Array.isArray(payload.features)) {
+        payload.features = await Promise.all(payload.features.map((f) => (0, autoTranslate_1.autoTranslateField)(f)));
+    }
+};
 class SubscriptionService {
     // Get all available subscription plans
     async getAvailablePlans() {
@@ -689,20 +699,34 @@ class SubscriptionService {
     }
     // Admin: Create subscription plan
     async createSubscriptionPlan(planData) {
-        var _a, _b;
+        var _a, _b, _c, _d, _e, _f, _g, _h;
         try {
+            const rawName = typeof planData.name === 'string'
+                ? planData.name
+                : ((_a = planData.name) === null || _a === void 0 ? void 0 : _a.en) || ((_b = planData.name) === null || _b === void 0 ? void 0 : _b.es) || '';
             const existingPlan = await subscription_plan_model_1.SubscriptionPlan.findOne({
-                name: { $regex: `^${planData.name.trim()}$`, $options: 'i' },
+                $or: [
+                    { 'name.en': rawName },
+                    { 'name.es': rawName },
+                    { name: rawName },
+                ],
             });
             if (existingPlan) {
-                throw new ApiError_1.default(http_status_codes_1.StatusCodes.CONFLICT, `Subscription plan "${planData.name}" already exists`);
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.CONFLICT, `Subscription plan "${rawName}" already exists`);
             }
-            const maxPhotos = (_a = planData.maxPhotos) !== null && _a !== void 0 ? _a : 1;
-            const priority = (_b = planData.priority) !== null && _b !== void 0 ? _b : 0;
+            await processPlanTranslations(planData);
+            const maxPhotos = (_c = planData.maxPhotos) !== null && _c !== void 0 ? _c : 1;
+            const priority = (_d = planData.priority) !== null && _d !== void 0 ? _d : 0;
+            const stripeName = typeof planData.name === 'string'
+                ? planData.name
+                : ((_e = planData.name) === null || _e === void 0 ? void 0 : _e.en) || ((_f = planData.name) === null || _f === void 0 ? void 0 : _f.es) || '';
+            const stripeDesc = typeof planData.description === 'string'
+                ? planData.description
+                : ((_g = planData.description) === null || _g === void 0 ? void 0 : _g.en) || ((_h = planData.description) === null || _h === void 0 ? void 0 : _h.es) || '';
             // Create Stripe product
             const stripeProduct = await stripe_service_1.stripeService.createProduct({
-                name: planData.name,
-                description: planData.description,
+                name: stripeName,
+                description: stripeDesc,
                 metadata: {
                     maxPhotos: maxPhotos.toString(),
                 },
@@ -715,7 +739,7 @@ class SubscriptionService {
                 interval: planData.interval,
                 intervalCount: planData.intervalCount,
                 metadata: {
-                    planName: planData.name,
+                    planName: stripeName,
                 },
             });
             // Create local plan
@@ -739,16 +763,24 @@ class SubscriptionService {
     }
     // Admin: Update subscription plan
     async updateSubscriptionPlan(planId, updateData) {
+        var _a, _b, _c, _d;
         try {
             const plan = await subscription_plan_model_1.SubscriptionPlan.findById(planId);
             if (!plan) {
                 throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Subscription plan not found');
             }
+            await processPlanTranslations(updateData);
             // Update Stripe product if name or description changed
             if (updateData.name || updateData.description) {
+                const stripeName = updateData.name
+                    ? (typeof updateData.name === 'string' ? updateData.name : updateData.name.en || updateData.name.es)
+                    : (typeof plan.name === 'string' ? plan.name : ((_a = plan.name) === null || _a === void 0 ? void 0 : _a.en) || ((_b = plan.name) === null || _b === void 0 ? void 0 : _b.es));
+                const stripeDesc = updateData.description
+                    ? (typeof updateData.description === 'string' ? updateData.description : updateData.description.en || updateData.description.es)
+                    : (typeof plan.description === 'string' ? plan.description : ((_c = plan.description) === null || _c === void 0 ? void 0 : _c.en) || ((_d = plan.description) === null || _d === void 0 ? void 0 : _d.es));
                 await stripe_service_1.stripeService.updateProduct(plan.stripeProductId, {
-                    name: updateData.name || plan.name,
-                    description: updateData.description || plan.description,
+                    name: stripeName,
+                    description: stripeDesc,
                 });
             }
             // Create new Stripe price if price or interval changed
@@ -993,7 +1025,8 @@ class SubscriptionService {
     }
     // Helper method to determine subscription tier
     getSubscriptionTier(planName) {
-        const name = planName.toLowerCase();
+        const raw = typeof planName === 'string' ? planName : (planName === null || planName === void 0 ? void 0 : planName.en) || (planName === null || planName === void 0 ? void 0 : planName.es) || '';
+        const name = raw.toLowerCase();
         if (name.includes('enterprise') || name.includes('pro')) {
             return 'premium';
         }

@@ -11,7 +11,7 @@ import { USER_ROLES } from '../../enum/user'
 import { toStringArray } from '../../utils/media'
 import { localizeDocument } from '../../helpers/localize'
 
-const placeFields = ['name', 'description', 'access', 'entryCost', 'difficulty', 'hikeTime', 'atmosphere', 'accessibility.notes', 'recommendations.tips', 'category.name']
+const placeFields = ['name', 'description', 'access', 'entryCost', 'difficulty', 'hikeTime', 'atmosphere', 'services', 'schedules', 'accessibility.notes', 'recommendations.tips', 'category.name']
 
 const createPlace = catchAsync(async (req: Request, res: Response) => {
   const user = await getUserFromToken(req.headers.authorization)

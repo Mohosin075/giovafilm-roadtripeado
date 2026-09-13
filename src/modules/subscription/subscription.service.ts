@@ -17,6 +17,17 @@ import {
 import { emailNotificationService } from './email-notification.service'
 import QueryBuilder from '../../builder/QueryBuilder'
 import { Business } from '../business/business.model'
+import { autoTranslateField } from '../../utils/autoTranslate'
+
+const processPlanTranslations = async (payload: any) => {
+  if (payload.name) payload.name = await autoTranslateField(payload.name)
+  if (payload.description) payload.description = await autoTranslateField(payload.description)
+  if (payload.features && Array.isArray(payload.features)) {
+    payload.features = await Promise.all(
+      payload.features.map((f: any) => autoTranslateField(f))
+    )
+  }
+}
 
 class SubscriptionService {
   // Get all available subscription plans
@@ -925,23 +936,43 @@ class SubscriptionService {
       Partial<Pick<ISubscriptionPlan, 'maxPhotos' | 'priority'>>,
   ): Promise<ISubscriptionPlan> {
     try {
+      const rawName =
+        typeof planData.name === 'string'
+          ? planData.name
+          : (planData.name as any)?.en || (planData.name as any)?.es || ''
+
       const existingPlan = await SubscriptionPlan.findOne({
-        name: { $regex: `^${planData.name.trim()}$`, $options: 'i' },
+        $or: [
+          { 'name.en': rawName },
+          { 'name.es': rawName },
+          { name: rawName },
+        ],
       })
       if (existingPlan) {
         throw new ApiError(
           StatusCodes.CONFLICT,
-          `Subscription plan "${planData.name}" already exists`,
+          `Subscription plan "${rawName}" already exists`,
         )
       }
+
+      await processPlanTranslations(planData)
 
       const maxPhotos = planData.maxPhotos ?? 1
       const priority = planData.priority ?? 0
 
+      const stripeName =
+        typeof planData.name === 'string'
+          ? planData.name
+          : (planData.name as any)?.en || (planData.name as any)?.es || ''
+      const stripeDesc =
+        typeof planData.description === 'string'
+          ? planData.description
+          : (planData.description as any)?.en || (planData.description as any)?.es || ''
+
       // Create Stripe product
       const stripeProduct = await stripeService.createProduct({
-        name: planData.name,
-        description: planData.description,
+        name: stripeName,
+        description: stripeDesc,
         metadata: {
           maxPhotos: maxPhotos.toString(),
         },
@@ -955,7 +986,7 @@ class SubscriptionService {
         interval: planData.interval,
         intervalCount: planData.intervalCount,
         metadata: {
-          planName: planData.name,
+          planName: stripeName,
         },
       })
 
@@ -993,11 +1024,20 @@ class SubscriptionService {
         throw new ApiError(StatusCodes.NOT_FOUND, 'Subscription plan not found')
       }
 
+      await processPlanTranslations(updateData)
+
       // Update Stripe product if name or description changed
       if (updateData.name || updateData.description) {
+        const stripeName = updateData.name
+          ? (typeof updateData.name === 'string' ? updateData.name : (updateData.name as any).en || (updateData.name as any).es)
+          : (typeof plan.name === 'string' ? plan.name : (plan.name as any)?.en || (plan.name as any)?.es)
+        const stripeDesc = updateData.description
+          ? (typeof updateData.description === 'string' ? updateData.description : (updateData.description as any).en || (updateData.description as any).es)
+          : (typeof plan.description === 'string' ? plan.description : (plan.description as any)?.en || (plan.description as any)?.es)
+
         await stripeService.updateProduct(plan.stripeProductId, {
-          name: updateData.name || plan.name,
-          description: updateData.description || plan.description,
+          name: stripeName,
+          description: stripeDesc,
         })
       }
 
@@ -1336,8 +1376,9 @@ class SubscriptionService {
   }
 
   // Helper method to determine subscription tier
-  private getSubscriptionTier(planName: string): string {
-    const name = planName.toLowerCase()
+  private getSubscriptionTier(planName: any): string {
+    const raw = typeof planName === 'string' ? planName : planName?.en || planName?.es || ''
+    const name = raw.toLowerCase()
     if (name.includes('enterprise') || name.includes('pro')) {
       return 'premium'
     } else if (name.includes('basic') || name.includes('starter')) {

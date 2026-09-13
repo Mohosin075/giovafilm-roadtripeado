@@ -6,6 +6,9 @@ import { subscriptionService } from './subscription.service'
 import { webhookService } from './webhook.service'
 import { IUser } from '../user/user.interface'
 import { JwtPayload } from 'jsonwebtoken'
+import { localizeDocument } from '../../helpers/localize'
+
+const planFields = ['name', 'description', 'features']
 
 // Get available subscription plans
 const getAvailablePlans = catchAsync(async (req: Request, res: Response) => {
@@ -15,7 +18,7 @@ const getAvailablePlans = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Subscription plans retrieved successfully',
-    data: plans,
+    data: localizeDocument(plans, req.lang, planFields),
   })
 })
 
@@ -29,7 +32,7 @@ const getPlanById = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Subscription plan retrieved successfully',
-    data: plan,
+    data: localizeDocument(plan, req.lang, planFields),
   })
 })
 
@@ -226,7 +229,7 @@ const createSubscriptionPlan = catchAsync(
       statusCode: StatusCodes.CREATED,
       success: true,
       message: 'Subscription plan created successfully',
-      data: plan,
+      data: localizeDocument(plan, req.lang, planFields),
     })
   },
 )
@@ -245,7 +248,7 @@ const updateSubscriptionPlan = catchAsync(
       statusCode: StatusCodes.OK,
       success: true,
       message: 'Subscription plan updated successfully',
-      data: plan,
+      data: localizeDocument(plan, req.lang, planFields),
     })
   },
 )
@@ -275,7 +278,7 @@ const getAllPlans = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'All subscription plans retrieved successfully',
-    data: plans,
+    data: localizeDocument(plans, req.lang, planFields),
   })
 })
 

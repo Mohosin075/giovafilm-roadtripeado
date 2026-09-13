@@ -166,7 +166,7 @@ const getDiscoveryData = catchAsync(async (req: Request, res: Response) => {
   const isAdminOrEditor = !!(user && (user.role === 'admin' || user.role === 'map_editor'))
   const result = await MapService.getDiscoveryData(req.query, lockedMapIds, isAdminOrEditor, targetMap)
 
-  const discoveryFields = ['name', 'description', 'access', 'entryCost', 'difficulty', 'hikeTime', 'atmosphere', 'accessibility.notes', 'recommendations.tips', 'category.name']
+  const discoveryFields = ['name', 'description', 'access', 'entryCost', 'difficulty', 'hikeTime', 'atmosphere', 'services', 'schedules', 'accessibility.notes', 'recommendations.tips', 'category.name']
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,

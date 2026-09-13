@@ -4,6 +4,10 @@ import { User } from '../user/user.model'
 import { SubscriptionPlan } from './subscription-plan.model'
 import { ISubscription, ISubscriptionPlan } from './subscription.interface'
 import Stripe from 'stripe'
+import { localizeField } from '../../helpers/localize'
+
+const toText = (val: any): string => localizeField(val, 'es')
+const toFeatures = (list: any): string[] => (Array.isArray(list) ? list.map((item: any) => localizeField(item, 'es')) : [])
 
 class EmailNotificationService {
   // Send welcome email when subscription is created
@@ -22,13 +26,13 @@ class EmailNotificationService {
       const emailData = emailTemplate.subscriptionWelcome({
         name: user.name || 'Valued Customer',
         email: user.email,
-        planName: plan.name,
+        planName: toText(plan.name),
         planPrice: plan.price,
         planInterval: plan.interval,
         isTrialing,
         trialDays: plan.trialPeriodDays,
         trialEndDate: subscription.trialEnd || undefined,
-        features: plan.features,
+        features: toFeatures(plan.features),
         dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`,
       })
 
@@ -52,7 +56,7 @@ class EmailNotificationService {
       const emailData = emailTemplate.trialEnding({
         name: user.name || 'Valued Customer',
         email: user.email,
-        planName: plan.name,
+        planName: toText(plan.name),
         daysLeft,
         trialEndDate: subscription.trialEnd!,
         planPrice: plan.price,
@@ -107,7 +111,7 @@ class EmailNotificationService {
 
       // Try to get plan name
       const plan = await SubscriptionPlan.findById(subscription.planId)
-      const planName = plan ? plan.name : 'Your Plan'
+      const planName = plan ? toText(plan.name) : 'Your Plan'
 
       const emailData = emailTemplate.paymentFailed({
         name: user.name || 'Valued Customer',
@@ -143,7 +147,7 @@ class EmailNotificationService {
       const emailData = emailTemplate.subscriptionCanceled({
         name: user.name || 'Valued Customer',
         email: user.email,
-        planName: plan.name,
+        planName: toText(plan.name),
         canceledAt,
         accessUntil: subscription.currentPeriodEnd,
         feedbackUrl: `${process.env.FRONTEND_URL}/feedback`,
@@ -175,7 +179,7 @@ class EmailNotificationService {
       const emailData = emailTemplate.planChange({
         name: user.name || 'Valued Customer',
         email: user.email,
-        newPlanName: newPlan.name,
+        newPlanName: toText(newPlan.name),
         newPlanPrice: newPlan.price,
         planInterval: newPlan.interval,
         isUpgrade,
@@ -183,7 +187,7 @@ class EmailNotificationService {
         prorationNote: isUpgrade
           ? `You've been charged $${priceDifference.toFixed(2)} for the remaining billing period.`
           : `You'll receive a $${priceDifference.toFixed(2)} credit on your next invoice.`,
-        features: newPlan.features,
+        features: toFeatures(newPlan.features),
         dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`,
         billingUrl: `${process.env.FRONTEND_URL}/billing`,
       })

@@ -4,44 +4,65 @@ import { IAwardConfig } from './awardConfig.interface'
 const defaultConfigs = [
   {
     type: 'PDF Itinerary',
-    title: 'PDF Itinerary',
-    description: 'Unlock custom travel itineraries in PDF format once you reach 500 XP points.',
+    title: { en: 'PDF Itinerary', es: 'Itinerario en PDF' },
+    description: {
+      en: 'Unlock custom travel itineraries in PDF format once you reach 500 XP points.',
+      es: 'Desbloquea itinerarios de viaje personalizados en formato PDF al llegar a 500 puntos XP.',
+    },
     target: 500,
   },
   {
     type: 'Free Map',
-    title: 'Free Map',
-    description: 'Claim any paid map completely for free once you reach 1000 XP points.',
+    title: { en: 'Free Map', es: 'Mapa Gratis' },
+    description: {
+      en: 'Claim any paid map completely for free once you reach 1000 XP points.',
+      es: 'Obtén cualquier mapa de pago completamente gratis al llegar a 1000 puntos XP.',
+    },
     target: 1000,
   },
   {
     type: 'Gourmet Guide',
-    title: 'Gourmet Guide',
-    description: 'Unlock exclusive restaurant and food recommendation lists once you reach 2000 XP points.',
+    title: { en: 'Gourmet Guide', es: 'Guía Gourmet' },
+    description: {
+      en: 'Unlock exclusive restaurant and food recommendation lists once you reach 2000 XP points.',
+      es: 'Desbloquea listas exclusivas de recomendaciones de restaurantes y comida al llegar a 2000 puntos XP.',
+    },
     target: 2000,
   },
   {
     type: 'Top Reviewer',
-    title: 'Top Reviewer',
-    description: 'Become a Top Reviewer to show a badge on your profile and get custom maps.',
+    title: { en: 'Top Reviewer', es: 'Mejor Reseñador' },
+    description: {
+      en: 'Become a Top Reviewer to show a badge on your profile and get custom maps.',
+      es: 'Conviértete en Top Reviewer para mostrar una insignia en tu perfil y obtener mapas personalizados.',
+    },
     target: 1000,
   },
   {
     type: 'Trail Master',
-    title: 'Trail Master',
-    description: 'For active hikers who complete trails and post reviews.',
+    title: { en: 'Trail Master', es: 'Maestro del Sendero' },
+    description: {
+      en: 'For active hikers who complete trails and post reviews.',
+      es: 'Para senderistas activos que completan rutas y publican reseñas.',
+    },
     target: 500,
   },
   {
     type: 'History Buff',
-    title: 'History Buff',
-    description: 'Given to users who visit and review historical spots.',
+    title: { en: 'History Buff', es: 'Aficionado a la Historia' },
+    description: {
+      en: 'Given to users who visit and review historical spots.',
+      es: 'Otorgado a usuarios que visitan y reseñan lugares históricos.',
+    },
     target: 1500,
   },
   {
     type: 'Legendary Explorer',
-    title: 'Legendary Explorer',
-    description: 'Given to elite explorers who have contributed reviews across all categories.',
+    title: { en: 'Legendary Explorer', es: 'Explorador Legendario' },
+    description: {
+      en: 'Given to elite explorers who have contributed reviews across all categories.',
+      es: 'Otorgado a exploradores élite que han contribuido con reseñas en todas las categorías.',
+    },
     target: 100,
   },
 ]

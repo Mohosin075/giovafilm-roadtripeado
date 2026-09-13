@@ -912,7 +912,8 @@ class WebhookService {
     }
     // Helper method to determine subscription tier
     getSubscriptionTier(planName) {
-        const name = planName.toLowerCase();
+        const raw = typeof planName === 'string' ? planName : (planName === null || planName === void 0 ? void 0 : planName.en) || (planName === null || planName === void 0 ? void 0 : planName.es) || '';
+        const name = raw.toLowerCase();
         if (name.includes('enterprise') || name.includes('pro')) {
             return 'premium';
         }

@@ -1,16 +1,18 @@
 import { z } from 'zod'
 
+const translatableSchema = z.union([
+  z.string(),
+  z.object({
+    en: z.string().optional(),
+    es: z.string().optional(),
+  }),
+])
+
 // Subscription Plan Validation
 export const createSubscriptionPlanSchema = z.object({
   body: z.object({
-    name: z
-      .string()
-      .min(1, 'Plan name is required')
-      .max(100, 'Plan name too long'),
-    description: z
-      .string()
-      .min(1, 'Description is required')
-      .max(500, 'Description too long'),
+    name: translatableSchema,
+    description: translatableSchema,
     price: z.number().min(0, 'Price must be non-negative'),
     currency: z
       .string()
@@ -28,7 +30,7 @@ export const createSubscriptionPlanSchema = z.object({
       .min(0, 'Trial period must be non-negative')
       .default(10),
     features: z
-      .array(z.string().min(1, 'Feature cannot be empty'))
+      .array(translatableSchema)
       .min(1, 'At least one feature is required'),
     maxPhotos: z.number().min(1, 'Max photos must be at least 1').optional(),
     priority: z.number().optional(),
@@ -37,16 +39,8 @@ export const createSubscriptionPlanSchema = z.object({
 
 export const updateSubscriptionPlanSchema = z.object({
   body: z.object({
-    name: z
-      .string()
-      .min(1, 'Plan name is required')
-      .max(100, 'Plan name too long')
-      .optional(),
-    description: z
-      .string()
-      .min(1, 'Description is required')
-      .max(500, 'Description too long')
-      .optional(),
+    name: translatableSchema.optional(),
+    description: translatableSchema.optional(),
     price: z.number().min(0, 'Price must be non-negative').optional(),
     currency: z
       .string()
@@ -64,7 +58,7 @@ export const updateSubscriptionPlanSchema = z.object({
       .min(0, 'Trial period must be non-negative')
       .optional(),
     features: z
-      .array(z.string().min(1, 'Feature cannot be empty'))
+      .array(translatableSchema)
       .min(1, 'At least one feature is required')
       .optional(),
     isActive: z.boolean().optional(),

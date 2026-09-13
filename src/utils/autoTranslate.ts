@@ -114,12 +114,33 @@ export const autoTranslateField = async (
     return { en: '', es: '' }
   }
 
-  const targetLang = sourceLang === 'es' ? 'en' : 'es'
-  const translated = await translateWithFallback(text, sourceLang, targetLang)
+  // Smart bi-directional detection:
+  // 1. First try translating assuming Spanish -> English
+  const translatedEn = await translateWithFallback(text, 'es', 'en')
 
+  // If the translation produced a different text, input was Spanish!
+  if (translatedEn.toLowerCase() !== text.toLowerCase()) {
+    return {
+      es: text,
+      en: translatedEn,
+    }
+  }
+
+  // 2. If es->en returned the same text, input is likely English — try translating English -> Spanish
+  const translatedEs = await translateWithFallback(text, 'en', 'es')
+
+  if (translatedEs.toLowerCase() !== text.toLowerCase()) {
+    return {
+      en: text,
+      es: translatedEs,
+    }
+  }
+
+  // Fallback if text is identical in both languages (e.g. proper nouns like "San Juan")
   return {
-    [sourceLang]: text,
-    [targetLang]: translated,
-  } as unknown as I18nString
+    es: text,
+    en: text,
+  }
 }
+
 

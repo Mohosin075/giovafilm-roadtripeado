@@ -19,7 +19,7 @@ const decodeHTMLEntities = (str: string): string => {
 
 /**
  * Robust multi-provider translation pipeline.
- * Tries Google Translate API -> MyMemory API.
+ * Tries MyMemory API (with valid email tier) -> Google Translate API -> Google GTX fallback.
  */
 export const translateWithFallback = async (
   text: string,
@@ -29,7 +29,36 @@ export const translateWithFallback = async (
   if (!text || !text.trim()) return text
   const clean = text.trim()
 
-  // 1. Try @vitalets/google-translate-api
+  // 1. Try MyMemory Translation API with email (10,000 words/day free limit)
+  try {
+    const pair =
+      fromLang === 'auto'
+        ? toLang === 'en'
+          ? 'es|en'
+          : 'en|es'
+        : `${fromLang}|${toLang}`
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean)}&langpair=${pair}&de=dev@giovafilm.com`
+    const response = await axios.get(url, { timeout: 6000 })
+    const translatedText = response.data?.responseData?.translatedText
+    if (
+      translatedText &&
+      typeof translatedText === 'string' &&
+      !translatedText.startsWith('QUERY LENGTH LIMIT EXCEEDED') &&
+      !translatedText.startsWith('MYMEMORY WARNING') &&
+      !translatedText.includes('IS AN INVALID TARGET LANGUAGE') &&
+      translatedText.trim() !== ''
+    ) {
+      const decoded = decodeHTMLEntities(translatedText.trim())
+      // If translated successfully and different from original, return
+      if (decoded.toLowerCase() !== clean.toLowerCase() || clean.split(/\s+/).length <= 2) {
+        return decoded
+      }
+    }
+  } catch (error) {
+    // MyMemory failed, try Google
+  }
+
+  // 2. Try @vitalets/google-translate-api
   try {
     const res = await translate(clean, {
       from: fromLang === 'auto' ? undefined : fromLang,
@@ -42,45 +71,38 @@ export const translateWithFallback = async (
     // Suppress warning if secondary providers succeed
   }
 
-  // 2. Try MyMemory Translation API
+  // 3. Try Google GTX web endpoint
   try {
-    const pair =
-      fromLang === 'auto'
-        ? toLang === 'en'
-          ? 'es|en'
-          : 'en|es'
-        : `${fromLang}|${toLang}`
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean)}&langpair=${pair}`
-    const response = await axios.get(url, { timeout: 6000 })
-    const translatedText = response.data?.responseData?.translatedText
-    if (
-      translatedText &&
-      typeof translatedText === 'string' &&
-      !translatedText.startsWith('QUERY LENGTH LIMIT EXCEEDED') &&
-      !translatedText.startsWith('MYMEMORY WARNING') &&
-      !translatedText.includes('IS AN INVALID TARGET LANGUAGE')
-    ) {
-      return decodeHTMLEntities(translatedText.trim())
+    const sl = fromLang === 'auto' ? 'auto' : fromLang
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${toLang}&dt=t&q=${encodeURIComponent(clean)}`
+    const res = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      },
+      timeout: 5000
+    })
+    if (res.data && res.data[0] && res.data[0][0] && res.data[0][0][0]) {
+      const fullText = res.data[0].map((item: any) => item[0]).filter(Boolean).join('')
+      if (fullText.trim()) {
+        return decodeHTMLEntities(fullText.trim())
+      }
     }
-  } catch (error) {
-    // MyMemory failed
-  }
+  } catch (e) {}
 
-  // 3. Fallback to clean original text
+  // 4. Fallback to clean original text
   return clean
 }
 
 /**
- * Checks if a string has strong Spanish markers
+ * Checks if a string has strong Spanish markers.
+ * Covers accented chars, common words, AND Puerto Rico place name patterns.
  */
 export const isSpanishText = (text: string): boolean => {
   if (!text) return false
-  return (
-    /[áéíóúñü¿¡]/i.test(text) ||
-    /\b(el|la|los|las|un|una|unos|unas|y|o|pero|para|por|en|con|de|del|al|es|son|este|esta|estos|estas|playa|rio|montaña|bosque|cascada|sendero|ruta|restaurante|comida|cueva|cabaña|mirador|faro|puerto|isla|punta|bahía|bahia|pueblo|ciudad)\b/i.test(
-      text
-    )
-  )
+  // Fast path: Spanish-only characters
+  if (/[áéíóúñü¿¡]/i.test(text)) return true
+  // Common Spanish function words and place-name prefixes
+  return /\b(el|la|los|las|un|una|unos|unas|y|o|pero|para|por|en|con|de|del|al|es|son|este|esta|estos|estas|playa|rio|montana|bosque|cascada|sendero|ruta|restaurante|comida|cueva|cabana|mirador|faro|puerto|isla|punta|bahia|pueblo|ciudad|ruinas|antigua|antiguo|parroquia|catedral|iglesia|ermita|hacienda|central|puente|tunel|fortín|fortin|muelle|cuartel|capilla|cementerio|monumento|palacio|museo|parque|reserva|laguna|cascada|barco|avion|bolera|polvorin|aljibe|locomotora|baluarte|bastion|bateria|garita|bunker|ingenio|chimenea)\b/i.test(text)
 }
 
 /**

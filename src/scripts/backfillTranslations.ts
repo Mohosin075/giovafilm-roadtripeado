@@ -24,8 +24,9 @@ async function safeTranslate(field: TranslatableString | undefined | null): Prom
     const en = (field.en || '').trim()
     const es = (field.es || '').trim()
     if (en && es && en !== es) {
-      return undefined // Already properly translated
+      return undefined // Already properly translated with different languages
     }
+    // If en === es, fall through to autoTranslateField to fix the duplicate
   }
 
   await sleep(150) // Throttle to prevent rate-limiting

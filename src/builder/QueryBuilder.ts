@@ -1,5 +1,17 @@
 import { FilterQuery, Query } from 'mongoose'
 
+function buildAccentInsensitivePattern(term: string): string {
+  if (!term) return ''
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return escaped
+    .replace(/[aáAÁ]/g, '[aáAÁ]')
+    .replace(/[eéEÉ]/g, '[eéEÉ]')
+    .replace(/[iíIÍ]/g, '[iíIÍ]')
+    .replace(/[oóOÓ]/g, '[oóOÓ]')
+    .replace(/[uúüUÚÜ]/g, '[uúüUÚÜ]')
+    .replace(/[nñNÑ]/g, '[nñNÑ]')
+}
+
 class QueryBuilder<T> {
   public modelQuery: Query<T[], T>
   public query: Record<string, unknown>
@@ -12,6 +24,7 @@ class QueryBuilder<T> {
   //searching
   search(searchableFields: string[]) {
     if (this?.query?.searchTerm) {
+      const pattern = buildAccentInsensitivePattern(String(this.query.searchTerm))
       this.modelQuery = this.modelQuery.find({
         $and: [
           {
@@ -19,13 +32,13 @@ class QueryBuilder<T> {
               field =>
                 ({
                   [field]: {
-                    $regex: this.query.searchTerm,
+                    $regex: pattern,
                     $options: 'i',
                   },
                 }) as FilterQuery<T>,
             ),
-          }
-        ]
+          },
+        ],
       })
     }
     return this

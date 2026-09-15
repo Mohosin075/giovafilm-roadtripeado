@@ -70,14 +70,14 @@ const defaultConfigs = [
 const seedAwardConfigs = async () => {
   try {
     await AwardConfig.collection.dropIndex('type_1')
-    console.log('Successfully dropped unique index type_1 on awardconfigs')
   } catch (error) {
     // Index might not exist, ignore error
   }
 
-  for (const config of defaultConfigs) {
-    const exists = await AwardConfig.findOne({ type: config.type })
-    if (!exists) {
+  // Only seed default configs if no configs exist at all
+  const count = await AwardConfig.countDocuments()
+  if (count === 0) {
+    for (const config of defaultConfigs) {
       await AwardConfig.create(config)
     }
   }

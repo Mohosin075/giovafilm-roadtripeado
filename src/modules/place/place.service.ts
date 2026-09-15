@@ -28,6 +28,18 @@ const processPlaceTranslations = async (payload: Partial<IPlace>) => {
 const escapeRegex = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
+function buildAccentInsensitivePattern(term: string): string {
+  if (!term) return ''
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return escaped
+    .replace(/[aáAÁ]/g, '[aáAÁ]')
+    .replace(/[eéEÉ]/g, '[eéEÉ]')
+    .replace(/[iíIÍ]/g, '[iíIÍ]')
+    .replace(/[oóOÓ]/g, '[oóOÓ]')
+    .replace(/[uúüUÚÜ]/g, '[uúüUÚÜ]')
+    .replace(/[nñNÑ]/g, '[nñNÑ]')
+}
+
 const toNumber = (value: unknown): number => {
   const parsed =
     typeof value === 'string' || typeof value === 'number' ? Number(value) : NaN
@@ -109,14 +121,25 @@ const getAllPlaces = async (
   }
 
   if (searchTerm) {
-    const regex = new RegExp(escapeRegex(searchTerm), 'i')
-    const matchingCategories = await Category.find({ name: regex })
+    const pattern = buildAccentInsensitivePattern(searchTerm)
+    const regex = new RegExp(pattern, 'i')
+    const matchingCategories = await Category.find({
+      $or: [
+        { name: regex },
+        { 'name.en': regex },
+        { 'name.es': regex },
+      ],
+    })
       .select('_id')
       .lean()
 
     const or: Record<string, unknown>[] = [
       { name: regex },
+      { 'name.en': regex },
+      { 'name.es': regex },
       { address: regex },
+      { 'address.en': regex },
+      { 'address.es': regex },
       { country: regex },
     ]
 
@@ -208,22 +231,33 @@ const getAllPlaces = async (
     }
 
     if (searchTerm) {
-      const regex = new RegExp(escapeRegex(searchTerm), 'i')
-      const matchingCategories = await Category.find({ name: regex })
+      const pattern = buildAccentInsensitivePattern(searchTerm)
+      const regex = new RegExp(pattern, 'i')
+      const matchingCategories = await Category.find({
+        $or: [
+          { name: regex },
+          { 'name.en': regex },
+          { 'name.es': regex },
+        ],
+      })
         .select('_id')
         .lean()
 
-      const or: Record<string, unknown>[] = [
+      const businessOr: Record<string, unknown>[] = [
         { name: regex },
+        { 'name.en': regex },
+        { 'name.es': regex },
         { 'location.address': regex },
+        { 'location.address.en': regex },
+        { 'location.address.es': regex },
         { 'location.country': regex },
       ]
 
       if (matchingCategories.length > 0) {
-        or.push({ category: { $in: matchingCategories.map(c => c._id) } })
+        businessOr.push({ category: { $in: matchingCategories.map(c => c._id) } })
       }
 
-      businessMatch.$or = or
+      businessMatch.$or = businessOr
     }
 
     let businessQuery = Business.find(

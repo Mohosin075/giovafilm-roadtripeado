@@ -4,13 +4,13 @@ Sep 14, 12:26 PM
 GENERAL VERSION:
 Dashboard:
 1. The same issue persists when adding a video to a location; I am unable to upload videos. It stayed on the loading screen for 20 minutes and never uploaded. 🚨 - need clearificaton
-2. On the "Places" page, if a field is left blank, it should not appear on the user's screen. (Example: I add a business/restaurant but don't include access info; that section shouldn't be visible when a user navigates via that restaurant's pin.🚨
-3. On the "rewards" page, I can't delete some rewards that have already been added.
+2. On the "Places" page, if a field is left blank, it should not appear on the user's screen. (Example: I add a business/restaurant but don't include access info; that section shouldn't be visible when a user navigates via that restaurant's pin.🚨 - solved
+3. On the "rewards" page, I can't delete some rewards that have already been added. - solved
 4. The "rewards" page has many errors and confusing options that I don't understand or find logical. I’d like to refine this page and its options.
-5. When editing a location's info, I’d like to be able to drag and rearrange the images or photos, so I don't have to delete and re-upload them just to get a specific order.
+5. When editing a location's info, I’d like to be able to drag and rearrange the images or photos, so I don't have to delete and re-upload them just to get a specific order. - solved
 
 Users:
-1. When a user selects a pin, the map zooms in aggressively on it. I don't want it to zoom in that close; just a little bit would be fine.🚨
+1. When a user selects a pin, the map zooms in aggressively on it. I don't want it to zoom in that close; just a little bit would be fine.🚨 - solved
 2. On the "map" page, when typing in the search bar, I’d like the system to treat words with and without accents as the same word. For instance, if a user types "Manati" (without the accent on the "i") instead of the correct "Manatí" (with the accent), the locations for that municipality won't appear due to a simple accent/spelling issue.🚨
 3. Business hours aren't showing up on the location's info page.🚨
 4. The points and levels don't match the document I sent. Will I be able to manage and adjust that part myself?
@@ -21,24 +21,3 @@ Users:
 2. On the "places" page, within the filter area, the "categories" button extends too far to the right, and the "countries" button does the same.🚨
 3. I can't use the dashboard on the mobile version because the screen gets cut off.
 
-G
-Profile Image
-giovafilm
-
-Sep 14, 12:27 PM
-Hello, I found these new errors and the ones that have been wrong since last time.
-
-G
-Profile Image
-giovafilm
-
-Sep 14, 12:28 PM
-Replied
-
-giovafilm
-
-Sep 14, 12:17 AM
-
-Hello, on the dashboard map, you can't see the places to edit them.
-
-Please let me know when this issue is resolved so that we can continue adding information.

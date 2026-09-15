@@ -12,6 +12,7 @@ import { paginationHelper } from '../../helpers/paginationHelper'
 import { AwardServices } from '../award/award.service'
 import { NotificationServices } from '../notification/notification.service'
 import { NotificationType, NotificationPriority } from '../notification/notification.interface'
+import { autoTranslateField } from '../../utils/autoTranslate'
 
 import { getAccessibleMapIds } from '../../helpers/mapAccessHelper'
 
@@ -76,6 +77,10 @@ const createReview = async (user: JwtPayload, payload: IReview) => {
   payload.status = 'Pending'
   payload.isVerified = false
   payload.pointsEarned = 0
+
+  if (payload.review) {
+    payload.review = await autoTranslateField(payload.review)
+  }
 
   const isUserExist = await User.findById(user.authId)
   if (!isUserExist) {
@@ -255,6 +260,10 @@ const updateReview = async (
       payload.status = 'Pending'
       payload.isVerified = false
       payload.pointsEarned = 0
+    }
+
+    if (payload.review !== undefined) {
+      payload.review = await autoTranslateField(payload.review)
     }
 
     // Update place/business stats and user points if the review was Approved but is now going back to Pending (due to edit)
@@ -457,9 +466,13 @@ const approveReview = async (id: string) => {
     // Review text present = 5 points
     // Length of review >= 200 characters = +10 bonus points
     let points = 1 // 1 point for the star rating (every review must have a star rating)
-    if (existingReview.review && existingReview.review.trim() !== '') {
+    const reviewContent =
+      typeof existingReview.review === 'object' && existingReview.review !== null
+        ? ((existingReview.review as any).es || (existingReview.review as any).en || '')
+        : (typeof existingReview.review === 'string' ? existingReview.review : '')
+    if (reviewContent && reviewContent.trim() !== '') {
       points += 5 // +5 points for the review itself
-      if (existingReview.review.trim().length >= 200) {
+      if (reviewContent.trim().length >= 200) {
         points += 10 // +10 bonus points for reviews exceeding 200 characters
       }
     }

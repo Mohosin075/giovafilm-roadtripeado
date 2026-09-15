@@ -10,6 +10,7 @@ import { getUserFromToken } from '../../helpers/mapAccessHelper'
 import { localizeDocument } from '../../helpers/localize'
 
 const reviewFields = [
+  'review',
   'placeId.name',
   'placeId.description',
   'businessId.name',
@@ -23,7 +24,7 @@ const createReview = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.CREATED,
     success: true,
     message: 'Review created successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, reviewFields),
   })
 })
 
@@ -35,7 +36,7 @@ const updateReview = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Review updated successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, reviewFields),
   })
 })
 

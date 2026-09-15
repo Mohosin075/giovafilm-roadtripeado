@@ -22,12 +22,20 @@ import { emailProvider } from './notification.providers'
 import { User } from '../user/user.model'
 import config from '../../config'
 import { io } from '../../server'
+import { autoTranslateField } from '../../utils/autoTranslate'
+
+const processNotificationTranslations = async (payload: any) => {
+  if (payload.title) payload.title = await autoTranslateField(payload.title)
+  if (payload.content) payload.content = await autoTranslateField(payload.content)
+  if (payload.actionText) payload.actionText = await autoTranslateField(payload.actionText)
+}
 
 const createNotification = async (
   payload: CreateNotificationDto,
   sendEmail: boolean = false,
 ): Promise<INotification> => {
   try {
+    await processNotificationTranslations(payload)
     const notificationData: any = {
       userId: payload.userId,
       title: payload.title,
@@ -93,12 +101,25 @@ const sendNotificationEmail = async (
     }
 
     let template: string = 'system-alert'
+    const titleStr =
+      typeof notification.title === 'object' && notification.title !== null
+        ? ((notification.title as any).es || (notification.title as any).en || '')
+        : (notification.title || '')
+    const contentStr =
+      typeof notification.content === 'object' && notification.content !== null
+        ? ((notification.content as any).es || (notification.content as any).en || '')
+        : (notification.content || '')
+    const actionTextStr =
+      typeof notification.actionText === 'object' && notification.actionText !== null
+        ? ((notification.actionText as any).es || (notification.actionText as any).en || '')
+        : (notification.actionText || '')
+
     const templateData: Record<string, any> = {
       userName: user.name,
-      notificationTitle: notification.title,
-      notificationContent: notification.content,
+      notificationTitle: titleStr,
+      notificationContent: contentStr,
       actionUrl: notification.actionUrl,
-      actionText: notification.actionText,
+      actionText: actionTextStr,
     }
 
     // Map notification type to template and add specific data
@@ -130,7 +151,7 @@ const sendNotificationEmail = async (
       user.email,
       template,
       templateData,
-      notification.title,
+      titleStr,
     )
 
     // Update notification status
@@ -322,6 +343,8 @@ const updateNotification = async (
   if (!Types.ObjectId.isValid(id)) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid notification ID')
   }
+
+  await processNotificationTranslations(payload)
 
   const query: any = { _id: id }
   if (userId) {
@@ -559,6 +582,7 @@ const sendManualNotification = async (
   payload: CreateNotificationDto,
 ): Promise<{ success: boolean }> => {
   try {
+    await processNotificationTranslations(payload)
     // Create a single broadcast notification record
     const notificationData = {
       title: payload.title,

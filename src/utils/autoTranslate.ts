@@ -6,6 +6,7 @@ import { I18nString, TranslatableString } from '../interfaces/i18n.interface'
  * Decodes standard HTML entities in translation responses
  */
 const decodeHTMLEntities = (str: string): string => {
+  if (!str) return ''
   return str
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
@@ -13,24 +14,29 @@ const decodeHTMLEntities = (str: string): string => {
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec))
 }
 
 /**
  * Robust multi-provider translation pipeline.
- * Tries Google Translate API -> MyMemory API -> GTX Endpoint -> Original Text fallback.
+ * Tries Google Translate API -> MyMemory API.
  */
-const translateWithFallback = async (
+export const translateWithFallback = async (
   text: string,
-  sourceLang: 'en' | 'es',
-  targetLang: 'en' | 'es'
+  toLang: 'en' | 'es',
+  fromLang: 'en' | 'es' | 'auto' = 'auto'
 ): Promise<string> => {
   if (!text || !text.trim()) return text
+  const clean = text.trim()
 
   // 1. Try @vitalets/google-translate-api
   try {
-    const res = await translate(text, { from: sourceLang, to: targetLang })
+    const res = await translate(clean, {
+      from: fromLang === 'auto' ? undefined : fromLang,
+      to: toLang,
+    })
     if (res?.text && res.text.trim() !== '') {
-      return res.text.trim()
+      return decodeHTMLEntities(res.text.trim())
     }
   } catch (error) {
     // Suppress warning if secondary providers succeed
@@ -38,8 +44,14 @@ const translateWithFallback = async (
 
   // 2. Try MyMemory Translation API
   try {
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${targetLang}`
-    const response = await axios.get(url, { timeout: 5000 })
+    const pair =
+      fromLang === 'auto'
+        ? toLang === 'en'
+          ? 'es|en'
+          : 'en|es'
+        : `${fromLang}|${toLang}`
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean)}&langpair=${pair}`
+    const response = await axios.get(url, { timeout: 6000 })
     const translatedText = response.data?.responseData?.translatedText
     if (
       translatedText &&
@@ -54,26 +66,21 @@ const translateWithFallback = async (
     // MyMemory failed
   }
 
-  // 3. Try Google Translate Web Client Fallback (GTX endpoint with custom User-Agent)
-  try {
-    const gtxUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`
-    const gtxRes = await axios.get(gtxUrl, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      },
-      timeout: 5000,
-    })
-    if (gtxRes.data && Array.isArray(gtxRes.data[0])) {
-      const translatedParts = gtxRes.data[0].map((part: any) => part[0]).join('')
-      if (translatedParts) return translatedParts.trim()
-    }
-  } catch (error) {
-    // GTX fallback failed
-  }
+  // 3. Fallback to clean original text
+  return clean
+}
 
-  console.warn(`[AutoTranslate] All translation providers failed for text: "${text.slice(0, 30)}..."`)
-  return text
+/**
+ * Checks if a string has strong Spanish markers
+ */
+export const isSpanishText = (text: string): boolean => {
+  if (!text) return false
+  return (
+    /[áéíóúñü¿¡]/i.test(text) ||
+    /\b(el|la|los|las|un|una|unos|unas|y|o|pero|para|por|en|con|de|del|al|es|son|este|esta|estos|estas|playa|rio|montaña|bosque|cascada|sendero|ruta|restaurante|comida|cueva|cabaña|mirador|faro|puerto|isla|punta|bahía|bahia|pueblo|ciudad)\b/i.test(
+      text
+    )
+  )
 }
 
 /**
@@ -82,8 +89,7 @@ const translateWithFallback = async (
  * auto-translates to the missing language via multi-provider translation pipeline.
  */
 export const autoTranslateField = async (
-  input: TranslatableString | undefined | null,
-  sourceLang: 'en' | 'es' = 'es'
+  input: TranslatableString | undefined | null
 ): Promise<I18nString> => {
   if (!input) {
     return { en: '', es: '' }
@@ -95,18 +101,27 @@ export const autoTranslateField = async (
     const esVal = (input.es || '').trim()
 
     if (enVal && esVal) {
+      if (enVal === esVal && isSpanishText(esVal)) {
+        const translatedEn = await translateWithFallback(esVal, 'en', 'es')
+        return { es: esVal, en: translatedEn }
+      } else if (enVal === esVal && !isSpanishText(enVal)) {
+        const translatedEs = await translateWithFallback(enVal, 'es', 'en')
+        return { en: enVal, es: translatedEs }
+      }
       return { en: enVal, es: esVal }
     }
 
     if (esVal && !enVal) {
-      const translated = await translateWithFallback(esVal, 'es', 'en')
+      const translated = await translateWithFallback(esVal, 'en', 'es')
       return { es: esVal, en: translated }
     }
 
     if (enVal && !esVal) {
-      const translated = await translateWithFallback(enVal, 'en', 'es')
+      const translated = await translateWithFallback(enVal, 'es', 'en')
       return { en: enVal, es: translated }
     }
+
+    return { en: '', es: '' }
   }
 
   const text = typeof input === 'string' ? input.trim() : ''
@@ -114,32 +129,19 @@ export const autoTranslateField = async (
     return { en: '', es: '' }
   }
 
-  // Smart bi-directional detection:
-  // 1. First try translating assuming Spanish -> English
-  const translatedEn = await translateWithFallback(text, 'es', 'en')
-
-  // If the translation produced a different text, input was Spanish!
-  if (translatedEn.toLowerCase() !== text.toLowerCase()) {
+  // Detect source language and translate to the target
+  if (isSpanishText(text)) {
+    const translatedEn = await translateWithFallback(text, 'en', 'es')
     return {
       es: text,
       en: translatedEn,
     }
-  }
-
-  // 2. If es->en returned the same text, input is likely English — try translating English -> Spanish
-  const translatedEs = await translateWithFallback(text, 'en', 'es')
-
-  if (translatedEs.toLowerCase() !== text.toLowerCase()) {
+  } else {
+    const translatedEs = await translateWithFallback(text, 'es', 'en')
     return {
       en: text,
       es: translatedEs,
     }
-  }
-
-  // Fallback if text is identical in both languages (e.g. proper nouns like "San Juan")
-  return {
-    es: text,
-    en: text,
   }
 }
 

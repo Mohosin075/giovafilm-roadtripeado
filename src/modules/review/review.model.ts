@@ -11,7 +11,7 @@ const reviewSchema = new Schema<IReview, ReviewModel>(
       required: true,
     },
     rating: { type: Number, required: true, min: 1, max: 5 },
-    review: { type: String, required: true },
+    review: { type: Schema.Types.Mixed, required: true },
     media: { type: [String], default: [] },
     status: {
       type: String,

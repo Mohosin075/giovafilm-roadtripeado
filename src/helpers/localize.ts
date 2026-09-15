@@ -33,12 +33,27 @@ const knownValuesMap: Record<string, { en: string; es: string }> = {
 }
 
 /**
+ * Checks if a value is an I18n object { en?: string, es?: string }
+ */
+export const isI18nObject = (val: any): boolean => {
+  return (
+    val !== null &&
+    typeof val === 'object' &&
+    !Array.isArray(val) &&
+    !(val instanceof Date) &&
+    !(val as any)._bsontype &&
+    ('en' in val || 'es' in val) &&
+    (typeof val.en === 'string' || typeof val.es === 'string')
+  )
+}
+
+/**
  * Safely extracts a single localized string for the requested language ('en' | 'es').
  * Handles legacy string fields (backward compatibility), nulls, and fallback order.
  */
-export const localizeField = (field: any, lang: 'en' | 'es' = 'es'): string => {
-  if (field === null || field === undefined) return ''
-  
+export const localizeField = (field: any, lang: 'en' | 'es' = 'es'): any => {
+  if (field === null || field === undefined) return field
+
   // Legacy DB compatibility & known translation dictionary
   if (typeof field === 'string') {
     const lower = field.trim().toLowerCase()
@@ -47,19 +62,19 @@ export const localizeField = (field: any, lang: 'en' | 'es' = 'es'): string => {
     }
     return field
   }
-  
+
   // If object { en, es }
-  if (typeof field === 'object') {
+  if (isI18nObject(field)) {
     const primary = field[lang]
     const fallback = lang === 'es' ? field.en : field.es
     return primary || fallback || field.es || field.en || ''
   }
 
-  return String(field)
+  return field
 }
 
 /**
- * Recursively localizes specified fields on a document or array of documents.
+ * Recursively localizes specified fields or any { en, es } object on a document or array of documents.
  * Preserves all other document properties untouched.
  */
 export const localizeDocument = <T extends Record<string, any>>(
@@ -67,25 +82,43 @@ export const localizeDocument = <T extends Record<string, any>>(
   lang: 'en' | 'es' = 'es',
   fields: string[] = []
 ): any => {
-  if (!data) return data
+  if (data === null || data === undefined) return data
 
   if (Array.isArray(data)) {
     return data.map(item => localizeDocument(item, lang, fields))
+  }
+
+  if (
+    typeof data !== 'object' ||
+    data instanceof Date ||
+    (data as any)._bsontype
+  ) {
+    return localizeField(data, lang)
   }
 
   // Handle paginated wrapper objects { meta: {...}, data: [...] }
   if (data && typeof data === 'object' && Array.isArray((data as any).data)) {
     return {
       ...data,
-      data: (data as any).data.map((item: any) => localizeDocument(item, lang, fields)),
+      data: (data as any).data.map((item: any) =>
+        localizeDocument(item, lang, fields)
+      ),
     }
   }
 
-  // Handle Mongoose Lean or Document objects
-  const obj = typeof (data as any).toObject === 'function' ? (data as any).toObject() : { ...data }
+  // If the object itself is an i18n object { en, es }
+  if (isI18nObject(data)) {
+    return localizeField(data, lang)
+  }
 
+  // Handle Mongoose Lean or Document objects
+  const obj =
+    typeof (data as any).toObject === 'function'
+      ? (data as any).toObject()
+      : { ...data }
+
+  // 1. Explicit nested field paths like "recommendations.tips" or "accessibility.notes"
   fields.forEach(fieldPath => {
-    // Handle nested paths like "recommendations.tips" or "accessibility.notes"
     if (fieldPath.includes('.')) {
       const parts = fieldPath.split('.')
       let current = obj
@@ -97,15 +130,34 @@ export const localizeDocument = <T extends Record<string, any>>(
       if (current && current[lastKey] !== undefined) {
         current[lastKey] = localizeField(current[lastKey], lang)
       }
-    } else if (obj[fieldPath] !== undefined) {
-      if (Array.isArray(obj[fieldPath])) {
-        // e.g. features: [{ en, es }, { en, es }] or string[]
-        obj[fieldPath] = obj[fieldPath].map((item: any) => localizeField(item, lang))
-      } else {
-        obj[fieldPath] = localizeField(obj[fieldPath], lang)
-      }
     }
   })
+
+  // 2. Automatically traverse all properties of the document
+  for (const key of Object.keys(obj)) {
+    const val = obj[key]
+    if (val === null || val === undefined) continue
+
+    if (isI18nObject(val)) {
+      obj[key] = localizeField(val, lang)
+    } else if (Array.isArray(val)) {
+      obj[key] = val.map((item: any) => {
+        if (isI18nObject(item)) return localizeField(item, lang)
+        if (typeof item === 'string') return localizeField(item, lang)
+        if (typeof item === 'object' && item !== null)
+          return localizeDocument(item, lang, fields)
+        return item
+      })
+    } else if (
+      typeof val === 'object' &&
+      !(val instanceof Date) &&
+      !(val as any)._bsontype
+    ) {
+      obj[key] = localizeDocument(val, lang, fields)
+    } else if (typeof val === 'string' && (fields.includes(key) || knownValuesMap[val.trim().toLowerCase()])) {
+      obj[key] = localizeField(val, lang)
+    }
+  }
 
   return obj
 }

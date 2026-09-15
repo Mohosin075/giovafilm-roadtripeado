@@ -23,14 +23,12 @@ const notificationSchema = new Schema<INotification, NotificationModel>(
       index: true,
     },
     title: {
-      type: String,
+      type: Schema.Types.Mixed,
       required: true,
-      trim: true,
     },
     content: {
-      type: String,
+      type: Schema.Types.Mixed,
       required: true,
-      trim: true,
     },
     type: {
       type: String,
@@ -73,7 +71,7 @@ const notificationSchema = new Schema<INotification, NotificationModel>(
       type: String,
     },
     actionText: {
-      type: String,
+      type: Schema.Types.Mixed,
     },
     actionClickedAt: {
       type: Date,

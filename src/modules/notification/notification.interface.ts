@@ -6,8 +6,8 @@ export interface INotification {
   _id: Types.ObjectId
   userId?: Types.ObjectId
   targetAudience?: TARGET_AUDIENCE
-  title: string
-  content: string
+  title: string | { en: string; es: string }
+  content: string | { en: string; es: string }
   type: NotificationType
   channel: NotificationChannel
   status: NotificationStatus
@@ -17,7 +17,7 @@ export interface INotification {
   sentAt?: Date
   readAt?: Date
   actionUrl?: string
-  actionText?: string
+  actionText?: string | { en: string; es: string }
   actionClickedAt?: Date
   isRead: boolean
   isArchived: boolean
@@ -83,15 +83,15 @@ export interface EmailNotificationData {
 export interface CreateNotificationDto {
   userId?: string | Types.ObjectId
   targetAudience?: TARGET_AUDIENCE
-  title: string
-  content: string
+  title: string | { en: string; es: string }
+  content: string | { en: string; es: string }
   type: NotificationType
   channel?: NotificationChannel
   priority?: NotificationPriority
   metadata?: Record<string, any>
   scheduledAt?: Date
   actionUrl?: string
-  actionText?: string
+  actionText?: string | { en: string; es: string }
 }
 
 export type NotificationModel = Model<INotification, {}, {}>

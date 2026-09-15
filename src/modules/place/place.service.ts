@@ -14,6 +14,7 @@ const processPlaceTranslations = async (payload: Partial<IPlace>) => {
   if (payload.description) payload.description = await autoTranslateField(payload.description)
   if (payload.access) payload.access = await autoTranslateField(payload.access)
   if (payload.entryCost) payload.entryCost = await autoTranslateField(payload.entryCost)
+  if (payload.difficulty) payload.difficulty = await autoTranslateField(payload.difficulty)
   if (payload.hikeTime) payload.hikeTime = await autoTranslateField(payload.hikeTime)
   if (payload.atmosphere) payload.atmosphere = await autoTranslateField(payload.atmosphere)
   if (payload.accessibility?.notes) {
@@ -34,6 +35,7 @@ const toNumber = (value: unknown): number => {
 }
 
 const createPlace = async (payload: IPlace): Promise<IPlace> => {
+  await processPlaceTranslations(payload)
   // Auto-populate country if not provided (run before transaction/session to prevent locks)
   if (!payload.country && payload.location?.coordinates) {
     const [lng, lat] = payload.location.coordinates

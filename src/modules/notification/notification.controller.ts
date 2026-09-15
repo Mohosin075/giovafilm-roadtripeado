@@ -8,6 +8,9 @@ import { INotificationFilterables } from './notification.interface'
 import { notificationFilterableFields } from './notification.constant'
 import { paginationFields } from '../../interfaces/pagination'
 import { JwtPayload } from 'jsonwebtoken'
+import { localizeDocument } from '../../helpers/localize'
+
+const notificationFields = ['title', 'content', 'actionText']
 
 const createNotification = catchAsync(async (req: Request, res: Response) => {
   const result = await NotificationServices.createNotification(req.body)
@@ -16,7 +19,7 @@ const createNotification = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.CREATED,
     success: true,
     message: 'Notification created successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, notificationFields),
   })
 })
 
@@ -39,7 +42,7 @@ const getAllNotifications = catchAsync(async (req: Request, res: Response) => {
     success: true,
     message: 'Notifications retrieved successfully',
     meta: result.meta,
-    data: result.data,
+    data: localizeDocument(result.data, req.lang, notificationFields),
   })
 })
 
@@ -57,7 +60,7 @@ const getMyNotifications = catchAsync(async (req: Request, res: Response) => {
     success: true,
     message: 'My notifications retrieved successfully',
     meta: result.meta,
-    data: result.data,
+    data: localizeDocument(result.data, req.lang, notificationFields),
   })
 })
 
@@ -69,7 +72,7 @@ const getNotificationById = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Notification retrieved successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, notificationFields),
   })
 })
 
@@ -87,7 +90,7 @@ const updateNotification = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Notification updated successfully',
-    data: result,
+    data: localizeDocument(result, req.lang, notificationFields),
   })
 })
 

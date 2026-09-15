@@ -7,7 +7,7 @@ export type IReview = {
   businessId?: Types.ObjectId
   reviewer: Types.ObjectId | IUser
   rating: number
-  review: string
+  review: string | { en: string; es: string }
   media?: string[]
   status?: 'Pending' | 'Approved' | 'Rejected'
   isVerified?: boolean

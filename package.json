@@ -14,6 +14,7 @@
     "build": "tsc",
     "start": "ts-node-dev --respawn --transpile-only src/server.ts",
     "start:prod": "node dist/server.js",
+    "backfill:translations": "ts-node src/scripts/backfillTranslations.ts",
     "lint:check": "eslint .",
     "lint:fix": "eslint . --fix",
     "prettier:check": "prettier --check .",

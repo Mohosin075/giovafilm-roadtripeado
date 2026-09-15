@@ -44,11 +44,20 @@ const getDashboardData = async (): Promise<IDashboardData> => {
 
   const recentActivity: IRecentActivity[] = []
 
+  const getSafeStr = (val: any): string => {
+    if (!val) return 'Unknown'
+    if (typeof val === 'string') return val
+    if (typeof val === 'object') {
+      return val.en || val.es || Object.values(val)[0] || 'Unknown'
+    }
+    return String(val)
+  }
+
   recentPlaces.forEach((place: any) => {
     recentActivity.push({
       id: place._id.toString(),
       type: 'place',
-      message: `Place updated: ${place.name}`,
+      message: `Place updated: ${getSafeStr(place.name)}`,
       timestamp: place.updatedAt,
     })
   })
@@ -57,7 +66,7 @@ const getDashboardData = async (): Promise<IDashboardData> => {
     recentActivity.push({
       id: offer._id.toString(),
       type: 'offer',
-      message: `Offer published: ${offer.title}`,
+      message: `Offer published: ${getSafeStr(offer.title)}`,
       timestamp: offer.createdAt,
     })
   })
@@ -66,7 +75,7 @@ const getDashboardData = async (): Promise<IDashboardData> => {
     recentActivity.push({
       id: map._id.toString(),
       type: 'map',
-      message: `Map created: ${map.name}`,
+      message: `Map created: ${getSafeStr(map.name)}`,
       timestamp: map.createdAt,
     })
   })

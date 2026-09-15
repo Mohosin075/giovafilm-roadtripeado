@@ -175,8 +175,8 @@ const createPromoCheckoutSession = async (
         price_data: {
           currency,
           product_data: {
-            name: `Map Upgrade: ${map.name}`,
-            description: `Exclusive discounted upgrade for ${map.name}`,
+            name: `Map Upgrade: ${typeof map.name === 'object' ? map.name.en || map.name.es : map.name}`,
+            description: `Exclusive discounted upgrade for ${typeof map.name === 'object' ? map.name.en || map.name.es : map.name}`,
           },
           unit_amount: Math.round(amount * 100),
         },

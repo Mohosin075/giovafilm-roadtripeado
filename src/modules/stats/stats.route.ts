@@ -7,7 +7,7 @@ const router = express.Router()
 
 router.get(
   '/dashboard',
-  auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
+  auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR),
   StatsController.getDashboardData,
 )
 

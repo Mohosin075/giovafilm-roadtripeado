@@ -97,10 +97,11 @@ solved
 
 
 Dashboard:
-1. I granted map editor access to someone, but the dashboard won't open for them.
+1. I granted map editor access to someone, but the dashboard won't open for them. 🚨 - solved
 
 Users:
-1. When users receive the email or email invitation, the email should be in Spanish, given that the audience is primarily Latino.
-2. When redeeming the free map, an error message appears stating the invitation has expired, though the process continues without issues afterward.
-3. Clarify the message displayed when redeeming a coupon by changing it to: "Show this screen to the staff and start the timer when redeeming your offer with the attendant."
-4. Photos do not look good because they get cropped due to their size or format; is there a solution to ensure the visible part of the image is the relevant one, or what can be done here?
+1. When users receive the email or email invitation, the email should be in Spanish, given that the audience is primarily Latino. 🚨 - solved
+2. When redeeming the free map, an error message appears stating the invitation has expired, though the process continues without issues afterward. 🚨 - solved
+3. Clarify the message displayed when redeeming a coupon by changing it to: "Show this screen to the staff and start the timer when redeeming your offer with the attendant." 🚨 - solved
+4. Photos do not look good because they get cropped due to their size or format; is there a solution to ensure the visible part of the image is the relevant one, or what can be done here? 🚨 - solved
+

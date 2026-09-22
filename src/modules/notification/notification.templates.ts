@@ -74,78 +74,70 @@ export class EmailTemplates {
     // Welcome Email
     [NOTIFICATION_TEMPLATES.WELCOME]: {
       getTitle: (data: TemplateData) =>
-        `Welcome to Our Platform, ${data.userName}!`,
-      getSubject: (data: TemplateData) => `Welcome to Our Platform!`,
+        `¡Bienvenido a Nuestra Plataforma, ${data.userName}!`,
+      getSubject: (data: TemplateData) => `¡Bienvenido a Nuestra Plataforma!`,
       getBody: (data: TemplateData) => `
-        <h2>Welcome aboard, ${data.userName}!</h2>
-        <p>We're excited to have you join our community. Here's what you can do:</p>
+        <h2>¡Bienvenido a bordo, ${data.userName}!</h2>
+        <p>Estamos muy contentos de que te unas a nuestra comunidad. Esto es lo que puedes hacer:</p>
         <ul>
-          <li>Connect with like-minded people</li>
-          <li>Stay updated with the latest news</li>
-          <li>Access exclusive content and features</li>
+          <li>Conectar con apasionados del turismo y las rutas</li>
+          <li>Mantenerte al día con los mejores destinos y ofertas</li>
+          <li>Acceder a mapas y contenidos exclusivos</li>
         </ul>
-        <p>Start exploring now and discover everything we have to offer!</p>
+        <p>¡Comienza a explorar ahora y descubre todo lo que tenemos para ti!</p>
       `,
     },
 
     // Password Reset
     [NOTIFICATION_TEMPLATES.PASSWORD_RESET]: {
-      getTitle: (data: TemplateData) => `Reset Your Password`,
-      getSubject: (data: TemplateData) => `Password Reset Request`,
+      getTitle: (data: TemplateData) => `Restablecer Contraseña`,
+      getSubject: (data: TemplateData) => `Solicitud de Restablecimiento de Contraseña`,
       getBody: (data: TemplateData) => `
-        <h2>Reset Your Password</h2>
-        <p>We received a request to reset your password for your account.</p>
+        <h2>Restablece tu Contraseña</h2>
+        <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta.</p>
         
         <div style="background: #f0f7ff; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
-          <p style="margin: 0;"><strong>Reset Code:</strong></p>
+          <p style="margin: 0;"><strong>Código de Restablecimiento:</strong></p>
           <h1 style="color: #667eea; font-size: 32px; letter-spacing: 5px; margin: 10px 0;">${data.resetCode}</h1>
-          <p style="color: #666; font-size: 14px;">This code will expire in ${data.expiryMinutes} minutes</p>
+          <p style="color: #666; font-size: 14px;">Este código vencerá en ${data.expiryMinutes} minutos</p>
         </div>
 
-        <p><strong>Instructions:</strong></p>
+        <p><strong>Instrucciones:</strong></p>
         <ol>
-          <li>Go to the password reset page</li>
-          <li>Enter the reset code above</li>
-          <li>Create your new password</li>
+          <li>Ve a la pantalla de verificación</li>
+          <li>Ingresa el código de restablecimiento que ves arriba</li>
+          <li>Crea tu nueva contraseña</li>
         </ol>
 
-        <p><strong>Security Tips:</strong></p>
+        <p><strong>Consejos de Seguridad:</strong></p>
         <ul>
-          <li>Never share your password or reset code with anyone</li>
-          <li>Create a strong password with letters, numbers, and symbols</li>
-          <li>Use different passwords for different accounts</li>
+          <li>Nunca compartas tu contraseña ni tu código de verificación con nadie</li>
+          <li>Crea una contraseña segura con letras, números y símbolos</li>
         </ul>
 
-        <p>If you didn't request this password reset, please ignore this email or contact support if you're concerned.</p>
+        <p>Si no solicitaste este restablecimiento de contraseña, puedes ignorar este correo con total tranquilidad.</p>
       `,
     },
 
     // Account Verification
     [NOTIFICATION_TEMPLATES.ACCOUNT_VERIFICATION]: {
-      getTitle: (data: TemplateData) => `Verify Your Account`,
-      getSubject: (data: TemplateData) => `Verify Your Account`,
+      getTitle: (data: TemplateData) => `Verifica Tu Cuenta`,
+      getSubject: (data: TemplateData) => `Verifica Tu Cuenta`,
       getBody: (data: TemplateData) => `
-        <h2>Verify Your Email Address</h2>
-        <p>Thank you for signing up! Please verify your email address to complete your registration.</p>
+        <h2>Verifica tu Dirección de Correo</h2>
+        <p>¡Gracias por registrarte! Por favor verifica tu dirección de correo electrónico para completar tu registro.</p>
         
         <div style="text-align: center; margin: 30px 0;">
-          <p>Click the button below to verify your email:</p>
-          <a href="${data.verificationUrl}" class="button">Verify Email Address</a>
+          <p>Haz clic en el botón de abajo para verificar tu correo:</p>
+          <a href="${data.verificationUrl}" class="button">Verificar Correo Electrónico</a>
         </div>
 
         <p style="font-size: 14px; color: #666; text-align: center;">
-          Or copy and paste this link in your browser:<br/>
+          O copia y pega este enlace en tu navegador:<br/>
           <span style="color: #667eea; word-break: break-all;">${data.verificationUrl}</span>
         </p>
 
-        <p><strong>Why verify?</strong></p>
-        <ul>
-          <li>Secure your account</li>
-          <li>Receive important updates</li>
-          <li>Access all features of our platform</li>
-        </ul>
-
-        <p>This verification link will expire in 24 hours.</p>
+        <p>Este enlace de verificación vencerá en 24 horas.</p>
       `,
     },
   }

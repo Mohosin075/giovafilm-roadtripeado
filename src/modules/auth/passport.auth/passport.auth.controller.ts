@@ -51,7 +51,7 @@ const googleAuthCallback = catchAsync(async (req: Request, res: Response) => {
   }
 
   // Retrieve state parameter (our encoded redirect URL)
-  let redirectUrl = `${config.clientUrl}/login?accessToken=${accessToken}&role=user`
+  let redirectUrl = `${config.clientUrl}/login?accessToken=${accessToken}&role=${result.role || 'user'}`
   if (req.query.state) {
     try {
       const decodedRedirect = Buffer.from(req.query.state as string, 'base64').toString('ascii')

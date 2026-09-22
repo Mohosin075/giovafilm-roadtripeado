@@ -1,10 +1,26 @@
 import config from '../config'
 import { ICreateAccount, IResetPassword } from '../interfaces/emailTemplate'
 
+const formatRoleSpanish = (role: string): string => {
+  const normalized = (role || '').toLowerCase().replace(/[\s-]+/g, '_')
+  switch (normalized) {
+    case 'map_editor':
+      return 'Editor de Mapas'
+    case 'admin':
+      return 'Administrador'
+    case 'super_admin':
+      return 'Super Administrador'
+    case 'business':
+      return 'Negocio'
+    default:
+      return 'Usuario'
+  }
+}
+
 const createAccount = (values: ICreateAccount) => {
   return {
     to: values.email,
-    subject: `Verify your account, ${values.name}`,
+    subject: `Verifica tu cuenta, ${values.name}`,
     html: `
       <body style="margin:0; padding:0; background-color:#F9FAFB; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F9FAFB; padding: 40px 0;">
@@ -16,24 +32,24 @@ const createAccount = (values: ICreateAccount) => {
                     <div style="margin-bottom: 24px;">
                        <img src="cid:roadtripeado-logo" alt="Roadtripeado Logo" style="width:140px; height:auto; display:block; margin:0 auto;" />
                     </div>
-                    <h1 style="color:#111827; font-size:28px; font-weight:700; margin:0; line-height: 1.2;">Verify Your Account</h1>
+                    <h1 style="color:#111827; font-size:28px; font-weight:700; margin:0; line-height: 1.2;">Verifica Tu Cuenta</h1>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 0 40px 40px 40px; text-align:center;">
-                    <p style="color:#4B5563; font-size:16px; line-height:1.6; margin:0 0 24px;">Hi ${values.name}, please use the code below to verify your account.</p>
+                    <p style="color:#4B5563; font-size:16px; line-height:1.6; margin:0 0 24px;">Hola ${values.name}, utiliza el código que aparece a continuación para verificar tu cuenta.</p>
                     <div style="background-color:#F3F4F6; border-radius:12px; padding: 32px; margin-bottom: 32px; border: 1px dashed #D1D5DB;">
-                      <p style="color:#6B7280; font-size:14px; text-transform:uppercase; letter-spacing:1px; font-weight:600; margin:0 0 16px;">Verification Code</p>
+                      <p style="color:#6B7280; font-size:14px; text-transform:uppercase; letter-spacing:1px; font-weight:600; margin:0 0 16px;">Código de Verificación</p>
                       <div style="font-size:42px; font-weight:800; color:#FFC107; letter-spacing:8px; margin:0;">${values.otp}</div>
                     </div>
-                    <p style="color:#777777; font-size:14px; margin:0 0 32px;">This code expires in 5 minutes. If you did not request this, please ignore this email.</p>
+                    <p style="color:#777777; font-size:14px; margin:0 0 32px;">Este código vence en 5 minutos. Si no realizaste esta solicitud, puedes ignorar este correo.</p>
                     <div style="margin-bottom: 32px;">
-                      <a href="${config.clientUrl}/otp-verify?email=${encodeURIComponent(values.email)}&authType=createAccount" style="display:inline-block; background-color:#FFC107; color:#000000; padding:16px 40px; border-radius:10px; text-decoration:none; font-weight:700; font-size:16px; box-shadow: 0 4px 6px rgba(255, 193, 7, 0.2);">Verify Now</a>
+                      <a href="${config.clientUrl}/otp-verify?email=${encodeURIComponent(values.email)}&authType=createAccount" style="display:inline-block; background-color:#FFC107; color:#000000; padding:16px 40px; border-radius:10px; text-decoration:none; font-weight:700; font-size:16px; box-shadow: 0 4px 6px rgba(255, 193, 7, 0.2);">Verificar Ahora</a>
                     </div>
                   </td>
                 </tr>
                 <tr>
-                  <td style="background:#F9FAFB; padding:24px; text-align:center; font-size:12px; color:#6B7280;">&copy; ${new Date().getFullYear()} Roadtripeado. All rights reserved.</td>
+                  <td style="background:#F9FAFB; padding:24px; text-align:center; font-size:12px; color:#6B7280;">&copy; ${new Date().getFullYear()} Roadtripeado. Todos los derechos reservados.</td>
                 </tr>
               </table>
             </td>
@@ -47,7 +63,7 @@ const createAccount = (values: ICreateAccount) => {
 const resetPassword = (values: IResetPassword) => {
   return {
     to: values.email,
-    subject: `Reset your password, ${values.name}`,
+    subject: `Restablece tu contraseña, ${values.name}`,
     html: `
       <body style="margin:0; padding:0; background-color:#F9FAFB; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F9FAFB; padding: 40px 0;">
@@ -59,24 +75,24 @@ const resetPassword = (values: IResetPassword) => {
                     <div style="margin-bottom: 24px;">
                        <img src="cid:roadtripeado-logo" alt="Roadtripeado Logo" style="width:140px; height:auto; display:block; margin:0 auto;" />
                     </div>
-                    <h1 style="color:#111827; font-size:28px; font-weight:700; margin:0; line-height: 1.2;">Reset Password</h1>
+                    <h1 style="color:#111827; font-size:28px; font-weight:700; margin:0; line-height: 1.2;">Restablecer Contraseña</h1>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 0 40px 40px 40px; text-align:center;">
-                    <p style="color:#4B5563; font-size:16px; line-height:1.6; margin:0 0 24px;">Hi ${values.name}, please use the code below to reset your password.</p>
+                    <p style="color:#4B5563; font-size:16px; line-height:1.6; margin:0 0 24px;">Hola ${values.name}, utiliza el código que aparece a continuación para restablecer tu contraseña.</p>
                     <div style="background-color:#F3F4F6; border-radius:12px; padding: 32px; margin-bottom: 32px; border: 1px dashed #D1D5DB;">
-                      <p style="color:#6B7280; font-size:14px; text-transform:uppercase; letter-spacing:1px; font-weight:600; margin:0 0 16px;">Reset Code</p>
+                      <p style="color:#6B7280; font-size:14px; text-transform:uppercase; letter-spacing:1px; font-weight:600; margin:0 0 16px;">Código de Restablecimiento</p>
                       <div style="font-size:42px; font-weight:800; color:#FFC107; letter-spacing:8px; margin:0;">${values.otp}</div>
                     </div>
-                    <p style="color:#777777; font-size:14px; margin:0 0 32px;">This code expires in 5 minutes. If you did not request this, please ignore this email.</p>
+                    <p style="color:#777777; font-size:14px; margin:0 0 32px;">Este código vence en 5 minutos. Si no realizaste esta solicitud, puedes ignorar este correo.</p>
                     <div style="margin-bottom: 32px;">
-                      <a href="${config.clientUrl}/otp-verify?email=${encodeURIComponent(values.email)}&authType=resetPassword" style="display:inline-block; background-color:#FFC107; color:#000000; padding:16px 40px; border-radius:10px; text-decoration:none; font-weight:700; font-size:16px; box-shadow: 0 4px 6px rgba(255, 193, 7, 0.2);">Reset Password</a>
+                      <a href="${config.clientUrl}/otp-verify?email=${encodeURIComponent(values.email)}&authType=resetPassword" style="display:inline-block; background-color:#FFC107; color:#000000; padding:16px 40px; border-radius:10px; text-decoration:none; font-weight:700; font-size:16px; box-shadow: 0 4px 6px rgba(255, 193, 7, 0.2);">Restablecer Contraseña</a>
                     </div>
                   </td>
                 </tr>
                 <tr>
-                  <td style="background:#F9FAFB; padding:24px; text-align:center; font-size:12px; color:#6B7280;">&copy; ${new Date().getFullYear()} Roadtripeado. All rights reserved.</td>
+                  <td style="background:#F9FAFB; padding:24px; text-align:center; font-size:12px; color:#6B7280;">&copy; ${new Date().getFullYear()} Roadtripeado. Todos los derechos reservados.</td>
                 </tr>
               </table>
             </td>
@@ -96,7 +112,7 @@ const resendOtp = (values: {
   const isReset = values.type === 'resetPassword'
   return {
     to: values.email,
-    subject: `${isReset ? 'Password Reset' : 'Account Verification'} - New Code`,
+    subject: `${isReset ? 'Restablecimiento de Contraseña' : 'Verificación de Cuenta'} - Nuevo Código`,
     html: `
       <body style="margin:0; padding:0; background-color:#F9FAFB; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F9FAFB; padding: 40px 0;">
@@ -108,24 +124,24 @@ const resendOtp = (values: {
                     <div style="margin-bottom: 24px;">
                        <img src="cid:roadtripeado-logo" alt="Roadtripeado Logo" style="width:140px; height:auto; display:block; margin:0 auto;" />
                     </div>
-                    <h1 style="color:#111827; font-size:28px; font-weight:700; margin:0; line-height: 1.2;">New ${isReset ? 'Reset' : 'Verification'} Code</h1>
+                    <h1 style="color:#111827; font-size:28px; font-weight:700; margin:0; line-height: 1.2;">Nuevo Código de ${isReset ? 'Restablecimiento' : 'Verificación'}</h1>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 0 40px 40px 40px; text-align:center;">
-                    <p style="color:#4B5563; font-size:16px; line-height:1.6; margin:0 0 24px;">Hi ${values.name}, you requested a new ${isReset ? 'password reset' : 'verification'} code.</p>
+                    <p style="color:#4B5563; font-size:16px; line-height:1.6; margin:0 0 24px;">Hola ${values.name}, has solicitado un nuevo código de ${isReset ? 'restablecimiento de contraseña' : 'verificación'}.</p>
                     <div style="background-color:#F3F4F6; border-radius:12px; padding: 32px; margin-bottom: 32px; border: 1px dashed #D1D5DB;">
-                      <p style="color:#6B7280; font-size:14px; text-transform:uppercase; letter-spacing:1px; font-weight:600; margin:0 0 16px;">New Code</p>
+                      <p style="color:#6B7280; font-size:14px; text-transform:uppercase; letter-spacing:1px; font-weight:600; margin:0 0 16px;">Nuevo Código</p>
                       <div style="font-size:42px; font-weight:800; color:#FFC107; letter-spacing:8px; margin:0;">${values.otp}</div>
                     </div>
-                    <p style="color:#777777; font-size:14px; margin:0 0 32px;">This code expires in 5 minutes. Please do not share it with anyone.</p>
+                    <p style="color:#777777; font-size:14px; margin:0 0 32px;">Este código vence en 5 minutos. Por favor, no compartas este código con nadie.</p>
                     <div style="margin-bottom: 8px;">
-                      <a href="${config.clientUrl}/otp-verify?email=${encodeURIComponent(values.email)}&authType=${isReset ? 'resetPassword' : 'createAccount'}" style="display:inline-block; background-color:#FFC107; color:#000000; padding:16px 40px; border-radius:10px; text-decoration:none; font-weight:700; font-size:16px; box-shadow: 0 4px 6px rgba(255, 193, 7, 0.2);">${isReset ? 'Reset Password' : 'Verify Now'}</a>
+                      <a href="${config.clientUrl}/otp-verify?email=${encodeURIComponent(values.email)}&authType=${isReset ? 'resetPassword' : 'createAccount'}" style="display:inline-block; background-color:#FFC107; color:#000000; padding:16px 40px; border-radius:10px; text-decoration:none; font-weight:700; font-size:16px; box-shadow: 0 4px 6px rgba(255, 193, 7, 0.2);">${isReset ? 'Restablecer Contraseña' : 'Verificar Ahora'}</a>
                     </div>
                   </td>
                 </tr>
                 <tr>
-                  <td style="background:#F9FAFB; padding:24px; text-align:center; font-size:12px; color:#6B7280;">&copy; ${new Date().getFullYear()} Roadtripeado. All rights reserved.</td>
+                  <td style="background:#F9FAFB; padding:24px; text-align:center; font-size:12px; color:#6B7280;">&copy; ${new Date().getFullYear()} Roadtripeado. Todos los derechos reservados.</td>
                 </tr>
               </table>
             </td>
@@ -150,7 +166,7 @@ const subscriptionWelcome = (values: {
 }) => {
   return {
     to: values.email,
-    subject: `Welcome to ${values.planName} Plan!`,
+    subject: `¡Bienvenido al Plan ${values.planName}!`,
     html: `
       <body style="margin:0; padding:0; background-color:#f4f5f7; font-family: Arial, sans-serif;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f5f7; padding: 20px 0;">
@@ -159,38 +175,38 @@ const subscriptionWelcome = (values: {
               <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.08);">
                 <tr>
                   <td style="padding: 30px; text-align:center; background:#2980b9;">
-                    <h1 style="color:#ffffff; font-size:26px; margin:0;">Welcome to ${values.planName}</h1>
+                    <h1 style="color:#ffffff; font-size:26px; margin:0;">Bienvenido a ${values.planName}</h1>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 40px;">
-                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">Hi ${values.name},</p>
-                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">Thank you for subscribing to our <strong>${values.planName}</strong> plan!</p>
+                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">Hola ${values.name},</p>
+                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">¡Gracias por suscribirte a nuestro plan <strong>${values.planName}</strong>!</p>
                     
                     ${
                       values.isTrialing
                         ? `
                     <div style="background:#e8f4fd; padding:20px; border-radius:8px; margin-bottom:20px;">
-                      <p style="color:#2980b9; font-weight:bold; margin:0 0 10px;">Your free trial has started!</p>
-                      <p style="color:#555555; margin:0;">You have ${values.trialDays} days to explore all features. Your trial ends on ${values.trialEndDate?.toLocaleDateString()}.</p>
+                      <p style="color:#2980b9; font-weight:bold; margin:0 0 10px;">¡Tu prueba gratuita ha comenzado!</p>
+                      <p style="color:#555555; margin:0;">Tienes ${values.trialDays} días para explorar todas las funciones. Tu prueba finaliza el ${values.trialEndDate?.toLocaleDateString('es-ES')}.</p>
                     </div>
                     `
                         : ''
                     }
 
-                    <p style="color:#2c3e50; font-size:18px; font-weight:bold; margin:0 0 15px;">Plan Details:</p>
+                    <p style="color:#2c3e50; font-size:18px; font-weight:bold; margin:0 0 15px;">Detalles del Plan:</p>
                     <ul style="color:#555555; font-size:15px; line-height:1.6; margin:0 0 30px;">
                       <li><strong>Plan:</strong> ${values.planName}</li>
-                      <li><strong>Price:</strong> $${values.planPrice}/${values.planInterval}</li>
+                      <li><strong>Precio:</strong> $${values.planPrice}/${values.planInterval}</li>
                     </ul>
 
-                    <p style="color:#2c3e50; font-size:18px; font-weight:bold; margin:0 0 15px;">Features Included:</p>
+                    <p style="color:#2c3e50; font-size:18px; font-weight:bold; margin:0 0 15px;">Funciones Incluidas:</p>
                     <ul style="color:#555555; font-size:15px; line-height:1.6; margin:0 0 30px;">
                       ${values.features.map(f => `<li>${f}</li>`).join('')}
                     </ul>
 
                     <div style="text-align:center;">
-                      <a href="${values.dashboardUrl}" style="display:inline-block; background:#2980b9; color:#ffffff; padding:15px 30px; border-radius:8px; text-decoration:none; font-weight:bold;">Go to Dashboard</a>
+                      <a href="${values.dashboardUrl}" style="display:inline-block; background:#2980b9; color:#ffffff; padding:15px 30px; border-radius:8px; text-decoration:none; font-weight:bold;">Ir al Panel</a>
                     </div>
                   </td>
                 </tr>
@@ -215,7 +231,7 @@ const trialEnding = (values: {
 }) => {
   return {
     to: values.email,
-    subject: `Your free trial of ${values.planName} is ending soon!`,
+    subject: `¡Tu prueba gratuita de ${values.planName} está por terminar!`,
     html: `
       <body style="margin:0; padding:0; background-color:#f4f5f7; font-family: Arial, sans-serif;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f5f7; padding: 20px 0;">
@@ -224,16 +240,16 @@ const trialEnding = (values: {
               <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.08);">
                 <tr>
                   <td style="padding: 30px; text-align:center; background:#e67e22;">
-                    <h1 style="color:#ffffff; font-size:26px; margin:0;">Trial Ending Soon</h1>
+                    <h1 style="color:#ffffff; font-size:26px; margin:0;">Tu Prueba Termina Pronto</h1>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 40px;">
-                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">Hi ${values.name},</p>
-                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">Your free trial of the <strong>${values.planName}</strong> plan will end in <strong>${values.daysLeft} days</strong> (on ${values.trialEndDate.toLocaleDateString()}).</p>
-                    <p style="color:#555555; font-size:16px; margin:0 0 30px;">To ensure uninterrupted access to all features, please upgrade to a paid subscription before your trial expires.</p>
+                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">Hola ${values.name},</p>
+                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">Tu prueba gratuita del plan <strong>${values.planName}</strong> finalizará en <strong>${values.daysLeft} días</strong> (el ${values.trialEndDate.toLocaleDateString('es-ES')}).</p>
+                    <p style="color:#555555; font-size:16px; margin:0 0 30px;">Para garantizar el acceso ininterrumpido a todas las funciones, actualiza a una suscripción de pago antes de que venza tu prueba.</p>
                     <div style="text-align:center;">
-                      <a href="${values.upgradeUrl}" style="display:inline-block; background:#e67e22; color:#ffffff; padding:15px 30px; border-radius:8px; text-decoration:none; font-weight:bold;">Upgrade Now</a>
+                      <a href="${values.upgradeUrl}" style="display:inline-block; background:#e67e22; color:#ffffff; padding:15px 30px; border-radius:8px; text-decoration:none; font-weight:bold;">Actualizar Ahora</a>
                     </div>
                   </td>
                 </tr>
@@ -259,7 +275,7 @@ const paymentSuccess = (values: {
 }) => {
   return {
     to: values.email,
-    subject: `Payment Successful - Invoice ${values.invoiceNumber}`,
+    subject: `Pago Exitoso - Factura ${values.invoiceNumber}`,
     html: `
       <body style="margin:0; padding:0; background-color:#f4f5f7; font-family: Arial, sans-serif;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f5f7; padding: 20px 0;">
@@ -268,20 +284,20 @@ const paymentSuccess = (values: {
               <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.08);">
                 <tr>
                   <td style="padding: 30px; text-align:center; background:#27ae60;">
-                    <h1 style="color:#ffffff; font-size:26px; margin:0;">Payment Successful</h1>
+                    <h1 style="color:#ffffff; font-size:26px; margin:0;">Pago Exitoso</h1>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 40px;">
-                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">Hi ${values.name},</p>
-                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">We've successfully processed your payment of <strong>${values.currency.toUpperCase()} ${values.amount}</strong>.</p>
-                    <p style="color:#555555; font-size:16px; margin:0 0 20px;"><strong>Invoice:</strong> ${values.invoiceNumber}</p>
-                    <p style="color:#555555; font-size:16px; margin:0 0 20px;"><strong>Date:</strong> ${values.paymentDate.toLocaleDateString()}</p>
+                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">Hola ${values.name},</p>
+                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">Hemos procesado exitosamente tu pago de <strong>${values.currency.toUpperCase()} ${values.amount}</strong>.</p>
+                    <p style="color:#555555; font-size:16px; margin:0 0 20px;"><strong>Factura:</strong> ${values.invoiceNumber}</p>
+                    <p style="color:#555555; font-size:16px; margin:0 0 20px;"><strong>Fecha:</strong> ${values.paymentDate.toLocaleDateString('es-ES')}</p>
                     ${
                       values.invoiceUrl
                         ? `
                     <div style="text-align:center; margin-top:30px;">
-                      <a href="${values.invoiceUrl}" style="display:inline-block; background:#27ae60; color:#ffffff; padding:15px 30px; border-radius:8px; text-decoration:none; font-weight:bold;">View Invoice</a>
+                      <a href="${values.invoiceUrl}" style="display:inline-block; background:#27ae60; color:#ffffff; padding:15px 30px; border-radius:8px; text-decoration:none; font-weight:bold;">Ver Factura</a>
                     </div>
                     `
                         : ''
@@ -310,7 +326,7 @@ const paymentFailed = (values: {
 }) => {
   return {
     to: values.email,
-    subject: `Payment Failed - Action Required`,
+    subject: `Pago Fallido - Acción Requerida`,
     html: `
       <body style="margin:0; padding:0; background-color:#f4f5f7; font-family: Arial, sans-serif;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f5f7; padding: 20px 0;">
@@ -319,17 +335,17 @@ const paymentFailed = (values: {
               <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.08);">
                 <tr>
                   <td style="padding: 30px; text-align:center; background:#c0392b;">
-                    <h1 style="color:#ffffff; font-size:26px; margin:0;">Payment Failed</h1>
+                    <h1 style="color:#ffffff; font-size:26px; margin:0;">Pago Fallido</h1>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 40px;">
-                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">Hi ${values.name},</p>
-                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">We were unable to process your payment of <strong>${values.currency.toUpperCase()} ${values.amount}</strong> for your subscription.</p>
-                    <p style="color:#c0392b; font-weight:bold; margin:0 0 20px;">Reason: ${values.failureReason}</p>
-                    <p style="color:#555555; font-size:16px; margin:0 0 30px;">We will attempt to process the payment again on ${values.retryDate.toLocaleDateString()}. Please update your payment information to avoid service interruption.</p>
+                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">Hola ${values.name},</p>
+                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">No pudimos procesar tu pago de <strong>${values.currency.toUpperCase()} ${values.amount}</strong> correspondiente a tu suscripción.</p>
+                    <p style="color:#c0392b; font-weight:bold; margin:0 0 20px;">Motivo: ${values.failureReason}</p>
+                    <p style="color:#555555; font-size:16px; margin:0 0 30px;">Intentaremos procesar el pago nuevamente el ${values.retryDate.toLocaleDateString('es-ES')}. Por favor actualiza tu método de pago para evitar la interrupción del servicio.</p>
                     <div style="text-align:center;">
-                      <a href="${values.updatePaymentUrl}" style="display:inline-block; background:#c0392b; color:#ffffff; padding:15px 30px; border-radius:8px; text-decoration:none; font-weight:bold;">Update Payment Method</a>
+                      <a href="${values.updatePaymentUrl}" style="display:inline-block; background:#c0392b; color:#ffffff; padding:15px 30px; border-radius:8px; text-decoration:none; font-weight:bold;">Actualizar Método de Pago</a>
                     </div>
                   </td>
                 </tr>
@@ -353,7 +369,7 @@ const subscriptionCanceled = (values: {
 }) => {
   return {
     to: values.email,
-    subject: `Subscription Canceled - ${values.planName}`,
+    subject: `Suscripción Cancelada - ${values.planName}`,
     html: `
       <body style="margin:0; padding:0; background-color:#f4f5f7; font-family: Arial, sans-serif;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f5f7; padding: 20px 0;">
@@ -362,16 +378,16 @@ const subscriptionCanceled = (values: {
               <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.08);">
                 <tr>
                   <td style="padding: 30px; text-align:center; background:#7f8c8d;">
-                    <h1 style="color:#ffffff; font-size:26px; margin:0;">Subscription Canceled</h1>
+                    <h1 style="color:#ffffff; font-size:26px; margin:0;">Suscripción Cancelada</h1>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 40px;">
-                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">Hi ${values.name},</p>
-                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">Your subscription to <strong>${values.planName}</strong> has been canceled.</p>
-                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">You will continue to have access until <strong>${values.accessUntil.toLocaleDateString()}</strong>.</p>
+                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">Hola ${values.name},</p>
+                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">Tu suscripción a <strong>${values.planName}</strong> ha sido cancelada.</p>
+                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">Continuarás teniendo acceso hasta el <strong>${values.accessUntil.toLocaleDateString('es-ES')}</strong>.</p>
                     <div style="text-align:center; margin-top:30px;">
-                      <a href="${values.reactivateUrl}" style="display:inline-block; background:#2980b9; color:#ffffff; padding:15px 30px; border-radius:8px; text-decoration:none; font-weight:bold;">Reactivate Subscription</a>
+                      <a href="${values.reactivateUrl}" style="display:inline-block; background:#2980b9; color:#ffffff; padding:15px 30px; border-radius:8px; text-decoration:none; font-weight:bold;">Reactivar Suscripción</a>
                     </div>
                   </td>
                 </tr>
@@ -399,7 +415,7 @@ const planChange = (values: {
 }) => {
   return {
     to: values.email,
-    subject: `Your plan has been updated to ${values.newPlanName}`,
+    subject: `Tu plan se ha actualizado a ${values.newPlanName}`,
     html: `
       <body style="margin:0; padding:0; background-color:#f4f5f7; font-family: Arial, sans-serif;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f5f7; padding: 20px 0;">
@@ -408,16 +424,16 @@ const planChange = (values: {
               <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.08);">
                 <tr>
                   <td style="padding: 30px; text-align:center; background:#8e44ad;">
-                    <h1 style="color:#ffffff; font-size:26px; margin:0;">Plan Updated</h1>
+                    <h1 style="color:#ffffff; font-size:26px; margin:0;">Plan Actualizado</h1>
                   </td>
                 </tr>
                 <tr>
                   <td style="padding: 40px;">
-                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">Hi ${values.name},</p>
-                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">Your subscription has been updated to the <strong>${values.newPlanName}</strong> plan.</p>
+                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">Hola ${values.name},</p>
+                    <p style="color:#555555; font-size:16px; margin:0 0 20px;">Tu suscripción se ha actualizado al plan <strong>${values.newPlanName}</strong>.</p>
                     <p style="color:#555555; font-size:16px; margin:0 0 20px;">${values.prorationNote}</p>
                     <div style="text-align:center; margin-top:30px;">
-                      <a href="${values.dashboardUrl}" style="display:inline-block; background:#8e44ad; color:#ffffff; padding:15px 30px; border-radius:8px; text-decoration:none; font-weight:bold;">Go to Dashboard</a>
+                      <a href="${values.dashboardUrl}" style="display:inline-block; background:#8e44ad; color:#ffffff; padding:15px 30px; border-radius:8px; text-decoration:none; font-weight:bold;">Ir al Panel</a>
                     </div>
                   </td>
                 </tr>
@@ -431,9 +447,10 @@ const planChange = (values: {
 }
 
 const userInvitation = (values: { email: string; role: string; otp: string }) => {
+  const roleName = formatRoleSpanish(values.role)
   return {
     to: values.email,
-    subject: `You have been invited to join as ${values.role.replace('_', ' ')}`,
+    subject: `Has sido invitado a unirte como ${roleName}`,
     html: `
       <body style="margin:0; padding:0; background-color:#F9FAFB; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F9FAFB; padding: 40px 0;">
@@ -446,7 +463,7 @@ const userInvitation = (values: { email: string; role: string; otp: string }) =>
                     <div style="margin-bottom: 24px;">
                        <img src="cid:roadtripeado-logo" alt="Roadtripeado Logo" style="width:140px; height:auto; display:block; margin:0 auto;" />
                     </div>
-                    <h1 style="color:#111827; font-size:28px; font-weight:700; margin:0; line-height: 1.2;">Invitation to Join</h1>
+                    <h1 style="color:#111827; font-size:28px; font-weight:700; margin:0; line-height: 1.2;">Invitación para Unirte</h1>
                   </td>
                 </tr>
                 
@@ -454,29 +471,29 @@ const userInvitation = (values: { email: string; role: string; otp: string }) =>
                 <tr>
                   <td style="padding: 0 40px 40px 40px; text-align:center;">
                     <p style="color:#4B5563; font-size:16px; line-height:1.6; margin:0 0 24px;">
-                      You have been invited to join our platform as <strong style="color:#111827; text-transform: capitalize;">${values.role.replace('_', ' ')}</strong>.
+                      Has sido invitado a unirte a nuestra plataforma como <strong style="color:#111827;">${roleName}</strong>.
                     </p>
                     
                     <div style="background-color:#F3F4F6; border-radius:12px; padding: 32px; margin-bottom: 32px; border: 1px dashed #D1D5DB;">
-                      <p style="color:#6B7280; font-size:14px; text-transform:uppercase; letter-spacing:1px; font-weight:600; margin:0 0 16px;">Your Invitation Code</p>
+                      <p style="color:#6B7280; font-size:14px; text-transform:uppercase; letter-spacing:1px; font-weight:600; margin:0 0 16px;">Tu Código de Invitación</p>
                       <div style="font-size:42px; font-weight:800; color:#FFC107; letter-spacing:8px; margin:0;">${values.otp}</div>
                     </div>
                     
                     <p style="color:#4B5563; font-size:15px; line-height:1.6; margin:0 0 32px;">
-                      Enter the code above on the next screen, then set your password to join.
-                      If you received more than one invitation, use only the <strong>latest</strong> code.
+                      Ingresa el código anterior en la siguiente pantalla y luego establece tu contraseña para unirte.
+                      Si has recibido más de una invitación, utiliza únicamente el código más <strong>reciente</strong>.
                     </p>
                     
                     <!-- CTA Button -->
                     <div style="margin-bottom: 32px;">
                       <a href="${config.clientUrl}/otp-verify?email=${encodeURIComponent(values.email)}&authType=invite" target="_blank" style="display:inline-block; background-color:#FFC107; color:#000000; padding:16px 40px; border-radius:10px; text-decoration:none; font-weight:700; font-size:16px; box-shadow: 0 4px 6px rgba(255, 193, 7, 0.2); transition: all 0.3s ease;">
-                        Accept Invitation
+                        Aceptar Invitación
                       </a>
                     </div>
                     
                     <p style="color:#9CA3AF; font-size:13px; line-height:1.5; margin:0; border-top: 1px solid #F3F4F6; padding-top: 24px;">
-                      This invitation code will expire in 24 hours. Older codes stop working when a new invite is sent.<br>
-                      If you were not expecting this invitation, please ignore this email.
+                      Este código de invitación vencerá en 24 horas. Los códigos anteriores dejan de funcionar cuando se envía una nueva invitación.<br>
+                      Si no esperabas esta invitación, puedes ignorar este correo electrónico.
                     </p>
                   </td>
                 </tr>
@@ -484,7 +501,7 @@ const userInvitation = (values: { email: string; role: string; otp: string }) =>
                 <!-- Footer -->
                 <tr>
                   <td style="background:#F9FAFB; padding:24px; text-align:center; font-size:12px; color:#6B7280;">
-                    &copy; ${new Date().getFullYear()} Roadtripeado. All rights reserved.
+                    &copy; ${new Date().getFullYear()} Roadtripeado. Todos los derechos reservados.
                   </td>
                 </tr>
               </table>

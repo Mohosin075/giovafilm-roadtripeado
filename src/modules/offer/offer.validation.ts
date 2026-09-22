@@ -39,6 +39,15 @@ const refineDiscount = (
         })
       }
     }
+  } else if (data.discountType === DISCOUNT_TYPE.FIXED_PRICE) {
+    const val = Number(data.discountValue)
+    if (isNaN(val) || val <= 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Fixed price must be a positive number (the total bundle price)',
+        path: ['discountValue'],
+      })
+    }
   }
 }
 

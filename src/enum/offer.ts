@@ -7,6 +7,7 @@ export enum OFFER_STATUS {
 export enum DISCOUNT_TYPE {
   PERCENTAGE = 'Percentage',
   FLAT = 'Flat',
+  FIXED_PRICE = 'Fixed Price',
   FREE_ITEM = 'Free item',
   BOGO = 'BOGO',
 }

@@ -45,13 +45,8 @@ const BusinessSchema = new Schema<IBusiness, BusinessModel>(
     },
     hours: {
       customHours: { type: Boolean, default: false },
-      schedule: [
-        {
-          days: { type: String },
-          openTime: { type: String },
-          closeTime: { type: String },
-        },
-      ],
+      // Mixed to support both legacy array format and new object format { Monday: { open, close, closed } }
+      schedule: { type: Schema.Types.Mixed, default: null },
     },
     media: {
       photos: { type: [String], default: [] },

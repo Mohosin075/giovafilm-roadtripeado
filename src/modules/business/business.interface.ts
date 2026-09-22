@@ -30,7 +30,8 @@ export interface IBusiness {
   }
   hours: {
     customHours: boolean
-    schedule: DaySchedule[]
+    // Supports both legacy array format and new object format { Monday: { open, close, closed } }
+    schedule: DaySchedule[] | Record<string, { open: string; close: string; closed: boolean }> | null
   }
   media: {
     photos: string[]

@@ -342,7 +342,7 @@ const getAllPlaces = async (query, isAdminOrEditor = false) => {
     };
 };
 const getPlaceById = async (id) => {
-    var _a, _b, _c, _d, _e, _f, _g;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
     const result = await place_model_1.Place.findById(id).populate('category').populate('map').lean();
     if (result)
         return result;
@@ -372,6 +372,11 @@ const getPlaceById = async (id) => {
                 coordinates: ((_f = (_e = business.location) === null || _e === void 0 ? void 0 : _e.mapLocation) === null || _f === void 0 ? void 0 : _f.coordinates) || [],
             },
             map: { name: (_g = business.location) === null || _g === void 0 ? void 0 : _g.country },
+            // Expose hours.schedule as operatingHours so edit form loads the saved data
+            operatingHours: ((_h = business.hours) === null || _h === void 0 ? void 0 : _h.schedule) || null,
+            phone: ((_j = business.contact) === null || _j === void 0 ? void 0 : _j.phone) || '',
+            website: ((_k = business.contact) === null || _k === void 0 ? void 0 : _k.website) || '',
+            instagram: ((_l = business.contact) === null || _l === void 0 ? void 0 : _l.instagram) || '',
         };
     }
     throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Place not found');
@@ -436,12 +441,11 @@ const updatePlace = async (id, payload) => {
                 ...(payload.instagram && { instagram: payload.instagram }),
             };
         }
-        // Hours / Schedule
-        if (payload.operatingHours) {
-            businessPayload.hours = {
-                customHours: true,
-                schedule: payload.operatingHours,
-            };
+        // Hours / Schedule — support full operatingHours object { Monday: { open, close, closed } }
+        if (payload.operatingHours && typeof payload.operatingHours === 'object') {
+            // Merge with existing hours so we don't wipe unrelated fields
+            businessPayload['hours.customHours'] = true;
+            businessPayload['hours.schedule'] = payload.operatingHours;
         }
         // Status mapping for business
         if (payload.status) {

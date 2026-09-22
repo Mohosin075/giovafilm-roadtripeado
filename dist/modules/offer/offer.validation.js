@@ -37,6 +37,16 @@ const refineDiscount = (data, ctx) => {
             }
         }
     }
+    else if (data.discountType === offer_1.DISCOUNT_TYPE.FIXED_PRICE) {
+        const val = Number(data.discountValue);
+        if (isNaN(val) || val <= 0) {
+            ctx.addIssue({
+                code: zod_1.z.ZodIssueCode.custom,
+                message: 'Fixed price must be a positive number (the total bundle price)',
+                path: ['discountValue'],
+            });
+        }
+    }
 };
 const translatableSchema = zod_1.z.union([
     zod_1.z.string(),

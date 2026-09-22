@@ -11,6 +11,7 @@ var DISCOUNT_TYPE;
 (function (DISCOUNT_TYPE) {
     DISCOUNT_TYPE["PERCENTAGE"] = "Percentage";
     DISCOUNT_TYPE["FLAT"] = "Flat";
+    DISCOUNT_TYPE["FIXED_PRICE"] = "Fixed Price";
     DISCOUNT_TYPE["FREE_ITEM"] = "Free item";
     DISCOUNT_TYPE["BOGO"] = "BOGO";
 })(DISCOUNT_TYPE || (exports.DISCOUNT_TYPE = DISCOUNT_TYPE = {}));

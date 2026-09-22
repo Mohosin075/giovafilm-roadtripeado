@@ -39,10 +39,9 @@ active offers, etc.
 3. The map on the "Places" page displays an image error when zoomed in significantly.
 4. On the "Places" map, there is lag or a delay when opening the pop-up after clicking a location pin
 to edit it.
-5. When editing location details, certain checked boxes or filled-in fields—such as the "Always Open"
-checkbox—are not saving correctly.
-6. On the "Offers" page, I cannot set up a fixed-price offer (e.g., an offer for two pizzas and one donut
-for a total of $25).
+solved
+5. When editing location details, certain checked boxes or filled-in fields—such as the "Always Open" checkbox—are not saving correctly.
+6. On the "Offers" page, I cannot set up a fixed-price offer (e.g., an offer for two pizzas and one donut for a total of $25).
 
 
 Users:

@@ -38,7 +38,12 @@ export const createBusinessZodSchema = z.object({
     }),
     hours: z.object({
       customHours: z.boolean().default(false),
-      schedule: z.array(dayScheduleSchema).default([]),
+      // Accept both legacy array and new object { Monday: { open, close, closed } }
+      schedule: z.union([
+        z.array(dayScheduleSchema),
+        z.record(z.object({ open: z.string(), close: z.string(), closed: z.boolean() })),
+        z.null(),
+      ]).default([]),
     }),
     media: z.object({
       photos: z.array(z.string()).default([]),
@@ -75,7 +80,12 @@ export const updateBusinessZodSchema = z.object({
     }).optional(),
     hours: z.object({
       customHours: z.boolean().optional(),
-      schedule: z.array(dayScheduleSchema).optional(),
+      // Accept both legacy array and new object { Monday: { open, close, closed } }
+      schedule: z.union([
+        z.array(dayScheduleSchema),
+        z.record(z.object({ open: z.string(), close: z.string(), closed: z.boolean() })),
+        z.null(),
+      ]).optional(),
     }).optional(),
     media: z.object({
       photos: z.array(z.string()).optional(),

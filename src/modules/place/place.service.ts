@@ -395,6 +395,11 @@ const getPlaceById = async (id: string): Promise<any | null> => {
         coordinates: business.location?.mapLocation?.coordinates || [],
       },
       map: { name: business.location?.country },
+      // Expose hours.schedule as operatingHours so edit form loads the saved data
+      operatingHours: business.hours?.schedule || null,
+      phone: business.contact?.phone || '',
+      website: business.contact?.website || '',
+      instagram: business.contact?.instagram || '',
     }
   }
   throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
@@ -469,12 +474,11 @@ const updatePlace = async (
       }
     }
 
-    // Hours / Schedule
-    if (payload.operatingHours) {
-      businessPayload.hours = {
-        customHours: true,
-        schedule: payload.operatingHours,
-      }
+    // Hours / Schedule — support full operatingHours object { Monday: { open, close, closed } }
+    if (payload.operatingHours && typeof payload.operatingHours === 'object') {
+      // Merge with existing hours so we don't wipe unrelated fields
+      businessPayload['hours.customHours'] = true
+      businessPayload['hours.schedule'] = payload.operatingHours
     }
 
     // Status mapping for business

@@ -25,18 +25,37 @@ class QueryBuilder<T> {
   search(searchableFields: string[]) {
     if (this?.query?.searchTerm) {
       const pattern = buildAccentInsensitivePattern(String(this.query.searchTerm))
+      const orConditions: FilterQuery<T>[] = []
+
+      for (const field of searchableFields) {
+        orConditions.push({
+          [field]: {
+            $regex: pattern,
+            $options: 'i',
+          },
+        } as FilterQuery<T>)
+
+        // Translatable sub-field support (e.g., name.en, name.es, description.en, description.es)
+        if (!field.includes('.')) {
+          orConditions.push({
+            [`${field}.en`]: {
+              $regex: pattern,
+              $options: 'i',
+            },
+          } as FilterQuery<T>)
+          orConditions.push({
+            [`${field}.es`]: {
+              $regex: pattern,
+              $options: 'i',
+            },
+          } as FilterQuery<T>)
+        }
+      }
+
       this.modelQuery = this.modelQuery.find({
         $and: [
           {
-            $or: searchableFields.map(
-              field =>
-                ({
-                  [field]: {
-                    $regex: pattern,
-                    $options: 'i',
-                  },
-                }) as FilterQuery<T>,
-            ),
+            $or: orConditions,
           },
         ],
       })

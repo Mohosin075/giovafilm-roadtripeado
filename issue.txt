@@ -52,6 +52,7 @@ same word. Currently, if a user types "Manati" (without the accent on the instea
 2. Business operating hours are not showing up on the location's information page.
 3. The point and level values do not match the document I sent. Will I be able to manage and adjust
 that section myself?
+
 4. On the "Places" page, if I select a category, view a specific location, and then go back, the filters
 and the user's previous scroll position are not saved.
 5. On the catalog page, please remove the map reviews.

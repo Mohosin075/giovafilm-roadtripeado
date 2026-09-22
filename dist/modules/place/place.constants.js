@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.difficultyMap = exports.placeDifficulty = exports.placeSearchableFields = void 0;
-exports.placeSearchableFields = ['name', 'address', 'country']; // category name is matched separately
+exports.placeSearchableFields = ['name', 'address', 'location.address', 'location.city', 'country']; // category name is matched separately
 exports.placeDifficulty = [
     'Easy',
     'Moderate',

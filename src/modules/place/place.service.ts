@@ -274,6 +274,8 @@ const getAllPlaces = async (
       { address: regex },
       { 'address.en': regex },
       { 'address.es': regex },
+      { 'location.city': regex },
+      { 'location.address': regex },
       { country: regex },
     ]
 

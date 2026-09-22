@@ -22,15 +22,34 @@ class QueryBuilder {
         var _a;
         if ((_a = this === null || this === void 0 ? void 0 : this.query) === null || _a === void 0 ? void 0 : _a.searchTerm) {
             const pattern = buildAccentInsensitivePattern(String(this.query.searchTerm));
+            const orConditions = [];
+            for (const field of searchableFields) {
+                orConditions.push({
+                    [field]: {
+                        $regex: pattern,
+                        $options: 'i',
+                    },
+                });
+                // Translatable sub-field support (e.g., name.en, name.es, description.en, description.es)
+                if (!field.includes('.')) {
+                    orConditions.push({
+                        [`${field}.en`]: {
+                            $regex: pattern,
+                            $options: 'i',
+                        },
+                    });
+                    orConditions.push({
+                        [`${field}.es`]: {
+                            $regex: pattern,
+                            $options: 'i',
+                        },
+                    });
+                }
+            }
             this.modelQuery = this.modelQuery.find({
                 $and: [
                     {
-                        $or: searchableFields.map(field => ({
-                            [field]: {
-                                $regex: pattern,
-                                $options: 'i',
-                            },
-                        })),
+                        $or: orConditions,
                     },
                 ],
             });

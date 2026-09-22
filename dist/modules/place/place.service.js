@@ -207,6 +207,8 @@ const getAllPlaces = async (query, isAdminOrEditor = false) => {
             { address: regex },
             { 'address.en': regex },
             { 'address.es': regex },
+            { 'location.city': regex },
+            { 'location.address': regex },
             { country: regex },
         ];
         if (matchingCategories.length > 0) {

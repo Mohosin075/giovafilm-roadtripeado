@@ -1,4 +1,4 @@
-export const placeSearchableFields = ['name', 'address', 'country'] // category name is matched separately
+export const placeSearchableFields = ['name', 'address', 'location.address', 'location.city', 'country'] // category name is matched separately
 export const placeDifficulty = [
   'Easy',
   'Moderate',

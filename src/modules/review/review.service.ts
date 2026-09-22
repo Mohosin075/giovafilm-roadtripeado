@@ -13,6 +13,7 @@ import { AwardServices } from '../award/award.service'
 import { NotificationServices } from '../notification/notification.service'
 import { NotificationType, NotificationPriority } from '../notification/notification.interface'
 import { autoTranslateField } from '../../utils/autoTranslate'
+import { calculateUserLevel } from '../../constants/userLevels.constant'
 
 import { getAccessibleMapIds } from '../../helpers/mapAccessHelper'
 
@@ -292,30 +293,7 @@ const updateReview = async (
         const newPoints = Math.max(0, (reviewer.points || 0) - pointsToDeduct)
         const newApprovedCount = Math.max(0, (reviewer.totalReviewsApproved || 0) - 1)
         
-        let newLevel = 0
-        const USER_LEVELS = [
-          { level: 0, points: 0, reviews: 0 },
-          { level: 1, points: 100, reviews: 6 },
-          { level: 2, points: 200, reviews: 13 },
-          { level: 3, points: 400, reviews: 26 },
-          { level: 4, points: 700, reviews: 46 },
-          { level: 5, points: 1300, reviews: 86 },
-          { level: 6, points: 2300, reviews: 153 },
-          { level: 7, points: 4000, reviews: 266 },
-          { level: 8, points: 6500, reviews: 433 },
-          { level: 9, points: 10000, reviews: 665 },
-          { level: 10, points: 15000, reviews: 1000 },
-          { level: 11, points: 22500, reviews: 1500 },
-          { level: 12, points: 33000, reviews: 2200 },
-          { level: 13, points: 48000, reviews: 3200 },
-          { level: 14, points: 67500, reviews: 4500 }
-        ]
-        for (let i = USER_LEVELS.length - 1; i >= 0; i--) {
-          if (newPoints >= USER_LEVELS[i].points && newApprovedCount >= USER_LEVELS[i].reviews) {
-            newLevel = USER_LEVELS[i].level
-            break
-          }
-        }
+        const newLevel = calculateUserLevel(newPoints, newApprovedCount)
 
         await User.findByIdAndUpdate(
           reviewerId,
@@ -387,31 +365,7 @@ const deleteReview = async (user: JwtPayload, id: string) => {
         const newPoints = Math.max(0, (reviewer.points || 0) - pointsToDeduct)
         const newApprovedCount = Math.max(0, (reviewer.totalReviewsApproved || 0) - 1)
         
-        // Recalculate level
-        let newLevel = 0
-        const USER_LEVELS = [
-          { level: 0, points: 0, reviews: 0 },
-          { level: 1, points: 100, reviews: 6 },
-          { level: 2, points: 200, reviews: 13 },
-          { level: 3, points: 400, reviews: 26 },
-          { level: 4, points: 700, reviews: 46 },
-          { level: 5, points: 1300, reviews: 86 },
-          { level: 6, points: 2300, reviews: 153 },
-          { level: 7, points: 4000, reviews: 266 },
-          { level: 8, points: 6500, reviews: 433 },
-          { level: 9, points: 10000, reviews: 665 },
-          { level: 10, points: 15000, reviews: 1000 },
-          { level: 11, points: 22500, reviews: 1500 },
-          { level: 12, points: 33000, reviews: 2200 },
-          { level: 13, points: 48000, reviews: 3200 },
-          { level: 14, points: 67500, reviews: 4500 }
-        ]
-        for (let i = USER_LEVELS.length - 1; i >= 0; i--) {
-          if (newPoints >= USER_LEVELS[i].points && newApprovedCount >= USER_LEVELS[i].reviews) {
-            newLevel = USER_LEVELS[i].level
-            break
-          }
-        }
+        const newLevel = calculateUserLevel(newPoints, newApprovedCount)
 
         await User.findByIdAndUpdate(
           reviewerId,
@@ -491,32 +445,7 @@ const approveReview = async (id: string) => {
       const newPoints = (reviewer.points || 0) + points
       const newApprovedCount = (reviewer.totalReviewsApproved || 0) + 1
 
-      // Recalculate level based on points AND approved reviews count thresholds
-      const USER_LEVELS = [
-        { level: 0, points: 0, reviews: 0 },
-        { level: 1, points: 100, reviews: 6 },
-        { level: 2, points: 200, reviews: 13 },
-        { level: 3, points: 400, reviews: 26 },
-        { level: 4, points: 700, reviews: 46 },
-        { level: 5, points: 1300, reviews: 86 },
-        { level: 6, points: 2300, reviews: 153 },
-        { level: 7, points: 4000, reviews: 266 },
-        { level: 8, points: 6500, reviews: 433 },
-        { level: 9, points: 10000, reviews: 665 },
-        { level: 10, points: 15000, reviews: 1000 },
-        { level: 11, points: 22500, reviews: 1500 },
-        { level: 12, points: 33000, reviews: 2200 },
-        { level: 13, points: 48000, reviews: 3200 },
-        { level: 14, points: 67500, reviews: 4500 }
-      ]
-
-      let newLevel = 0
-      for (let i = USER_LEVELS.length - 1; i >= 0; i--) {
-        if (newPoints >= USER_LEVELS[i].points && newApprovedCount >= USER_LEVELS[i].reviews) {
-          newLevel = USER_LEVELS[i].level
-          break
-        }
-      }
+      const newLevel = calculateUserLevel(newPoints, newApprovedCount)
 
       await User.findByIdAndUpdate(
         reviewerId,

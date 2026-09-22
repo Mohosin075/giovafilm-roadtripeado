@@ -15,6 +15,7 @@ import { userFilterableFields } from './user.constants'
 import { generateOtp } from '../../utils/crypto'
 import { emailTemplate } from '../../shared/emailTemplate'
 import { emailHelper } from '../../helpers/emailHelper'
+import { calculateUserLevel } from '../../constants/userLevels.constant'
 
 const updateProfile = async (user: JwtPayload, payload: Partial<IUser>) => {
   console.log({ payload })
@@ -674,8 +675,8 @@ const updatePointsAndLevel = async (userId: string, pointsToAdd: number) => {
   if (!user) return
 
   const newPoints = (user.points || 0) + pointsToAdd
-  // Simple level logic: every 1000 points = 1 level
-  const newLevel = Math.floor(newPoints / 1000) + 1
+  const newApprovedCount = user.totalReviewsApproved || 0
+  const newLevel = calculateUserLevel(newPoints, newApprovedCount)
 
   await User.findByIdAndUpdate(userId, {
     $set: {

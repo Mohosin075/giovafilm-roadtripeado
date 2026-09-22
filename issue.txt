@@ -49,15 +49,23 @@ Users:
 1. On the "Map" page, I would like the search function to treat words with and without accents as the
 same word. Currently, if a user types "Manati" (without the accent on the instead of the correct
 "Manatf," the locations for that municipality won't appear due to a simple spelling/accentuation issue.
+solved
 2. Business operating hours are not showing up on the location's information page.
+solved
+
 3. The point and level values do not match the document I sent. Will I be able to manage and adjust
 that section myself?
-
+solved
 4. On the "Places" page, if I select a category, view a specific location, and then go back, the filters
 and the user's previous scroll position are not saved.
+solved
 5. On the catalog page, please remove the map reviews.
+solved
+
+
 6. Create the landing page based on the design I sent you. Let me know if you need any information,
 such as reviews from past customers.
+
 7. On the "Map" page, some pins disappear when zoomed out, and they reappear when zooming in.
 
 MOBILE VERSION:
@@ -66,20 +74,32 @@ Users:
 section (and other elements) covers it.
 2. On the mobile dashboard, the filters on each page are stacked vertically; could they be placed
 side-by-side instead so they don't take up so much screen space?
-3. The "satellite" view option is missing from the "Map" page in the mobile version. Please place it in a
-strategic spot where it looks compact and doesn't take up the entire screen.
+3. The "satellite" view option is missing from the "Map" page in the mobile version. Please place it in a strategic spot where it looks compact and doesn't take up the entire screen.
 
 
 
 
 GENERAL VERSION:
 Dashboard:
-I. The translator is changing the original names of businesses and locations.
-2. When accessing the •Places• map, it should load with no country selected to avoid errors.
-3. When editing location information and changing the photo order, an error occurs with the
-I. It iS not possible to swipe between photos in the business menus.
+1. The translator is changing the original names of businesses and locations.
+2. When accessing the "Places" map, it should load with no country selected to avoid errors.
+3. When editing location information and changing the photo order, an error occurs with the images/thumbnails.
+
+user
+1. It iS not possible to swipe between photos in the business menus.
 2. On the •Places• and •Offers• paws, set the default View to show 45 items so the user doesn•t have
 to select a quantity
 3. In the location details, the opening hours look cluttered because they contain so much information.
 4. On the business info p., replace the camera emoji next to the Instagram link With the actual
 Instagam logo.
+
+
+
+Dashboard:
+1. I granted map editor access to someone, but the dashboard won't open for them.
+
+Users:
+1. When users receive the email or email invitation, the email should be in Spanish, given that the audience is primarily Latino.
+2. When redeeming the free map, an error message appears stating the invitation has expired, though the process continues without issues afterward.
+3. Clarify the message displayed when redeeming a coupon by changing it to: "Show this screen to the staff and start the timer when redeeming your offer with the attendant."
+4. Photos do not look good because they get cropped due to their size or format; is there a solution to ensure the visible part of the image is the relevant one, or what can be done here?

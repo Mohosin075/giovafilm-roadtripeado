@@ -9,20 +9,139 @@ import { getCountryFromCoordinates } from '../../utils/reverseGeocoding'
 import { Business } from '../business/business.model'
 import { autoTranslateField } from '../../utils/autoTranslate'
 
-const processPlaceTranslations = async (payload: Partial<IPlace>) => {
-  if (payload.name) payload.name = await autoTranslateField(payload.name)
-  if (payload.description) payload.description = await autoTranslateField(payload.description)
-  if (payload.access) payload.access = await autoTranslateField(payload.access)
-  if (payload.entryCost) payload.entryCost = await autoTranslateField(payload.entryCost)
-  if (payload.difficulty) payload.difficulty = await autoTranslateField(payload.difficulty)
-  if (payload.hikeTime) payload.hikeTime = await autoTranslateField(payload.hikeTime)
-  if (payload.atmosphere) payload.atmosphere = await autoTranslateField(payload.atmosphere)
+const resolveTranslatableField = async (
+  newVal: any,
+  existingVal: any
+): Promise<any> => {
+  if (newVal === undefined || newVal === null) return newVal
+
+  // If existingVal already has translations { en, es }
+  if (existingVal && typeof existingVal === 'object') {
+    const exEn = typeof existingVal.en === 'string' ? existingVal.en.trim() : ''
+    const exEs = typeof existingVal.es === 'string' ? existingVal.es.trim() : ''
+
+    // If newVal is a string matching either the existing English or Spanish text,
+    // the user did not change the meaning — keep the existing translations without API calls!
+    if (typeof newVal === 'string') {
+      const cleanNew = newVal.trim()
+      if (cleanNew && (cleanNew === exEn || cleanNew === exEs)) {
+        return { en: exEn, es: exEs }
+      }
+    } else if (typeof newVal === 'object') {
+      const newEn = typeof newVal.en === 'string' ? newVal.en.trim() : ''
+      const newEs = typeof newVal.es === 'string' ? newVal.es.trim() : ''
+      if (newEn && newEs && newEn === exEn && newEs === exEs) {
+        return { en: exEn, es: exEs }
+      }
+    }
+  }
+
+  // If newVal already has distinct, non-empty en and es values
+  if (
+    typeof newVal === 'object' &&
+    newVal !== null &&
+    newVal.en &&
+    newVal.es &&
+    newVal.en.trim() !== newVal.es.trim()
+  ) {
+    return newVal
+  }
+
+  return await autoTranslateField(newVal)
+}
+
+const processPlaceTranslations = async (
+  payload: Partial<IPlace>,
+  existingDoc?: any
+) => {
+  const tasks: Promise<void>[] = []
+
+  if (payload.name) {
+    tasks.push(
+      (async () => {
+        payload.name = await resolveTranslatableField(payload.name, existingDoc?.name)
+      })()
+    )
+  }
+  if (payload.description) {
+    tasks.push(
+      (async () => {
+        payload.description = await resolveTranslatableField(
+          payload.description,
+          existingDoc?.description
+        )
+      })()
+    )
+  }
+  if (payload.access) {
+    tasks.push(
+      (async () => {
+        payload.access = await resolveTranslatableField(payload.access, existingDoc?.access)
+      })()
+    )
+  }
+  if (payload.entryCost) {
+    tasks.push(
+      (async () => {
+        payload.entryCost = await resolveTranslatableField(
+          payload.entryCost,
+          existingDoc?.entryCost
+        )
+      })()
+    )
+  }
+  if (payload.difficulty) {
+    tasks.push(
+      (async () => {
+        payload.difficulty = await resolveTranslatableField(
+          payload.difficulty,
+          existingDoc?.difficulty
+        )
+      })()
+    )
+  }
+  if (payload.hikeTime) {
+    tasks.push(
+      (async () => {
+        payload.hikeTime = await resolveTranslatableField(
+          payload.hikeTime,
+          existingDoc?.hikeTime
+        )
+      })()
+    )
+  }
+  if (payload.atmosphere) {
+    tasks.push(
+      (async () => {
+        payload.atmosphere = await resolveTranslatableField(
+          payload.atmosphere,
+          existingDoc?.atmosphere
+        )
+      })()
+    )
+  }
   if (payload.accessibility?.notes) {
-    payload.accessibility.notes = await autoTranslateField(payload.accessibility.notes)
+    tasks.push(
+      (async () => {
+        payload.accessibility!.notes = await resolveTranslatableField(
+          payload.accessibility!.notes,
+          existingDoc?.accessibility?.notes
+        )
+      })()
+    )
   }
   if (payload.recommendations?.tips) {
-    payload.recommendations.tips = await autoTranslateField(payload.recommendations.tips)
+    tasks.push(
+      (async () => {
+        payload.recommendations!.tips = await resolveTranslatableField(
+          payload.recommendations!.tips,
+          existingDoc?.recommendations?.tips
+        )
+      })()
+    )
   }
+
+  await Promise.all(tasks)
 }
 
 const escapeRegex = (value: string) =>
@@ -421,7 +540,6 @@ const updatePlace = async (
   id: string,
   payload: Partial<IPlace>,
 ): Promise<any | null> => {
-  await processPlaceTranslations(payload)
   const isExist = await Place.findById(id)
   if (!isExist) {
     // Fallback: Check and update Business collection
@@ -429,6 +547,7 @@ const updatePlace = async (
     if (!isBusiness) {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
     }
+    await processPlaceTranslations(payload, isBusiness)
 
     // Map payload from Place structure back to Business schema format
     const businessPayload: any = {}
@@ -518,6 +637,8 @@ const updatePlace = async (
     }
     return null
   }
+
+  await processPlaceTranslations(payload, isExist)
 
   const nextCoords = payload.location?.coordinates
   const prevCoords = isExist.location?.coordinates

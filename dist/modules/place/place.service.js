@@ -13,28 +13,90 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const reverseGeocoding_1 = require("../../utils/reverseGeocoding");
 const business_model_1 = require("../business/business.model");
 const autoTranslate_1 = require("../../utils/autoTranslate");
-const processPlaceTranslations = async (payload) => {
+const resolveTranslatableField = async (newVal, existingVal) => {
+    if (newVal === undefined || newVal === null)
+        return newVal;
+    // If existingVal already has translations { en, es }
+    if (existingVal && typeof existingVal === 'object') {
+        const exEn = typeof existingVal.en === 'string' ? existingVal.en.trim() : '';
+        const exEs = typeof existingVal.es === 'string' ? existingVal.es.trim() : '';
+        // If newVal is a string matching either the existing English or Spanish text,
+        // the user did not change the meaning — keep the existing translations without API calls!
+        if (typeof newVal === 'string') {
+            const cleanNew = newVal.trim();
+            if (cleanNew && (cleanNew === exEn || cleanNew === exEs)) {
+                return { en: exEn, es: exEs };
+            }
+        }
+        else if (typeof newVal === 'object') {
+            const newEn = typeof newVal.en === 'string' ? newVal.en.trim() : '';
+            const newEs = typeof newVal.es === 'string' ? newVal.es.trim() : '';
+            if (newEn && newEs && newEn === exEn && newEs === exEs) {
+                return { en: exEn, es: exEs };
+            }
+        }
+    }
+    // If newVal already has distinct, non-empty en and es values
+    if (typeof newVal === 'object' &&
+        newVal !== null &&
+        newVal.en &&
+        newVal.es &&
+        newVal.en.trim() !== newVal.es.trim()) {
+        return newVal;
+    }
+    return await (0, autoTranslate_1.autoTranslateField)(newVal);
+};
+const processPlaceTranslations = async (payload, existingDoc) => {
     var _a, _b;
-    if (payload.name)
-        payload.name = await (0, autoTranslate_1.autoTranslateField)(payload.name);
-    if (payload.description)
-        payload.description = await (0, autoTranslate_1.autoTranslateField)(payload.description);
-    if (payload.access)
-        payload.access = await (0, autoTranslate_1.autoTranslateField)(payload.access);
-    if (payload.entryCost)
-        payload.entryCost = await (0, autoTranslate_1.autoTranslateField)(payload.entryCost);
-    if (payload.difficulty)
-        payload.difficulty = await (0, autoTranslate_1.autoTranslateField)(payload.difficulty);
-    if (payload.hikeTime)
-        payload.hikeTime = await (0, autoTranslate_1.autoTranslateField)(payload.hikeTime);
-    if (payload.atmosphere)
-        payload.atmosphere = await (0, autoTranslate_1.autoTranslateField)(payload.atmosphere);
+    const tasks = [];
+    if (payload.name) {
+        tasks.push((async () => {
+            payload.name = await resolveTranslatableField(payload.name, existingDoc === null || existingDoc === void 0 ? void 0 : existingDoc.name);
+        })());
+    }
+    if (payload.description) {
+        tasks.push((async () => {
+            payload.description = await resolveTranslatableField(payload.description, existingDoc === null || existingDoc === void 0 ? void 0 : existingDoc.description);
+        })());
+    }
+    if (payload.access) {
+        tasks.push((async () => {
+            payload.access = await resolveTranslatableField(payload.access, existingDoc === null || existingDoc === void 0 ? void 0 : existingDoc.access);
+        })());
+    }
+    if (payload.entryCost) {
+        tasks.push((async () => {
+            payload.entryCost = await resolveTranslatableField(payload.entryCost, existingDoc === null || existingDoc === void 0 ? void 0 : existingDoc.entryCost);
+        })());
+    }
+    if (payload.difficulty) {
+        tasks.push((async () => {
+            payload.difficulty = await resolveTranslatableField(payload.difficulty, existingDoc === null || existingDoc === void 0 ? void 0 : existingDoc.difficulty);
+        })());
+    }
+    if (payload.hikeTime) {
+        tasks.push((async () => {
+            payload.hikeTime = await resolveTranslatableField(payload.hikeTime, existingDoc === null || existingDoc === void 0 ? void 0 : existingDoc.hikeTime);
+        })());
+    }
+    if (payload.atmosphere) {
+        tasks.push((async () => {
+            payload.atmosphere = await resolveTranslatableField(payload.atmosphere, existingDoc === null || existingDoc === void 0 ? void 0 : existingDoc.atmosphere);
+        })());
+    }
     if ((_a = payload.accessibility) === null || _a === void 0 ? void 0 : _a.notes) {
-        payload.accessibility.notes = await (0, autoTranslate_1.autoTranslateField)(payload.accessibility.notes);
+        tasks.push((async () => {
+            var _a;
+            payload.accessibility.notes = await resolveTranslatableField(payload.accessibility.notes, (_a = existingDoc === null || existingDoc === void 0 ? void 0 : existingDoc.accessibility) === null || _a === void 0 ? void 0 : _a.notes);
+        })());
     }
     if ((_b = payload.recommendations) === null || _b === void 0 ? void 0 : _b.tips) {
-        payload.recommendations.tips = await (0, autoTranslate_1.autoTranslateField)(payload.recommendations.tips);
+        tasks.push((async () => {
+            var _a;
+            payload.recommendations.tips = await resolveTranslatableField(payload.recommendations.tips, (_a = existingDoc === null || existingDoc === void 0 ? void 0 : existingDoc.recommendations) === null || _a === void 0 ? void 0 : _a.tips);
+        })());
     }
+    await Promise.all(tasks);
 };
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 function buildAccentInsensitivePattern(term) {
@@ -390,7 +452,6 @@ const incrementOpenCount = async (id) => {
 };
 const updatePlace = async (id, payload) => {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
-    await processPlaceTranslations(payload);
     const isExist = await place_model_1.Place.findById(id);
     if (!isExist) {
         // Fallback: Check and update Business collection
@@ -398,6 +459,7 @@ const updatePlace = async (id, payload) => {
         if (!isBusiness) {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Place not found');
         }
+        await processPlaceTranslations(payload, isBusiness);
         // Map payload from Place structure back to Business schema format
         const businessPayload = {};
         if (payload.name)
@@ -487,6 +549,7 @@ const updatePlace = async (id, payload) => {
         }
         return null;
     }
+    await processPlaceTranslations(payload, isExist);
     const nextCoords = (_k = payload.location) === null || _k === void 0 ? void 0 : _k.coordinates;
     const prevCoords = (_l = isExist.location) === null || _l === void 0 ? void 0 : _l.coordinates;
     const COORD_EPSILON = 1e-6;

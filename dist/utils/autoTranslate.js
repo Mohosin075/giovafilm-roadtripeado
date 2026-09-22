@@ -21,6 +21,7 @@ const decodeHTMLEntities = (str) => {
         .replace(/&gt;/g, '>')
         .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec));
 };
+const translationMemoryCache = new Map();
 /**
  * Robust multi-provider translation pipeline.
  * Tries MyMemory API (with valid email tier) -> Google Translate API -> Google GTX fallback.
@@ -30,6 +31,10 @@ const translateWithFallback = async (text, toLang, fromLang = 'auto') => {
     if (!text || !text.trim())
         return text;
     const clean = text.trim();
+    const cacheKey = `${clean.toLowerCase()}_${fromLang}_${toLang}`;
+    if (translationMemoryCache.has(cacheKey)) {
+        return translationMemoryCache.get(cacheKey);
+    }
     // 1. Try MyMemory Translation API with email (10,000 words/day free limit)
     try {
         const pair = fromLang === 'auto'
@@ -38,7 +43,7 @@ const translateWithFallback = async (text, toLang, fromLang = 'auto') => {
                 : 'en|es'
             : `${fromLang}|${toLang}`;
         const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean)}&langpair=${pair}&de=dev@giovafilm.com`;
-        const response = await axios_1.default.get(url, { timeout: 6000 });
+        const response = await axios_1.default.get(url, { timeout: 2500 });
         const translatedText = (_b = (_a = response.data) === null || _a === void 0 ? void 0 : _a.responseData) === null || _b === void 0 ? void 0 : _b.translatedText;
         if (translatedText &&
             typeof translatedText === 'string' &&
@@ -49,6 +54,7 @@ const translateWithFallback = async (text, toLang, fromLang = 'auto') => {
             const decoded = decodeHTMLEntities(translatedText.trim());
             // If translated successfully and different from original, return
             if (decoded.toLowerCase() !== clean.toLowerCase() || clean.split(/\s+/).length <= 2) {
+                translationMemoryCache.set(cacheKey, decoded);
                 return decoded;
             }
         }

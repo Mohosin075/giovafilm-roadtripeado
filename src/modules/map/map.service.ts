@@ -258,11 +258,17 @@ const getDiscoveryData = async (
   }
 
   // 3. Always set status independently for Place and Business
-  if (!placeQueryObj.status) {
-    placeQueryObj.status = isAdminOrEditor ? { $in: ['Draft', 'Published'] } : 'Published'
+  if (!isAdminOrEditor) {
+    placeQueryObj.status = 'Published'
+    businessQueryObj.status = 'Approved'
+  } else {
+    if (!placeQueryObj.status) {
+      placeQueryObj.status = { $in: ['Draft', 'Published'] }
+    }
+    if (!businessQueryObj.status) {
+      businessQueryObj.status = { $in: ['Pending', 'Approved', 'Rejected'] }
+    }
   }
-  // Business status is always controlled here — never from query
-  businessQueryObj.status = isAdminOrEditor ? { $in: ['Pending', 'Approved', 'Rejected'] } : 'Approved'
 
   // 4. Enforce that businesses must have an active subscription to show on the map
   if (!isAdminOrEditor) {
@@ -317,26 +323,30 @@ const getDiscoveryData = async (
     return {
       ...(place as any),
       ...(isLocked ? { entryCost: undefined, hikeTime: undefined, difficulty: undefined, atmosphere: undefined, schedules: undefined } : {}),
+      media: Array.isArray(place.media) ? place.media.filter(Boolean) : [],
       placeType: place.type,
       type: 'place',
       isLocked: !!isLocked,
     }
   })
 
-  const formattedBusinesses = businesses.map(business => ({
-    ...(business as any),
-    type: 'business',
-    placeType: 'Business',
-    media: business.media || { photos: [] },
-    description: business.description || '',
-    location: {
-      ...(business.location || {}),
-      type: 'Point',
-      coordinates: business.location?.mapLocation?.coordinates || [],
-    },
-    address: business.location?.address || '',
-    country: business.location?.country || '',
-  }))
+  const formattedBusinesses = businesses.map(business => {
+    const rawPhotos = business.media?.photos || []
+    return {
+      ...(business as any),
+      type: 'business',
+      placeType: 'Business',
+      media: Array.isArray(rawPhotos) ? rawPhotos.filter(Boolean) : [],
+      description: business.description || '',
+      location: {
+        ...(business.location || {}),
+        type: 'Point',
+        coordinates: business.location?.mapLocation?.coordinates || [],
+      },
+      address: business.location?.address || '',
+      country: business.location?.country || '',
+    }
+  })
 
   // Combine results
   let result = [...formattedPlaces, ...formattedBusinesses]

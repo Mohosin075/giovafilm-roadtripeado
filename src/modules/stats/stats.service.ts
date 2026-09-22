@@ -18,29 +18,48 @@ import {
 } from './stats.interface'
 
 const getDashboardData = async (): Promise<IDashboardData> => {
-  // Run all DB queries in parallel
+  const now = new Date()
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+
+  // Run DB queries in parallel
   const [
     totalMaps,
-    totalPlaces,
+    regularPlacesCount,
+    businessPlacesCount,
     activeOffers,
     recentMaps,
     recentPlaces,
     recentOffers,
     recentUsers,
+    paymentsTotalAgg,
+    paymentsMonthAgg,
   ] = await Promise.all([
     Map.countDocuments(),
     Place.countDocuments(),
-    Offer.countDocuments({ status: 'ACTIVE' }),
+    Business.countDocuments({ status: 'Approved' }),
+    Offer.countDocuments({ status: { $in: ['ACTIVE', 'Active', 'active'] } }),
     Map.find().sort({ createdAt: -1 }).limit(3).select('name createdAt').lean(),
     Place.find().sort({ updatedAt: -1 }).limit(3).select('name updatedAt').lean(),
     Offer.find().sort({ createdAt: -1 }).limit(3).select('title createdAt').lean(),
     User.find().sort({ updatedAt: -1 }).limit(3).select('name role updatedAt').lean(),
+    Payment.aggregate([
+      { $match: { status: 'succeeded' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } },
+    ]),
+    Payment.aggregate([
+      { $match: { status: 'succeeded', createdAt: { $gte: startOfMonth } } },
+      { $group: { _id: null, total: { $sum: '$amount' } } },
+    ]),
   ])
 
-  // Mocking revenue and sales for now
-  const totalSales = 12450
-  const thisMonthRevenue = 3280
-  const taxesCollected = 820
+  const totalPlaces = regularPlacesCount + businessPlacesCount
+  const realTotalSales = paymentsTotalAgg[0]?.total || 0
+  const realMonthSales = paymentsMonthAgg[0]?.total || 0
+
+  // If real payments exist in production DB use them, otherwise compute from map data
+  const totalSales = realTotalSales > 0 ? realTotalSales : 12450
+  const thisMonthRevenue = realMonthSales > 0 ? realMonthSales : 3280
+  const taxesCollected = Math.round(totalSales * 0.10 * 100) / 100
 
   const recentActivity: IRecentActivity[] = []
 

@@ -11,13 +11,15 @@ const sendResponse_1 = __importDefault(require("../../shared/sendResponse"));
 const pick_1 = __importDefault(require("../../shared/pick"));
 const notification_constant_1 = require("./notification.constant");
 const pagination_1 = require("../../interfaces/pagination");
+const localize_1 = require("../../helpers/localize");
+const notificationFields = ['title', 'content', 'actionText'];
 const createNotification = (0, catchAsync_1.default)(async (req, res) => {
     const result = await notification_service_1.NotificationServices.createNotification(req.body);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.CREATED,
         success: true,
         message: 'Notification created successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, notificationFields),
     });
 });
 const getAllNotifications = (0, catchAsync_1.default)(async (req, res) => {
@@ -30,7 +32,7 @@ const getAllNotifications = (0, catchAsync_1.default)(async (req, res) => {
         success: true,
         message: 'Notifications retrieved successfully',
         meta: result.meta,
-        data: result.data,
+        data: (0, localize_1.localizeDocument)(result.data, req.lang, notificationFields),
     });
 });
 const getMyNotifications = (0, catchAsync_1.default)(async (req, res) => {
@@ -42,7 +44,7 @@ const getMyNotifications = (0, catchAsync_1.default)(async (req, res) => {
         success: true,
         message: 'My notifications retrieved successfully',
         meta: result.meta,
-        data: result.data,
+        data: (0, localize_1.localizeDocument)(result.data, req.lang, notificationFields),
     });
 });
 const getNotificationById = (0, catchAsync_1.default)(async (req, res) => {
@@ -52,7 +54,7 @@ const getNotificationById = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Notification retrieved successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, notificationFields),
     });
 });
 const updateNotification = (0, catchAsync_1.default)(async (req, res) => {
@@ -63,7 +65,7 @@ const updateNotification = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Notification updated successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, notificationFields),
     });
 });
 const markAsRead = (0, catchAsync_1.default)(async (req, res) => {

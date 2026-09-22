@@ -64,6 +64,9 @@ PlaceSchema.index({ map: 1, status: 1 }); // most common filter: map + status
 PlaceSchema.index({ category: 1 }); // category filter
 PlaceSchema.index({ status: 1 }); // status filter alone
 PlaceSchema.index({ country: 1 }); // country filter
+PlaceSchema.index({ createdAt: -1 }); // default sort
+PlaceSchema.index({ status: 1, createdAt: -1 });
+PlaceSchema.index({ type: 1, status: 1 });
 PlaceSchema.index(// text search on searchable fields
 { name: 'text', description: 'text', address: 'text', country: 'text' }, { weights: { name: 10, address: 5, description: 2, country: 1 } });
 exports.Place = (0, mongoose_1.model)('Place', PlaceSchema);

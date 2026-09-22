@@ -16,14 +16,12 @@ const notificationSchema = new mongoose_1.Schema({
         index: true,
     },
     title: {
-        type: String,
+        type: mongoose_1.Schema.Types.Mixed,
         required: true,
-        trim: true,
     },
     content: {
-        type: String,
+        type: mongoose_1.Schema.Types.Mixed,
         required: true,
-        trim: true,
     },
     type: {
         type: String,
@@ -66,7 +64,7 @@ const notificationSchema = new mongoose_1.Schema({
         type: String,
     },
     actionText: {
-        type: String,
+        type: mongoose_1.Schema.Types.Mixed,
     },
     actionClickedAt: {
         type: Date,

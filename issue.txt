@@ -3,7 +3,7 @@ giovafilm
 Sep 14, 12:26 PM
 GENERAL VERSION:
 Dashboard:
-1. The same issue persists when adding a video to a location; I am unable to upload videos. It stayed on the loading screen for 20 minutes and never uploaded. 🚨 - need clearificaton
+1. The same issue persists when adding a video to a location; I am unable to upload videos. It stayed on the loading screen for 20 minutes and never uploaded. 🚨 - solved (Client confirmed: 117MB video uploaded in 1 min)
 2. On the "Places" page, if a field is left blank, it should not appear on the user's screen. (Example: I add a business/restaurant but don't include access info; that section shouldn't be visible when a user navigates via that restaurant's pin.🚨 - solved
 3. On the "rewards" page, I can't delete some rewards that have already been added. - solved
 4. The "rewards" page has many errors and confusing options that I don't understand or find logical. I’d like to refine this page and its options.
@@ -21,3 +21,64 @@ Users:
 2. On the "places" page, within the filter area, the "categories" button extends too far to the right, and the "countries" button does the same.🚨
 3. I can't use the dashboard on the mobile version because the screen gets cut off.
 
+solved
+
+
+
+
+
+new
+Hi, the video is 117 MB; it has finished uploading. It took one minute.
+
+
+GENERAL VERSION:
+Dashboard:
+1. On the "Places" page, the "eye" icon used to set a place to "draft" status isn't working.
+2. The dashboard and statistics pages do not show up-to-date information regarding sales, taxes,
+active offers, etc.
+3. The map on the "Places" page displays an image error when zoomed in significantly.
+4. On the "Places" map, there is lag or a delay when opening the pop-up after clicking a location pin
+to edit it.
+5. When editing location details, certain checked boxes or filled-in fields—such as the "Always Open"
+checkbox—are not saving correctly.
+6. On the "Offers" page, I cannot set up a fixed-price offer (e.g., an offer for two pizzas and one donut
+for a total of $25).
+
+
+Users:
+1. On the "Map" page, I would like the search function to treat words with and without accents as the
+same word. Currently, if a user types "Manati" (without the accent on the instead of the correct
+"Manatf," the locations for that municipality won't appear due to a simple spelling/accentuation issue.
+2. Business operating hours are not showing up on the location's information page.
+3. The point and level values do not match the document I sent. Will I be able to manage and adjust
+that section myself?
+4. On the "Places" page, if I select a category, view a specific location, and then go back, the filters
+and the user's previous scroll position are not saved.
+5. On the catalog page, please remove the map reviews.
+6. Create the landing page based on the design I sent you. Let me know if you need any information,
+such as reviews from past customers.
+7. On the "Map" page, some pins disappear when zoomed out, and they reappear when zooming in.
+
+MOBILE VERSION:
+Users:
+1. On the mobile dashboard, I cannot see the map on the "Places" page because the categories
+section (and other elements) covers it.
+2. On the mobile dashboard, the filters on each page are stacked vertically; could they be placed
+side-by-side instead so they don't take up so much screen space?
+3. The "satellite" view option is missing from the "Map" page in the mobile version. Please place it in a
+strategic spot where it looks compact and doesn't take up the entire screen.
+
+
+
+
+GENERAL VERSION:
+Dashboard:
+I. The translator is changing the original names of businesses and locations.
+2. When accessing the •Places• map, it should load with no country selected to avoid errors.
+3. When editing location information and changing the photo order, an error occurs with the
+I. It iS not possible to swipe between photos in the business menus.
+2. On the •Places• and •Offers• paws, set the default View to show 45 items so the user doesn•t have
+to select a quantity
+3. In the location details, the opening hours look cluttered because they contain so much information.
+4. On the business info p., replace the camera emoji next to the Instagram link With the actual
+Instagam logo.

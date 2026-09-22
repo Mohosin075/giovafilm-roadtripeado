@@ -15,8 +15,18 @@ const notification_providers_1 = require("./notification.providers");
 const user_model_1 = require("../user/user.model");
 const config_1 = __importDefault(require("../../config"));
 const server_1 = require("../../server");
+const autoTranslate_1 = require("../../utils/autoTranslate");
+const processNotificationTranslations = async (payload) => {
+    if (payload.title)
+        payload.title = await (0, autoTranslate_1.autoTranslateField)(payload.title);
+    if (payload.content)
+        payload.content = await (0, autoTranslate_1.autoTranslateField)(payload.content);
+    if (payload.actionText)
+        payload.actionText = await (0, autoTranslate_1.autoTranslateField)(payload.actionText);
+};
 const createNotification = async (payload, sendEmail = false) => {
     try {
+        await processNotificationTranslations(payload);
         const notificationData = {
             userId: payload.userId,
             title: payload.title,
@@ -68,12 +78,21 @@ const sendNotificationEmail = async (notification) => {
             throw new Error('User not found or no email available');
         }
         let template = 'system-alert';
+        const titleStr = typeof notification.title === 'object' && notification.title !== null
+            ? (notification.title.es || notification.title.en || '')
+            : (notification.title || '');
+        const contentStr = typeof notification.content === 'object' && notification.content !== null
+            ? (notification.content.es || notification.content.en || '')
+            : (notification.content || '');
+        const actionTextStr = typeof notification.actionText === 'object' && notification.actionText !== null
+            ? (notification.actionText.es || notification.actionText.en || '')
+            : (notification.actionText || '');
         const templateData = {
             userName: user.name,
-            notificationTitle: notification.title,
-            notificationContent: notification.content,
+            notificationTitle: titleStr,
+            notificationContent: contentStr,
             actionUrl: notification.actionUrl,
-            actionText: notification.actionText,
+            actionText: actionTextStr,
         };
         // Map notification type to template and add specific data
         switch (notification.type) {
@@ -96,7 +115,7 @@ const sendNotificationEmail = async (notification) => {
             default:
                 template = 'system-alert';
         }
-        await notification_providers_1.emailProvider.sendTemplateEmail(user.email, template, templateData, notification.title);
+        await notification_providers_1.emailProvider.sendTemplateEmail(user.email, template, templateData, titleStr);
         // Update notification status
         await notification_model_1.Notification.findByIdAndUpdate(notification._id, {
             status: notification_interface_1.NotificationStatus.SENT,
@@ -256,6 +275,7 @@ const updateNotification = async (id, payload, userId) => {
     if (!mongoose_1.Types.ObjectId.isValid(id)) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid notification ID');
     }
+    await processNotificationTranslations(payload);
     const query = { _id: id };
     if (userId) {
         query.userId = userId;
@@ -423,6 +443,7 @@ const sendTestEmail = async (to, template) => {
 };
 const sendManualNotification = async (payload) => {
     try {
+        await processNotificationTranslations(payload);
         // Create a single broadcast notification record
         const notificationData = {
             title: payload.title,

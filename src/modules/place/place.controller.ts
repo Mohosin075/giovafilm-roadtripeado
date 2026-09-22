@@ -57,9 +57,9 @@ const getAllPlaces = catchAsync(async (req: Request, res: Response) => {
   const paidMapIds = paidMaps.map(m => m._id.toString())
   const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id))
 
-  const isPremium = user && [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any)
+  const isPremium = !!(user && [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any))
 
-  const result = await PlaceService.getAllPlaces(req.query)
+  const result = await PlaceService.getAllPlaces(req.query, isPremium)
 
   const updatedData = result.data.map((place: any) => {
     const mapId = place.map?._id || place.map
@@ -100,7 +100,11 @@ const getPlaceById = catchAsync(async (req: Request, res: Response) => {
   const authorizationHeader = req.headers.authorization
   const user = await getUserFromToken(authorizationHeader)
 
-  const isPremium = user && [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any)
+  const isPremium = !!(user && [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.MAP_EDITOR].includes(user.role as any))
+
+  if (!isPremium && (result.status === 'Draft' || result.status === 'Pending')) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
+  }
 
   const accessibleMapIds = await getAccessibleMapIds(user)
 

@@ -1,5 +1,17 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+function buildAccentInsensitivePattern(term) {
+    if (!term)
+        return '';
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return escaped
+        .replace(/[aáAÁ]/g, '[aáAÁ]')
+        .replace(/[eéEÉ]/g, '[eéEÉ]')
+        .replace(/[iíIÍ]/g, '[iíIÍ]')
+        .replace(/[oóOÓ]/g, '[oóOÓ]')
+        .replace(/[uúüUÚÜ]/g, '[uúüUÚÜ]')
+        .replace(/[nñNÑ]/g, '[nñNÑ]');
+}
 class QueryBuilder {
     constructor(modelQuery, query) {
         this.modelQuery = modelQuery;
@@ -9,17 +21,18 @@ class QueryBuilder {
     search(searchableFields) {
         var _a;
         if ((_a = this === null || this === void 0 ? void 0 : this.query) === null || _a === void 0 ? void 0 : _a.searchTerm) {
+            const pattern = buildAccentInsensitivePattern(String(this.query.searchTerm));
             this.modelQuery = this.modelQuery.find({
                 $and: [
                     {
                         $or: searchableFields.map(field => ({
                             [field]: {
-                                $regex: this.query.searchTerm,
+                                $regex: pattern,
                                 $options: 'i',
                             },
                         })),
-                    }
-                ]
+                    },
+                ],
             });
         }
         return this;

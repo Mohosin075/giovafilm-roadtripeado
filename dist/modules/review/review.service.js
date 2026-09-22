@@ -15,6 +15,7 @@ const paginationHelper_1 = require("../../helpers/paginationHelper");
 const award_service_1 = require("../award/award.service");
 const notification_service_1 = require("../notification/notification.service");
 const notification_interface_1 = require("../notification/notification.interface");
+const autoTranslate_1 = require("../../utils/autoTranslate");
 const mapAccessHelper_1 = require("../../helpers/mapAccessHelper");
 const ratingIncPipeline = (rating) => [
     {
@@ -75,6 +76,9 @@ const createReview = async (user, payload) => {
     payload.status = 'Pending';
     payload.isVerified = false;
     payload.pointsEarned = 0;
+    if (payload.review) {
+        payload.review = await (0, autoTranslate_1.autoTranslateField)(payload.review);
+    }
     const isUserExist = await user_model_1.User.findById(user.authId);
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
@@ -208,6 +212,9 @@ const updateReview = async (user, id, payload) => {
             payload.status = 'Pending';
             payload.isVerified = false;
             payload.pointsEarned = 0;
+        }
+        if (payload.review !== undefined) {
+            payload.review = await (0, autoTranslate_1.autoTranslateField)(payload.review);
         }
         // Update place/business stats and user points if the review was Approved but is now going back to Pending (due to edit)
         if (existingReview.status === 'Approved' && (payload.review !== undefined || payload.rating !== undefined || payload.media !== undefined)) {
@@ -363,9 +370,12 @@ const approveReview = async (id) => {
         // Review text present = 5 points
         // Length of review >= 200 characters = +10 bonus points
         let points = 1; // 1 point for the star rating (every review must have a star rating)
-        if (existingReview.review && existingReview.review.trim() !== '') {
+        const reviewContent = typeof existingReview.review === 'object' && existingReview.review !== null
+            ? (existingReview.review.es || existingReview.review.en || '')
+            : (typeof existingReview.review === 'string' ? existingReview.review : '');
+        if (reviewContent && reviewContent.trim() !== '') {
             points += 5; // +5 points for the review itself
-            if (existingReview.review.trim().length >= 200) {
+            if (reviewContent.trim().length >= 200) {
                 points += 10; // +10 bonus points for reviews exceeding 200 characters
             }
         }

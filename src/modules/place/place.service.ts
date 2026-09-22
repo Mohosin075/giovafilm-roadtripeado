@@ -96,7 +96,8 @@ const createPlace = async (payload: IPlace): Promise<IPlace> => {
 }
 
 const getAllPlaces = async (
-  query: Record<string, unknown>
+  query: Record<string, unknown>,
+  isAdminOrEditor = false,
 ) => {
   const searchTerm =
     typeof query.searchTerm === 'string' ? query.searchTerm.trim() : ''
@@ -113,11 +114,25 @@ const getAllPlaces = async (
 
   const match: Record<string, unknown> = {}
 
-  for (const key of ['status', 'map', 'country', 'category', 'type'] as const) {
+  for (const key of ['map', 'country', 'category', 'type'] as const) {
     const value = query[key]
     if (typeof value === 'string' && value.trim() && value !== 'undefined') {
       match[key] = value.includes(',') ? { $in: value.split(',') } : value
     }
+  }
+
+  // Handle status filter: non-admins only ever see Published places
+  if (!isAdminOrEditor) {
+    match.status = 'Published'
+  } else if (
+    typeof query.status === 'string' &&
+    query.status.trim() &&
+    query.status !== 'undefined' &&
+    query.status !== 'all'
+  ) {
+    match.status = query.status.includes(',')
+      ? { $in: query.status.split(',') }
+      : query.status
   }
 
   if (searchTerm) {
@@ -353,18 +368,25 @@ const getAllPlaces = async (
 }
 
 const getPlaceById = async (id: string): Promise<any | null> => {
-  const result = await Place.findById(id).populate('category').populate('map')
+  const result = await Place.findById(id).populate('category').populate('map').lean()
   if (result) return result
 
   // Fallback to checking Business collection
-  const business = await Business.findById(id).populate('category')
+  const business = await Business.findById(id).populate('category').lean()
   if (business) {
+    let placeStatus = 'Draft'
+    if (business.status === 'Approved') placeStatus = 'Published'
+    else if (business.status === 'Pending') placeStatus = 'Draft'
+    else placeStatus = business.status
+
     // Map Business fields to Place schema so frontend doesn't break
     return {
-      ...business.toObject(),
+      ...business,
+      _id: business._id.toString(),
       type: 'Business',
       placeType: 'Business',
-      media: business.media?.photos || [],
+      status: placeStatus,
+      media: (business.media?.photos || []).filter(Boolean),
       menuImages: business.media?.menu ? [business.media.menu] : [],
       address: business.location?.address || '',
       country: business.location?.country || '',
@@ -455,6 +477,13 @@ const updatePlace = async (
       }
     }
 
+    // Status mapping for business
+    if (payload.status) {
+      if (payload.status === 'Published') businessPayload.status = 'Approved'
+      else if (payload.status === 'Draft') businessPayload.status = 'Pending'
+      else businessPayload.status = payload.status
+    }
+
     const updatedBusiness = await Business.findByIdAndUpdate(id, businessPayload, {
       new: true,
       runValidators: true,
@@ -462,11 +491,17 @@ const updatePlace = async (
 
     // Return mapped to Place schema format
     if (updatedBusiness) {
+      let placeStatus = 'Draft'
+      if (updatedBusiness.status === 'Approved') placeStatus = 'Published'
+      else if (updatedBusiness.status === 'Pending') placeStatus = 'Draft'
+      else placeStatus = updatedBusiness.status
+
       return {
         ...updatedBusiness.toObject(),
         type: 'Business',
         placeType: 'Business',
-        media: updatedBusiness.media?.photos || [],
+        status: placeStatus,
+        media: (updatedBusiness.media?.photos || []).filter(Boolean),
         menuImages: updatedBusiness.media?.menu ? [updatedBusiness.media.menu] : [],
         address: updatedBusiness.location?.address || '',
         country: updatedBusiness.location?.country || '',

@@ -13,6 +13,7 @@ const pick_1 = __importDefault(require("../../shared/pick"));
 const mapAccessHelper_1 = require("../../helpers/mapAccessHelper");
 const localize_1 = require("../../helpers/localize");
 const reviewFields = [
+    'review',
     'placeId.name',
     'placeId.description',
     'businessId.name',
@@ -24,7 +25,7 @@ const createReview = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.CREATED,
         success: true,
         message: 'Review created successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, reviewFields),
     });
 });
 const updateReview = (0, catchAsync_1.default)(async (req, res) => {
@@ -34,7 +35,7 @@ const updateReview = (0, catchAsync_1.default)(async (req, res) => {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Review updated successfully',
-        data: result,
+        data: (0, localize_1.localizeDocument)(result, req.lang, reviewFields),
     });
 });
 const getAllReviews = (0, catchAsync_1.default)(async (req, res) => {

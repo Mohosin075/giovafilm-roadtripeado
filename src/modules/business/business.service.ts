@@ -32,7 +32,21 @@ const stripPrivateInfo = (business: any) => {
 }
 
 const processBusinessTranslations = async (payload: Partial<IBusiness>) => {
-  if (payload.name) payload.name = await autoTranslateField(payload.name)
+  if (payload.name) {
+    if (typeof payload.name === 'string') {
+      const trimmed = payload.name.trim()
+      payload.name = { en: trimmed, es: trimmed } as any
+    } else if (typeof payload.name === 'object' && payload.name !== null) {
+      const enVal = ((payload.name as any).en || '').trim()
+      const esVal = ((payload.name as any).es || '').trim()
+      if (enVal && esVal) {
+        payload.name = { en: enVal, es: esVal } as any
+      } else {
+        const fallback = enVal || esVal || ''
+        payload.name = { en: enVal || fallback, es: esVal || fallback } as any
+      }
+    }
+  }
   if (payload.description) payload.description = await autoTranslateField(payload.description)
 }
 

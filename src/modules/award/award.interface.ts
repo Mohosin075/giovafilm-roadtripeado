@@ -14,6 +14,7 @@ export type IAwardType =
 export interface IAward {
   userId: Types.ObjectId
   type: IAwardType
+  configId?: Types.ObjectId
   progress: number
   target: number
   isUnlocked: boolean

@@ -59,7 +59,24 @@ const processPlaceTranslations = async (
   if (payload.name) {
     tasks.push(
       (async () => {
-        payload.name = await resolveTranslatableField(payload.name, existingDoc?.name)
+        if (typeof payload.name === 'string') {
+          const trimmed = payload.name.trim()
+          payload.name = { en: trimmed, es: trimmed }
+        } else if (typeof payload.name === 'object' && payload.name !== null) {
+          const enVal = (payload.name.en || '').trim()
+          const esVal = (payload.name.es || '').trim()
+          if (enVal && esVal) {
+            payload.name = { en: enVal, es: esVal }
+          } else {
+            const fallback =
+              enVal ||
+              esVal ||
+              (typeof existingDoc?.name === 'string'
+                ? existingDoc.name
+                : existingDoc?.name?.en || existingDoc?.name?.es || '')
+            payload.name = { en: enVal || fallback, es: esVal || fallback }
+          }
+        }
       })()
     )
   }

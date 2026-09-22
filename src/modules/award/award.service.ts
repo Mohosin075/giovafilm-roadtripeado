@@ -24,7 +24,11 @@ const getMyAwards = async (userId: string) => {
   const awards = []
 
   for (const config of configs) {
-    const found = existingAwards.find(a => a.type === config.type)
+    const found = existingAwards.find(
+      a =>
+        (a.configId && a.configId.toString() === config._id.toString()) ||
+        (a.type === config.type && a.target === config.target)
+    )
     
     let progress = 0
     let isUnlocked = false
@@ -46,6 +50,7 @@ const getMyAwards = async (userId: string) => {
     if (!found) {
       const newAward = await Award.create({
         userId,
+        configId: config._id,
         type: config.type,
         target: config.target,
         progress,
@@ -57,7 +62,7 @@ const getMyAwards = async (userId: string) => {
       awards.push(awardObj)
     } else {
       // Update target, progress, isUnlocked if they differ
-      const updates: any = { target: config.target }
+      const updates: any = { configId: config._id, target: config.target }
       if (
         config.type === 'PDF Itinerary' ||
         config.type === 'Free Map' ||
@@ -82,7 +87,7 @@ const getMyAwards = async (userId: string) => {
     }
   }
 
-  return awards.sort((a, b) => a.type.localeCompare(b.type))
+  return awards.sort((a, b) => (a.target || 0) - (b.target || 0))
 }
 
 const updateAwardProgress = async (
@@ -113,7 +118,7 @@ const redeemFreeMap = async (userId: string, mapId: string) => {
   }
 
   // Check if Free Map award is unlocked
-  const freeMapAward = await Award.findOne({ userId, type: 'Free Map' })
+  const freeMapAward = await Award.findOne({ userId, type: 'Free Map', isUnlocked: true })
   if (!freeMapAward || !freeMapAward.isUnlocked) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Free Map award is not unlocked yet')
   }

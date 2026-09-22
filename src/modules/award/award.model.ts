@@ -4,6 +4,7 @@ import { IAward, AwardModel } from './award.interface'
 const awardSchema = new Schema<IAward, AwardModel>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    configId: { type: Schema.Types.ObjectId, ref: 'AwardConfig' },
     type: {
       type: String,
       enum: [

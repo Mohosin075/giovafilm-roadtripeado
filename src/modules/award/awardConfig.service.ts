@@ -150,11 +150,21 @@ const seedAwardConfigs = async () => {
     // Index might not exist, ignore error
   }
 
-  // Check if configs exist
   const count = await AwardConfig.countDocuments()
   if (count === 0) {
     for (const config of defaultConfigs) {
       await AwardConfig.create(config)
+    }
+  } else {
+    // Ensure all default spec configs are present in DB
+    for (const config of defaultConfigs) {
+      const exists = await AwardConfig.findOne({
+        type: config.type,
+        target: config.target,
+      })
+      if (!exists) {
+        await AwardConfig.create(config)
+      }
     }
   }
 }

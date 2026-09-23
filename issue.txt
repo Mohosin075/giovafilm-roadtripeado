@@ -105,3 +105,39 @@ Users:
 3. Clarify the message displayed when redeeming a coupon by changing it to: "Show this screen to the staff and start the timer when redeeming your offer with the attendant." 🚨 - solved
 4. Photos do not look good because they get cropped due to their size or format; is there a solution to ensure the visible part of the image is the relevant one, or what can be done here? 🚨 - solved
 
+
+NEW BUGS:
+Users:
+1. Regular locations are displaying business location information. (I fixed this bug.)
+
+2. In the map page's search bar, when I search by municipality or region and press Enter, map pins for that municipality
+appear alongside others that are not within that same municipality. I would like only the pins
+corresponding to the specific search location to appear. IMPORTANT: When searching for a place by
+name, the suggestion options should still appear below the search bar, just as they did previously.
+
+3. If a user has not purchased the map, they should not be able to view any information about
+standard locations on the maps, places, and offers pages, nor should they be able to access offers or
+discounts. Currently, information is being displayed to users who have not purchased the map.
+
+
+4. The search function on the "places" page is not working correctly; typing "faro" (lighthouse) yields
+no lighthouse results.
+
+
+
+
+
+
+NEW BUGS:
+Users:
+5. The full description is not visible on the "reward" page.
+6. On the "reward" page, I would like the cover photos of locked rewards to appear in color, while still
+clearly indicating that they are locked without obscuring the cover image.
+
+solved
+
+
+
+
+
+

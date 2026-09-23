@@ -231,6 +231,33 @@ const createPlace = async (payload: IPlace): Promise<IPlace> => {
   }
 }
 
+const commonSearchSynonyms: Record<string, string[]> = {
+  faro: ['lighthouse', 'faros', 'lighthouses'],
+  faros: ['lighthouse', 'lighthouses', 'faro'],
+  lighthouse: ['faro', 'faros', 'lighthouses'],
+  lighthouses: ['faro', 'faros', 'lighthouse'],
+  playa: ['beach', 'playas', 'beaches'],
+  playas: ['beach', 'beaches', 'playa'],
+  beach: ['playa', 'playas', 'beaches'],
+  beaches: ['playa', 'playas', 'beach'],
+  ruinas: ['ruins', 'ruina', 'ruin'],
+  ruins: ['ruinas', 'ruina', 'ruin'],
+  cascada: ['waterfall', 'cascadas', 'waterfalls'],
+  waterfall: ['cascada', 'cascadas', 'waterfalls'],
+  cueva: ['cave', 'cuevas', 'caves'],
+  cave: ['cueva', 'cuevas', 'caves'],
+}
+
+function buildEnhancedSearchRegex(term: string): RegExp {
+  const clean = term.trim().toLowerCase()
+  const terms = [clean]
+  if (commonSearchSynonyms[clean]) {
+    terms.push(...commonSearchSynonyms[clean])
+  }
+  const patterns = terms.map(t => buildAccentInsensitivePattern(t))
+  return new RegExp(patterns.join('|'), 'i')
+}
+
 const getAllPlaces = async (
   query: Record<string, unknown>,
   isAdminOrEditor = false,
@@ -272,8 +299,7 @@ const getAllPlaces = async (
   }
 
   if (searchTerm) {
-    const pattern = buildAccentInsensitivePattern(searchTerm)
-    const regex = new RegExp(pattern, 'i')
+    const regex = buildEnhancedSearchRegex(searchTerm)
     const matchingCategories = await Category.find({
       $or: [
         { name: regex },
@@ -291,6 +317,9 @@ const getAllPlaces = async (
       { address: regex },
       { 'address.en': regex },
       { 'address.es': regex },
+      { description: regex },
+      { 'description.en': regex },
+      { 'description.es': regex },
       { 'location.city': regex },
       { 'location.address': regex },
       { country: regex },
@@ -384,8 +413,7 @@ const getAllPlaces = async (
     }
 
     if (searchTerm) {
-      const pattern = buildAccentInsensitivePattern(searchTerm)
-      const regex = new RegExp(pattern, 'i')
+      const regex = buildEnhancedSearchRegex(searchTerm)
       const matchingCategories = await Category.find({
         $or: [
           { name: regex },
@@ -400,6 +428,9 @@ const getAllPlaces = async (
         { name: regex },
         { 'name.en': regex },
         { 'name.es': regex },
+        { description: regex },
+        { 'description.en': regex },
+        { 'description.es': regex },
         { 'location.address': regex },
         { 'location.address.en': regex },
         { 'location.address.es': regex },
@@ -464,31 +495,68 @@ const getAllPlaces = async (
 
   // Sort combined results if not sorting by geo location distance
   if (!hasGeo) {
-    const isDesc = sort.startsWith('-')
-    const sortField = sort.replace('-', '')
+    if (searchTerm && (!query.sort || query.sort === '-createdAt')) {
+      const searchTermsLower = [
+        searchTerm.toLowerCase(),
+        ...(commonSearchSynonyms[searchTerm.toLowerCase()] || []),
+      ]
 
-    combined.sort((a: any, b: any) => {
-      let valA = a[sortField]
-      let valB = b[sortField]
+      const getScore = (p: any) => {
+        let score = 0
+        const nameEn = (
+          p.name?.en || (typeof p.name === 'string' ? p.name : '')
+        ).toLowerCase()
+        const nameEs = (
+          p.name?.es || (typeof p.name === 'string' ? p.name : '')
+        ).toLowerCase()
 
-      if (sortField === 'map') {
-        valA = a.map?.name || ''
-        valB = b.map?.name || ''
-      } else if (sortField === 'category') {
-        valA = a.category?.name || ''
-        valB = b.category?.name || ''
-      } else if (sortField === 'createdAt' || sortField === 'updatedAt') {
-        valA = valA ? new Date(valA).getTime() : 0
-        valB = valB ? new Date(valB).getTime() : 0
+        for (const t of searchTermsLower) {
+          if (nameEn.startsWith(t) || nameEs.startsWith(t)) score += 100
+          else if (nameEn.includes(t) || nameEs.includes(t)) score += 80
+        }
+
+        const addrEn = (p.address?.en || p.address || '').toLowerCase()
+        const addrEs = (p.address?.es || p.address || '').toLowerCase()
+        for (const t of searchTermsLower) {
+          if (addrEn.includes(t) || addrEs.includes(t)) score += 50
+        }
+
+        if (score === 0) score = 20
+        return score
       }
 
-      if (typeof valA === 'string') valA = valA.toLowerCase()
-      if (typeof valB === 'string') valB = valB.toLowerCase()
+      combined.sort((a: any, b: any) => {
+        const scoreDiff = getScore(b) - getScore(a)
+        if (scoreDiff !== 0) return scoreDiff
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      })
+    } else {
+      const isDesc = sort.startsWith('-')
+      const sortField = sort.replace('-', '')
 
-      if (valA < valB) return isDesc ? 1 : -1
-      if (valA > valB) return isDesc ? -1 : 1
-      return 0
-    })
+      combined.sort((a: any, b: any) => {
+        let valA = a[sortField]
+        let valB = b[sortField]
+
+        if (sortField === 'map') {
+          valA = a.map?.name || ''
+          valB = b.map?.name || ''
+        } else if (sortField === 'category') {
+          valA = a.category?.name || ''
+          valB = b.category?.name || ''
+        } else if (sortField === 'createdAt' || sortField === 'updatedAt') {
+          valA = valA ? new Date(valA).getTime() : 0
+          valB = valB ? new Date(valB).getTime() : 0
+        }
+
+        if (typeof valA === 'string') valA = valA.toLowerCase()
+        if (typeof valB === 'string') valB = valB.toLowerCase()
+
+        if (valA < valB) return isDesc ? 1 : -1
+        if (valA > valB) return isDesc ? -1 : 1
+        return 0
+      })
+    }
   }
 
   const total = combined.length

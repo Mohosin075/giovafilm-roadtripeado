@@ -13,6 +13,7 @@ import { S3Helper } from '../../helpers/image/s3helper'
 import config from '../../config'
 import { userFilterableFields } from './user.constants'
 import { generateOtp } from '../../utils/crypto'
+import { Review } from '../review/review.model'
 import { emailTemplate } from '../../shared/emailTemplate'
 import { emailHelper } from '../../helpers/emailHelper'
 import { calculateUserLevel } from '../../constants/userLevels.constant'
@@ -268,7 +269,21 @@ const getPublicProfile = async (userId: string) => {
     throw new ApiError(StatusCodes.FORBIDDEN, 'This profile is private.')
   }
 
-  return user
+  // Fetch user's approved reviews with place/business names
+  const reviews = await Review.find({
+    reviewer: userId,
+    status: 'Approved',
+  })
+    .populate('placeId', 'name')
+    .populate('businessId', 'name')
+    .sort({ createdAt: -1 })
+    .limit(20)
+    .lean()
+
+  return {
+    ...user.toObject(),
+    reviews,
+  }
 }
 
 const updateUserStatus = async (

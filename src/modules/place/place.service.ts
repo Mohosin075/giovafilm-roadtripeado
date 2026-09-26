@@ -36,15 +36,14 @@ const resolveTranslatableField = async (
     }
   }
 
-  // If newVal already has distinct, non-empty en and es values
+  // If newVal already has non-empty en and es values
   if (
     typeof newVal === 'object' &&
     newVal !== null &&
     newVal.en &&
-    newVal.es &&
-    newVal.en.trim() !== newVal.es.trim()
+    newVal.es
   ) {
-    return newVal
+    return { en: String(newVal.en).trim(), es: String(newVal.es).trim() }
   }
 
   return await autoTranslateField(newVal)

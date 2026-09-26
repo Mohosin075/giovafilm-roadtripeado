@@ -131,13 +131,6 @@ export const autoTranslateField = async (
     const esVal = (input.es || '').trim()
 
     if (enVal && esVal) {
-      if (enVal === esVal && isSpanishText(esVal)) {
-        const translatedEn = await translateWithFallback(esVal, 'en', 'es')
-        return { es: esVal, en: translatedEn }
-      } else if (enVal === esVal && !isSpanishText(enVal)) {
-        const translatedEs = await translateWithFallback(enVal, 'es', 'en')
-        return { en: enVal, es: translatedEs }
-      }
       return { en: enVal, es: esVal }
     }
 

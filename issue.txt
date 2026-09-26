@@ -150,8 +150,10 @@ desktop dashboard. solved
 name to view its stats, nothing appears.
 3. On the "Places" page map, there is still an error where the map disappears when zooming in too
 far.
+solved
 4. In the dashboard, rewards are not organized by level.
 5. On the "Maps" page of the dashboard, maps saved as drafts are incorrectly flagged as "published."
+solved
 6. On the "Places" page, clicking the "form" icon to view location details prevents scrolling down to
 see the rest of the information.
 7. On the reports and statistics page, please remove the revenue, tax, and total sales sections, as

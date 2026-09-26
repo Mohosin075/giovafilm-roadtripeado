@@ -171,7 +171,7 @@ const seedAwardConfigs = async () => {
 
 const getAllAwardConfigs = async (): Promise<IAwardConfig[]> => {
   await seedAwardConfigs()
-  return await AwardConfig.find({}).populate('mapId').sort({ createdAt: 1 })
+  return await AwardConfig.find({}).populate('mapId').sort({ target: 1, createdAt: 1 })
 }
 
 import { autoTranslateField } from '../../utils/autoTranslate'

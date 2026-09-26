@@ -6,9 +6,22 @@ import QueryBuilder from '../../builder/QueryBuilder'
 import { categorySearchableFields } from './category.constants'
 import { autoTranslateField } from '../../utils/autoTranslate'
 
+const processCategoryName = (name: any) => {
+  if (typeof name === 'string') {
+    const trimmed = name.trim()
+    return { en: trimmed, es: trimmed } as any
+  } else if (typeof name === 'object' && name !== null) {
+    const enVal = (name.en || '').trim()
+    const esVal = (name.es || '').trim()
+    const fallback = enVal || esVal || ''
+    return { en: enVal || fallback, es: esVal || fallback } as any
+  }
+  return name
+}
+
 const createCategory = async (payload: ICategory): Promise<ICategory> => {
   if (payload.name) {
-    payload.name = await autoTranslateField(payload.name)
+    payload.name = processCategoryName(payload.name)
   }
   const result = await Category.create(payload)
   return result
@@ -49,7 +62,7 @@ const updateCategory = async (
   }
 
   if (payload.name) {
-    payload.name = await autoTranslateField(payload.name)
+    payload.name = processCategoryName(payload.name)
   }
 
   const result = await Category.findByIdAndUpdate(id, payload, {

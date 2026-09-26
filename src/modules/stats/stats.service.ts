@@ -174,43 +174,93 @@ const searchReportEntities = async (
   const searchRegex = { $regex: escapeRegex(q), $options: 'i' }
   const [matchedPlaces, matchedBusinesses, matchedMaps, matchedOffers] =
     await Promise.all([
-      Place.find({ name: searchRegex })
-        .select('name country address')
+      Place.find({
+        $or: [
+          { name: searchRegex },
+          { 'name.en': searchRegex },
+          { 'name.es': searchRegex },
+          { address: searchRegex },
+          { 'address.en': searchRegex },
+          { 'address.es': searchRegex },
+          { country: searchRegex },
+          { 'location.address': searchRegex },
+          { 'location.city': searchRegex },
+        ],
+      })
+        .select('name country address location')
         .limit(6)
         .lean(),
-      Business.find({ name: searchRegex })
+      Business.find({
+        $or: [
+          { name: searchRegex },
+          { 'name.en': searchRegex },
+          { 'name.es': searchRegex },
+          { 'location.address': searchRegex },
+          { 'location.city': searchRegex },
+          { 'location.country': searchRegex },
+        ],
+      })
         .select('name location.country location.city location.address')
         .limit(6)
         .lean(),
-      Map.find({ name: searchRegex }).select('name country').limit(5).lean(),
-      Offer.find({ title: searchRegex }).select('title').limit(5).lean(),
+      Map.find({
+        $or: [
+          { name: searchRegex },
+          { 'name.en': searchRegex },
+          { 'name.es': searchRegex },
+          { country: searchRegex },
+        ],
+      })
+        .select('name country')
+        .limit(5)
+        .lean(),
+      Offer.find({
+        $or: [
+          { title: searchRegex },
+          { 'title.en': searchRegex },
+          { 'title.es': searchRegex },
+        ],
+      })
+        .select('title')
+        .limit(5)
+        .lean(),
     ])
 
   return [
     ...matchedPlaces.map((p: any) => ({
       type: 'place' as const,
       id: String(p._id),
-      name: p.name,
-      location: [p.address, p.country].filter(Boolean).join(', '),
+      name: localizeField(p.name, 'en') || localizeField(p.name, 'es') || (typeof p.name === 'string' ? p.name : ''),
+      location: [
+        localizeField(p.address, 'en') || localizeField(p.address, 'es') || p.location?.city,
+        p.country || p.location?.country,
+      ]
+        .filter(Boolean)
+        .join(', '),
     })),
     ...matchedBusinesses.map((b: any) => ({
       type: 'business' as const,
       id: String(b._id),
-      name: b.name,
-      location: [b.location?.address || b.location?.city, b.location?.country]
+      name: localizeField(b.name, 'en') || localizeField(b.name, 'es') || (typeof b.name === 'string' ? b.name : ''),
+      location: [
+        localizeField(b.location?.address, 'en') ||
+          localizeField(b.location?.address, 'es') ||
+          b.location?.city,
+        b.location?.country,
+      ]
         .filter(Boolean)
         .join(', '),
     })),
     ...matchedMaps.map((m: any) => ({
       type: 'map' as const,
       id: String(m._id),
-      name: m.name,
+      name: localizeField(m.name, 'en') || localizeField(m.name, 'es') || (typeof m.name === 'string' ? m.name : ''),
       location: m.country || '',
     })),
     ...matchedOffers.map((o: any) => ({
       type: 'offer' as const,
       id: String(o._id),
-      name: o.title,
+      name: localizeField(o.title, 'en') || localizeField(o.title, 'es') || (typeof o.title === 'string' ? o.title : ''),
     })),
   ]
 }

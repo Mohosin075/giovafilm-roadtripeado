@@ -141,3 +141,30 @@ solved
 
 
 
+
+GENERAL VERSION:
+Dashboard:
+1. The lag or bug persists when opening a location to edit it from the map on the "Places" page of the
+desktop dashboard. solved
+2. The search function on the dashboard's statistics page still isn't working; when I type a location's
+name to view its stats, nothing appears.
+3. On the "Places" page map, there is still an error where the map disappears when zooming in too
+far.
+4. In the dashboard, rewards are not organized by level.
+5. On the "Maps" page of the dashboard, maps saved as drafts are incorrectly flagged as "published."
+6. On the "Places" page, clicking the "form" icon to view location details prevents scrolling down to
+see the rest of the information.
+7. On the reports and statistics page, please remove the revenue, tax, and total sales sections, as
+Stripe will provide this data. This will allow for a more comprehensive view of statistics such as
+location visits, redeemed offers, most-used maps, etc.
+
+Users:
+1. The times displayed at the bottom still lack AM/PM indicators.
+2. Some locations are still being translated into Spanish even though their names are in English; will I
+have to translate them manually again?
+
+
+
+
+
+

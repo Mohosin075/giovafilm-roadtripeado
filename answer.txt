@@ -1,0 +1,32 @@
+Questions #1:
+1. What does this option do when creating an offer? Does it refer to the total amount the user can use, or the total amount per week/month/day?
+
+"Redemptions Per User" sets how many times a single user can claim the offer, and it works together with "Redemption Frequency":
+
+Redemptions Per User = 1: A single user can redeem the offer 1 time.
+Redemption Frequency = Monthly: The limit resets every 30 days.
+👉 Combined: A customer can claim 1 redemption per month (every 30 days).
+
+questions #2:
+2. How can I manage the tiers, tier names, and everything related to that area?
+
+You can manage all tiers, tier names, badges, and rewards directly from the Admin Dashboard under the "Recompensas" (Rewards) tab (/dashboard/rewards):
+
+Tier Name & Details: Edit the Title and Description of each reward item to set the name for each tier/level.
+Tier Badge / Icon: Upload or change the Badge Image / Icon for each level.
+XP Target (Leveling): Set the XP Target (points required) to define when users unlock each level (e.g. 0 XP, 100 XP, 250 XP).
+Tier Benefits: You can attach free map unlocks, discount percentages, or downloadable PDF itineraries to any level.
+Simply go to Recompensas in the sidebar and click Edit on any level or click Add New Reward to create a new tier!
+
+Question #3:
+3. What do these options do?
+
+The circled options are Achievement Badges displayed on the user's public profile as achievement trophies when unlocked:
+
+• How it works: Each badge is linked to an XP Target (points required). As users earn points (by reviewing locations or exploring spots), the system automatically unlocks the badge and displays it on their profile.
+• Badge Types:
+  - Top Reviewer Badge: Unlocked by writing reviews & rating spots.
+  - Trail Master Badge: Unlocked by exploring nature & hiking spots.
+  - History Buff Badge: Unlocked by visiting historical landmarks.
+  - Legendary Explorer Badge: Unlocked by reaching top XP milestones.
+• Management: You can edit or click "+ Añadir Recompensa" to set custom XP targets, titles, descriptions, and badge icons.

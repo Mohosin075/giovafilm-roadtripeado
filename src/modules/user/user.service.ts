@@ -17,6 +17,8 @@ import { Review } from '../review/review.model'
 import { emailTemplate } from '../../shared/emailTemplate'
 import { emailHelper } from '../../helpers/emailHelper'
 import { calculateUserLevel } from '../../constants/userLevels.constant'
+import { OfferRedemption } from '../offer/offerRedemption.model'
+import { Award } from '../award/award.model'
 
 const updateProfile = async (user: JwtPayload, payload: Partial<IUser>) => {
   console.log({ payload })
@@ -238,13 +240,52 @@ const getUserById = async (userId: string): Promise<any> => {
   const user = await User.findOne({
     _id: userId,
     status: { $nin: [USER_STATUS.DELETED] },
-  }).select('-password -authentication -__v')
+  })
+    .select('-password -authentication -__v')
+    .populate('purchasedMaps', 'name country images coverPhoto price description')
+    .populate('favoriteMaps', 'name country images')
+    .populate('assignedMaps', 'name country')
+    .populate('redeemedFreeMap', 'name country')
+    .lean()
 
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
   }
 
-  return user
+  // Calculate level info
+  const points = (user as any).points || 0
+  const approvedReviews = (user as any).totalReviewsApproved || 0
+  const levelInfo = calculateUserLevel(points, approvedReviews)
+
+  // Fetch claimed offer redemptions
+  const offerRedemptions = await OfferRedemption.find({ user: userId })
+    .populate({
+      path: 'offer',
+      populate: { path: 'place business', select: 'name' },
+    })
+    .sort({ createdAt: -1 })
+    .lean()
+
+  // Fetch unlocked and in-progress awards/badges
+  const awards = await Award.find({ userId })
+    .populate('configId')
+    .sort({ createdAt: -1 })
+    .lean()
+
+  // Fetch user's submitted reviews
+  const reviews = await Review.find({ reviewer: userId })
+    .populate('placeId', 'name')
+    .populate('businessId', 'name')
+    .sort({ createdAt: -1 })
+    .lean()
+
+  return {
+    ...user,
+    levelInfo,
+    offerRedemptions,
+    awards,
+    reviews,
+  }
 }
 
 /** Public, shareable profile — safe fields only */

@@ -56,6 +56,11 @@ router
     AwardConfigController.createAwardConfig,
   )
 
+router.get(
+  '/configs/:id/download',
+  AwardConfigController.downloadAwardPdf,
+)
+
 router
   .route('/configs/:id')
   .patch(

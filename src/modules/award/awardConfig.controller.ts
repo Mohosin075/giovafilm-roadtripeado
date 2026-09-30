@@ -1,9 +1,14 @@
 import { Request, Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
+import path from 'path'
+import fs from 'fs'
+import ApiError from '../../errors/ApiError'
 import catchAsync from '../../shared/catchAsync'
 import sendResponse from '../../shared/sendResponse'
 import { AwardConfigServices } from './awardConfig.service'
+import { AwardConfig } from './awardConfig.model'
 import { localizeDocument } from '../../helpers/localize'
+
 
 const awardFields = ['title', 'description']
 
@@ -29,6 +34,9 @@ const updateAwardConfig = catchAsync(async (req: Request, res: Response) => {
     req.body.fileUrl = Array.isArray(req.body.documents)
       ? req.body.documents[0]
       : req.body.documents
+  }
+  if (req.body.fileUrl === '') {
+    req.body.originalFileName = ''
   }
 
   const result = await AwardConfigServices.updateAwardConfig(id, req.body)
@@ -68,9 +76,45 @@ const deleteAwardConfig = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const downloadAwardPdf = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params
+  const config = await AwardConfig.findById(id)
+  if (!config || !config.fileUrl) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Downloadable file not found for this reward')
+  }
+
+  // Determine original filename
+  let filename = config.originalFileName
+  if (!filename) {
+    const rawTitle =
+      typeof config.title === 'object'
+        ? (config.title as any)?.es || (config.title as any)?.en || 'Itinerario'
+        : config.title || 'Itinerario'
+    filename = `${String(rawTitle)
+      .replace(/[^a-zA-Z0-9_\-\s]/g, '')
+      .trim()
+      .replace(/\s+/g, '_')}.pdf`
+  }
+  if (!filename.toLowerCase().endsWith('.pdf')) {
+    filename += '.pdf'
+  }
+
+  const relativePath = config.fileUrl.startsWith('/') ? config.fileUrl.slice(1) : config.fileUrl
+  const fullPath = path.join(process.cwd(), relativePath)
+
+  if (fs.existsSync(fullPath)) {
+    return res.download(fullPath, filename)
+  }
+
+  res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`)
+  return res.redirect(config.fileUrl)
+})
+
 export const AwardConfigController = {
   getAllAwardConfigs,
   updateAwardConfig,
   createAwardConfig,
   deleteAwardConfig,
+  downloadAwardPdf,
 }
+

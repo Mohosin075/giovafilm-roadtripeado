@@ -26,6 +26,7 @@ router
     .route('/configs')
     .get((0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), awardConfig_controller_1.AwardConfigController.getAllAwardConfigs)
     .post((0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), (0, processReqBody_1.fileAndBodyProcessorUsingDiskStorage)(), awardConfig_controller_1.AwardConfigController.createAwardConfig);
+router.get('/configs/:id/download', awardConfig_controller_1.AwardConfigController.downloadAwardPdf);
 router
     .route('/configs/:id')
     .patch((0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), (0, processReqBody_1.fileAndBodyProcessorUsingDiskStorage)(), awardConfig_controller_1.AwardConfigController.updateAwardConfig)

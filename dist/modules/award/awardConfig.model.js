@@ -23,6 +23,7 @@ const AwardConfigSchema = new mongoose_1.Schema({
     coverPhoto: { type: String },
     target: { type: Number, required: true },
     fileUrl: { type: String },
+    originalFileName: { type: String },
     mapId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Map' },
     discountPercentage: { type: Number },
 }, {

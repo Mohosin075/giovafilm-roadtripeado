@@ -10,10 +10,12 @@ export interface IAwardConfig {
   coverPhoto?: string
   target: number
   fileUrl?: string
+  originalFileName?: string
   mapId?: Types.ObjectId
   discountPercentage?: number
   createdAt: Date
   updatedAt: Date
 }
+
 
 export type AwardConfigModel = Model<IAwardConfig>

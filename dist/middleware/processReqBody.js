@@ -334,7 +334,7 @@ const fileAndBodyProcessorUsingDiskStorage = () => {
             }
         }
         upload(req, res, async (error) => {
-            var _a;
+            var _a, _b;
             if (error)
                 return handleMulterError(error, next);
             try {
@@ -360,6 +360,9 @@ const fileAndBodyProcessorUsingDiskStorage = () => {
                         });
                         // Store as array or single value based on maxCount
                         processedFiles[fieldName] = maxCount > 1 ? paths : paths[0];
+                        if (fieldName === 'documents' && ((_b = fileArray[0]) === null || _b === void 0 ? void 0 : _b.originalname)) {
+                            processedFiles['originalFileName'] = fileArray[0].originalname;
+                        }
                     }
                     // Merge file paths into req.body instead of overwriting
                     for (const [fieldName, value] of Object.entries(processedFiles)) {

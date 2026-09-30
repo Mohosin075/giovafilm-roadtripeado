@@ -23,8 +23,10 @@ const AwardConfigSchema = new Schema<IAwardConfig, AwardConfigModel>(
     coverPhoto: { type: String },
     target: { type: Number, required: true },
     fileUrl: { type: String },
+    originalFileName: { type: String },
     mapId: { type: Schema.Types.ObjectId, ref: 'Map' },
     discountPercentage: { type: Number },
+
   },
   {
     timestamps: true,

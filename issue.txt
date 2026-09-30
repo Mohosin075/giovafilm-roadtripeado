@@ -8,7 +8,7 @@ Users:
 Busüless• section. - solved
 
 2. When a user wins a prize on the •Rewards• and dow•nloads the POF. it doesn't download with
-the original fiename. Can it be set to download using the original filename for each POF?
+the original fiename. Can it be set to download using the original filename for each POF? - solved
 3. On the •Locations- page. when typing something like •faros• (IiØ1thouses). au the Mithouses
 appear first. foUowed by locations unrelated to •faros.• I would like only the search restits to appeac
 4. The operating hours at the bottom still do not disc*ay AM/PM.

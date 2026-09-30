@@ -453,7 +453,12 @@ export const fileAndBodyProcessorUsingDiskStorage = () => {
 
             // Store as array or single value based on maxCount
             processedFiles[fieldName] = maxCount > 1 ? paths : paths[0]
+
+            if (fieldName === 'documents' && fileArray[0]?.originalname) {
+              processedFiles['originalFileName'] = fileArray[0].originalname
+            }
           }
+
 
           // Merge file paths into req.body instead of overwriting
           for (const [fieldName, value] of Object.entries(processedFiles)) {

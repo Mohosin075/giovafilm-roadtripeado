@@ -8,7 +8,6 @@ const http_status_codes_1 = require("http-status-codes");
 const ApiError_1 = __importDefault(require("../../errors/ApiError"));
 const place_model_1 = require("./place.model");
 const map_model_1 = require("../map/map.model");
-const category_model_1 = require("../category/category.model");
 const mongoose_1 = __importDefault(require("mongoose"));
 const reverseGeocoding_1 = require("../../utils/reverseGeocoding");
 const business_model_1 = require("../business/business.model");
@@ -191,12 +190,52 @@ const commonSearchSynonyms = {
     waterfall: ['cascada', 'cascadas', 'waterfalls'],
     cueva: ['cave', 'cuevas', 'caves'],
     cave: ['cueva', 'cuevas', 'caves'],
+    castillo: ['castle', 'castillos', 'castles', 'fort', 'fortress'],
+    castillos: ['castillo', 'castle', 'castles'],
+    castle: ['castillo', 'castillos', 'castles', 'fort'],
+    castles: ['castillo', 'castle', 'castillos'],
+    tunel: ['tunnel', 'tuneles', 'tunnels'],
+    tunnel: ['tunel', 'tunnels', 'tuneles'],
+    puente: ['bridge', 'puentes', 'bridges'],
+    bridge: ['puente', 'bridges', 'puentes'],
+    rio: ['river', 'rios', 'rivers'],
+    river: ['rio', 'rivers', 'rios'],
+    charco: ['pond', 'pool', 'charcos'],
+    mirador: ['viewpoint', 'lookout', 'miradores'],
+    viewpoint: ['mirador', 'miradores'],
+    bosque: ['forest', 'bosques', 'forests'],
+    forest: ['bosque', 'forests', 'bosques'],
+    isla: ['island', 'islas', 'islands'],
+    island: ['isla', 'islands', 'islas'],
+    bahia: ['bay', 'bahias', 'bays'],
+    bay: ['bahia', 'bays', 'bahias'],
+    laguna: ['lagoon', 'lagunas', 'lagoons'],
+    lagoon: ['laguna', 'lagoons', 'lagunas'],
+    museo: ['museum', 'museos', 'museums'],
+    museum: ['museo', 'museums', 'museos'],
+    restaurante: ['restaurant', 'restaurantes', 'restaurants'],
+    restaurant: ['restaurante', 'restaurants', 'restaurantes'],
+    hotel: ['hotel', 'hoteles', 'hotels'],
+    hotels: ['hotel', 'hoteles'],
 };
 function buildEnhancedSearchRegex(term) {
     const clean = term.trim().toLowerCase();
     const terms = [clean];
     if (commonSearchSynonyms[clean]) {
         terms.push(...commonSearchSynonyms[clean]);
+    }
+    const words = clean
+        .split(/\s+/)
+        .filter(w => w.length > 2 && !['los', 'las', 'del', 'the', 'and', 'con', 'para'].includes(w));
+    for (const w of words) {
+        if (!terms.includes(w))
+            terms.push(w);
+        if (commonSearchSynonyms[w]) {
+            for (const syn of commonSearchSynonyms[w]) {
+                if (!terms.includes(syn))
+                    terms.push(syn);
+            }
+        }
     }
     const patterns = terms.map(t => buildAccentInsensitivePattern(t));
     return new RegExp(patterns.join('|'), 'i');
@@ -233,15 +272,6 @@ const getAllPlaces = async (query, isAdminOrEditor = false) => {
     }
     if (searchTerm) {
         const regex = buildEnhancedSearchRegex(searchTerm);
-        const matchingCategories = await category_model_1.Category.find({
-            $or: [
-                { name: regex },
-                { 'name.en': regex },
-                { 'name.es': regex },
-            ],
-        })
-            .select('_id')
-            .lean();
         const or = [
             { name: regex },
             { 'name.en': regex },
@@ -254,11 +284,7 @@ const getAllPlaces = async (query, isAdminOrEditor = false) => {
             { 'description.es': regex },
             { 'location.city': regex },
             { 'location.address': regex },
-            { country: regex },
         ];
-        if (matchingCategories.length > 0) {
-            or.push({ category: { $in: matchingCategories.map(c => c._id) } });
-        }
         match.$or = or;
     }
     // 1. Fetch regular places if applicable
@@ -338,15 +364,6 @@ const getAllPlaces = async (query, isAdminOrEditor = false) => {
         }
         if (searchTerm) {
             const regex = buildEnhancedSearchRegex(searchTerm);
-            const matchingCategories = await category_model_1.Category.find({
-                $or: [
-                    { name: regex },
-                    { 'name.en': regex },
-                    { 'name.es': regex },
-                ],
-            })
-                .select('_id')
-                .lean();
             const businessOr = [
                 { name: regex },
                 { 'name.en': regex },
@@ -357,11 +374,8 @@ const getAllPlaces = async (query, isAdminOrEditor = false) => {
                 { 'location.address': regex },
                 { 'location.address.en': regex },
                 { 'location.address.es': regex },
-                { 'location.country': regex },
+                { 'location.city': regex },
             ];
-            if (matchingCategories.length > 0) {
-                businessOr.push({ category: { $in: matchingCategories.map(c => c._id) } });
-            }
             businessMatch.$or = businessOr;
         }
         let businessQuery = business_model_1.Business.find(hasGeo
@@ -408,35 +422,57 @@ const getAllPlaces = async (query, isAdminOrEditor = false) => {
         });
     }
     // 3. Combine results
-    const combined = [...formattedPlaces, ...formattedBusinesses];
-    // Sort combined results if not sorting by geo location distance
-    if (!hasGeo) {
-        if (searchTerm && (!query.sort || query.sort === '-createdAt')) {
-            const searchTermsLower = [
-                searchTerm.toLowerCase(),
-                ...(commonSearchSynonyms[searchTerm.toLowerCase()] || []),
-            ];
-            const getScore = (p) => {
-                var _a, _b, _c, _d;
-                let score = 0;
-                const nameEn = (((_a = p.name) === null || _a === void 0 ? void 0 : _a.en) || (typeof p.name === 'string' ? p.name : '')).toLowerCase();
-                const nameEs = (((_b = p.name) === null || _b === void 0 ? void 0 : _b.es) || (typeof p.name === 'string' ? p.name : '')).toLowerCase();
-                for (const t of searchTermsLower) {
-                    if (nameEn.startsWith(t) || nameEs.startsWith(t))
-                        score += 100;
-                    else if (nameEn.includes(t) || nameEs.includes(t))
-                        score += 80;
+    let combined = [...formattedPlaces, ...formattedBusinesses];
+    // Filter and sort combined results
+    if (searchTerm) {
+        const searchTermsLower = [
+            searchTerm.toLowerCase(),
+            ...(commonSearchSynonyms[searchTerm.toLowerCase()] || []),
+        ];
+        const words = searchTerm
+            .toLowerCase()
+            .split(/\s+/)
+            .filter(w => w.length > 2 && !['los', 'las', 'del', 'the', 'and', 'con', 'para'].includes(w));
+        for (const w of words) {
+            if (!searchTermsLower.includes(w))
+                searchTermsLower.push(w);
+            if (commonSearchSynonyms[w]) {
+                for (const syn of commonSearchSynonyms[w]) {
+                    if (!searchTermsLower.includes(syn))
+                        searchTermsLower.push(syn);
                 }
-                const addrEn = (((_c = p.address) === null || _c === void 0 ? void 0 : _c.en) || p.address || '').toLowerCase();
-                const addrEs = (((_d = p.address) === null || _d === void 0 ? void 0 : _d.es) || p.address || '').toLowerCase();
-                for (const t of searchTermsLower) {
-                    if (addrEn.includes(t) || addrEs.includes(t))
-                        score += 50;
-                }
-                if (score === 0)
-                    score = 20;
-                return score;
-            };
+            }
+        }
+        const stripAccents = (str) => (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+        const searchTermsClean = searchTermsLower.map(t => stripAccents(t)).filter(Boolean);
+        const getScore = (p) => {
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+            let score = 0;
+            const nameEn = stripAccents(((_a = p.name) === null || _a === void 0 ? void 0 : _a.en) || (typeof p.name === 'string' ? p.name : ''));
+            const nameEs = stripAccents(((_b = p.name) === null || _b === void 0 ? void 0 : _b.es) || (typeof p.name === 'string' ? p.name : ''));
+            for (const t of searchTermsClean) {
+                if (nameEn.startsWith(t) || nameEs.startsWith(t))
+                    score += 100;
+                else if (nameEn.includes(t) || nameEs.includes(t))
+                    score += 80;
+            }
+            const addrEn = stripAccents(((_c = p.address) === null || _c === void 0 ? void 0 : _c.en) || p.address || ((_d = p.location) === null || _d === void 0 ? void 0 : _d.address) || ((_e = p.location) === null || _e === void 0 ? void 0 : _e.city) || '');
+            const addrEs = stripAccents(((_f = p.address) === null || _f === void 0 ? void 0 : _f.es) || p.address || ((_g = p.location) === null || _g === void 0 ? void 0 : _g.address) || ((_h = p.location) === null || _h === void 0 ? void 0 : _h.city) || '');
+            for (const t of searchTermsClean) {
+                if (addrEn.includes(t) || addrEs.includes(t))
+                    score += 50;
+            }
+            const descEn = stripAccents(((_j = p.description) === null || _j === void 0 ? void 0 : _j.en) || (typeof p.description === 'string' ? p.description : ''));
+            const descEs = stripAccents(((_k = p.description) === null || _k === void 0 ? void 0 : _k.es) || (typeof p.description === 'string' ? p.description : ''));
+            for (const t of searchTermsClean) {
+                if (descEn.includes(t) || descEs.includes(t))
+                    score += 30;
+            }
+            return score;
+        };
+        // Filter out places with 0 score (strictly keep actual matches only)
+        combined = combined.filter((p) => getScore(p) > 0);
+        if (!hasGeo) {
             combined.sort((a, b) => {
                 const scoreDiff = getScore(b) - getScore(a);
                 if (scoreDiff !== 0)
@@ -444,36 +480,36 @@ const getAllPlaces = async (query, isAdminOrEditor = false) => {
                 return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
             });
         }
-        else {
-            const isDesc = sort.startsWith('-');
-            const sortField = sort.replace('-', '');
-            combined.sort((a, b) => {
-                var _a, _b, _c, _d;
-                let valA = a[sortField];
-                let valB = b[sortField];
-                if (sortField === 'map') {
-                    valA = ((_a = a.map) === null || _a === void 0 ? void 0 : _a.name) || '';
-                    valB = ((_b = b.map) === null || _b === void 0 ? void 0 : _b.name) || '';
-                }
-                else if (sortField === 'category') {
-                    valA = ((_c = a.category) === null || _c === void 0 ? void 0 : _c.name) || '';
-                    valB = ((_d = b.category) === null || _d === void 0 ? void 0 : _d.name) || '';
-                }
-                else if (sortField === 'createdAt' || sortField === 'updatedAt') {
-                    valA = valA ? new Date(valA).getTime() : 0;
-                    valB = valB ? new Date(valB).getTime() : 0;
-                }
-                if (typeof valA === 'string')
-                    valA = valA.toLowerCase();
-                if (typeof valB === 'string')
-                    valB = valB.toLowerCase();
-                if (valA < valB)
-                    return isDesc ? 1 : -1;
-                if (valA > valB)
-                    return isDesc ? -1 : 1;
-                return 0;
-            });
-        }
+    }
+    else if (!hasGeo) {
+        const isDesc = sort.startsWith('-');
+        const sortField = sort.replace('-', '');
+        combined.sort((a, b) => {
+            var _a, _b, _c, _d;
+            let valA = a[sortField];
+            let valB = b[sortField];
+            if (sortField === 'map') {
+                valA = ((_a = a.map) === null || _a === void 0 ? void 0 : _a.name) || '';
+                valB = ((_b = b.map) === null || _b === void 0 ? void 0 : _b.name) || '';
+            }
+            else if (sortField === 'category') {
+                valA = ((_c = a.category) === null || _c === void 0 ? void 0 : _c.name) || '';
+                valB = ((_d = b.category) === null || _d === void 0 ? void 0 : _d.name) || '';
+            }
+            else if (sortField === 'createdAt' || sortField === 'updatedAt') {
+                valA = valA ? new Date(valA).getTime() : 0;
+                valB = valB ? new Date(valB).getTime() : 0;
+            }
+            if (typeof valA === 'string')
+                valA = valA.toLowerCase();
+            if (typeof valB === 'string')
+                valB = valB.toLowerCase();
+            if (valA < valB)
+                return isDesc ? 1 : -1;
+            if (valA > valB)
+                return isDesc ? -1 : 1;
+            return 0;
+        });
     }
     const total = combined.length;
     const paginatedData = combined.slice(skip, skip + limit);

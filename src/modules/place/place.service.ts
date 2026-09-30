@@ -245,6 +245,33 @@ const commonSearchSynonyms: Record<string, string[]> = {
   waterfall: ['cascada', 'cascadas', 'waterfalls'],
   cueva: ['cave', 'cuevas', 'caves'],
   cave: ['cueva', 'cuevas', 'caves'],
+  castillo: ['castle', 'castillos', 'castles', 'fort', 'fortress'],
+  castillos: ['castillo', 'castle', 'castles'],
+  castle: ['castillo', 'castillos', 'castles', 'fort'],
+  castles: ['castillo', 'castle', 'castillos'],
+  tunel: ['tunnel', 'tuneles', 'tunnels'],
+  tunnel: ['tunel', 'tunnels', 'tuneles'],
+  puente: ['bridge', 'puentes', 'bridges'],
+  bridge: ['puente', 'bridges', 'puentes'],
+  rio: ['river', 'rios', 'rivers'],
+  river: ['rio', 'rivers', 'rios'],
+  charco: ['pond', 'pool', 'charcos'],
+  mirador: ['viewpoint', 'lookout', 'miradores'],
+  viewpoint: ['mirador', 'miradores'],
+  bosque: ['forest', 'bosques', 'forests'],
+  forest: ['bosque', 'forests', 'bosques'],
+  isla: ['island', 'islas', 'islands'],
+  island: ['isla', 'islands', 'islas'],
+  bahia: ['bay', 'bahias', 'bays'],
+  bay: ['bahia', 'bays', 'bahias'],
+  laguna: ['lagoon', 'lagunas', 'lagoons'],
+  lagoon: ['laguna', 'lagoons', 'lagunas'],
+  museo: ['museum', 'museos', 'museums'],
+  museum: ['museo', 'museums', 'museos'],
+  restaurante: ['restaurant', 'restaurantes', 'restaurants'],
+  restaurant: ['restaurante', 'restaurants', 'restaurantes'],
+  hotel: ['hotel', 'hoteles', 'hotels'],
+  hotels: ['hotel', 'hoteles'],
 }
 
 function buildEnhancedSearchRegex(term: string): RegExp {
@@ -252,6 +279,17 @@ function buildEnhancedSearchRegex(term: string): RegExp {
   const terms = [clean]
   if (commonSearchSynonyms[clean]) {
     terms.push(...commonSearchSynonyms[clean])
+  }
+  const words = clean
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !['los', 'las', 'del', 'the', 'and', 'con', 'para'].includes(w))
+  for (const w of words) {
+    if (!terms.includes(w)) terms.push(w)
+    if (commonSearchSynonyms[w]) {
+      for (const syn of commonSearchSynonyms[w]) {
+        if (!terms.includes(syn)) terms.push(syn)
+      }
+    }
   }
   const patterns = terms.map(t => buildAccentInsensitivePattern(t))
   return new RegExp(patterns.join('|'), 'i')
@@ -299,15 +337,6 @@ const getAllPlaces = async (
 
   if (searchTerm) {
     const regex = buildEnhancedSearchRegex(searchTerm)
-    const matchingCategories = await Category.find({
-      $or: [
-        { name: regex },
-        { 'name.en': regex },
-        { 'name.es': regex },
-      ],
-    })
-      .select('_id')
-      .lean()
 
     const or: Record<string, unknown>[] = [
       { name: regex },
@@ -321,12 +350,7 @@ const getAllPlaces = async (
       { 'description.es': regex },
       { 'location.city': regex },
       { 'location.address': regex },
-      { country: regex },
     ]
-
-    if (matchingCategories.length > 0) {
-      or.push({ category: { $in: matchingCategories.map(c => c._id) } })
-    }
 
     match.$or = or
   }
@@ -413,15 +437,6 @@ const getAllPlaces = async (
 
     if (searchTerm) {
       const regex = buildEnhancedSearchRegex(searchTerm)
-      const matchingCategories = await Category.find({
-        $or: [
-          { name: regex },
-          { 'name.en': regex },
-          { 'name.es': regex },
-        ],
-      })
-        .select('_id')
-        .lean()
 
       const businessOr: Record<string, unknown>[] = [
         { name: regex },
@@ -433,12 +448,8 @@ const getAllPlaces = async (
         { 'location.address': regex },
         { 'location.address.en': regex },
         { 'location.address.es': regex },
-        { 'location.country': regex },
+        { 'location.city': regex },
       ]
-
-      if (matchingCategories.length > 0) {
-        businessOr.push({ category: { $in: matchingCategories.map(c => c._id) } })
-      }
 
       businessMatch.$or = businessOr
     }
@@ -490,72 +501,93 @@ const getAllPlaces = async (
   }
 
   // 3. Combine results
-  const combined = [...formattedPlaces, ...formattedBusinesses]
+  let combined = [...formattedPlaces, ...formattedBusinesses]
 
-  // Sort combined results if not sorting by geo location distance
-  if (!hasGeo) {
-    if (searchTerm && (!query.sort || query.sort === '-createdAt')) {
-      const searchTermsLower = [
-        searchTerm.toLowerCase(),
-        ...(commonSearchSynonyms[searchTerm.toLowerCase()] || []),
-      ]
-
-      const getScore = (p: any) => {
-        let score = 0
-        const nameEn = (
-          p.name?.en || (typeof p.name === 'string' ? p.name : '')
-        ).toLowerCase()
-        const nameEs = (
-          p.name?.es || (typeof p.name === 'string' ? p.name : '')
-        ).toLowerCase()
-
-        for (const t of searchTermsLower) {
-          if (nameEn.startsWith(t) || nameEs.startsWith(t)) score += 100
-          else if (nameEn.includes(t) || nameEs.includes(t)) score += 80
+  // Filter and sort combined results
+  if (searchTerm) {
+    const searchTermsLower = [
+      searchTerm.toLowerCase(),
+      ...(commonSearchSynonyms[searchTerm.toLowerCase()] || []),
+    ]
+    const words = searchTerm
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(w => w.length > 2 && !['los', 'las', 'del', 'the', 'and', 'con', 'para'].includes(w))
+    for (const w of words) {
+      if (!searchTermsLower.includes(w)) searchTermsLower.push(w)
+      if (commonSearchSynonyms[w]) {
+        for (const syn of commonSearchSynonyms[w]) {
+          if (!searchTermsLower.includes(syn)) searchTermsLower.push(syn)
         }
+      }
+    }
 
-        const addrEn = (p.address?.en || p.address || '').toLowerCase()
-        const addrEs = (p.address?.es || p.address || '').toLowerCase()
-        for (const t of searchTermsLower) {
-          if (addrEn.includes(t) || addrEs.includes(t)) score += 50
-        }
+    const stripAccents = (str: string) =>
+      (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
 
-        if (score === 0) score = 20
-        return score
+    const searchTermsClean = searchTermsLower.map(t => stripAccents(t)).filter(Boolean)
+
+    const getScore = (p: any) => {
+      let score = 0
+      const nameEn = stripAccents(p.name?.en || (typeof p.name === 'string' ? p.name : ''))
+      const nameEs = stripAccents(p.name?.es || (typeof p.name === 'string' ? p.name : ''))
+
+      for (const t of searchTermsClean) {
+        if (nameEn.startsWith(t) || nameEs.startsWith(t)) score += 100
+        else if (nameEn.includes(t) || nameEs.includes(t)) score += 80
       }
 
+      const addrEn = stripAccents(p.address?.en || p.address || p.location?.address || p.location?.city || '')
+      const addrEs = stripAccents(p.address?.es || p.address || p.location?.address || p.location?.city || '')
+      for (const t of searchTermsClean) {
+        if (addrEn.includes(t) || addrEs.includes(t)) score += 50
+      }
+
+      const descEn = stripAccents(p.description?.en || (typeof p.description === 'string' ? p.description : ''))
+      const descEs = stripAccents(p.description?.es || (typeof p.description === 'string' ? p.description : ''))
+      for (const t of searchTermsClean) {
+        if (descEn.includes(t) || descEs.includes(t)) score += 30
+      }
+
+      return score
+    }
+
+    // Filter out places with 0 score (strictly keep actual matches only)
+    combined = combined.filter((p: any) => getScore(p) > 0)
+
+    if (!hasGeo) {
       combined.sort((a: any, b: any) => {
         const scoreDiff = getScore(b) - getScore(a)
         if (scoreDiff !== 0) return scoreDiff
         return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
       })
-    } else {
-      const isDesc = sort.startsWith('-')
-      const sortField = sort.replace('-', '')
-
-      combined.sort((a: any, b: any) => {
-        let valA = a[sortField]
-        let valB = b[sortField]
-
-        if (sortField === 'map') {
-          valA = a.map?.name || ''
-          valB = b.map?.name || ''
-        } else if (sortField === 'category') {
-          valA = a.category?.name || ''
-          valB = b.category?.name || ''
-        } else if (sortField === 'createdAt' || sortField === 'updatedAt') {
-          valA = valA ? new Date(valA).getTime() : 0
-          valB = valB ? new Date(valB).getTime() : 0
-        }
-
-        if (typeof valA === 'string') valA = valA.toLowerCase()
-        if (typeof valB === 'string') valB = valB.toLowerCase()
-
-        if (valA < valB) return isDesc ? 1 : -1
-        if (valA > valB) return isDesc ? -1 : 1
-        return 0
-      })
     }
+  } else if (!hasGeo) {
+    const isDesc = sort.startsWith('-')
+    const sortField = sort.replace('-', '')
+
+    combined.sort((a: any, b: any) => {
+      let valA = a[sortField]
+      let valB = b[sortField]
+
+      if (sortField === 'map') {
+        valA = a.map?.name || ''
+        valB = b.map?.name || ''
+      } else if (sortField === 'category') {
+        valA = a.category?.name || ''
+        valB = b.category?.name || ''
+      } else if (sortField === 'createdAt' || sortField === 'updatedAt') {
+        valA = valA ? new Date(valA).getTime() : 0
+        valB = valB ? new Date(valB).getTime() : 0
+      }
+
+      if (typeof valA === 'string') valA = valA.toLowerCase()
+      if (typeof valB === 'string') valB = valB.toLowerCase()
+
+      if (valA < valB) return isDesc ? 1 : -1
+      if (valA > valB) return isDesc ? -1 : 1
+      return 0
+    })
   }
 
   const total = combined.length

@@ -4,6 +4,7 @@ exports.Award = void 0;
 const mongoose_1 = require("mongoose");
 const awardSchema = new mongoose_1.Schema({
     userId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
+    configId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'AwardConfig' },
     type: {
         type: String,
         enum: [

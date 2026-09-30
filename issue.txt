@@ -1,8 +1,8 @@
 GENERAL VERSION
 Dashboarci:
-1. When adding a new location. please include a •Save as Draft• button-
-2. On the dashboard page. remove the •Sales. Net Income. Taxes' information.
-3. On the •Rewards• pae. I don't see an option to add or tiers/levels.
+1. When adding a new location. please include a •Save as Draft• button- solved
+2. On the dashboard page. remove the •Sales. Net Income. Taxes' information. - solved
+3. On the •Rewards• page. I don't see an option to add or tiers/levels. - solved
 Users:
 1. Users who add a business cannot see how many discounts have been redeemed in the •My
 Busüless• section.

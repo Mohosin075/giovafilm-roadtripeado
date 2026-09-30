@@ -23,7 +23,8 @@ const getMyAwards = async (userId) => {
     const existingAwards = await award_model_1.Award.find({ userId });
     const awards = [];
     for (const config of configs) {
-        const found = existingAwards.find(a => a.type === config.type);
+        const found = existingAwards.find(a => (a.configId && a.configId.toString() === config._id.toString()) ||
+            (a.type === config.type && a.target === config.target));
         let progress = 0;
         let isUnlocked = false;
         if (config.type === 'PDF Itinerary' ||
@@ -41,6 +42,7 @@ const getMyAwards = async (userId) => {
         if (!found) {
             const newAward = await award_model_1.Award.create({
                 userId,
+                configId: config._id,
                 type: config.type,
                 target: config.target,
                 progress,
@@ -53,7 +55,7 @@ const getMyAwards = async (userId) => {
         }
         else {
             // Update target, progress, isUnlocked if they differ
-            const updates = { target: config.target };
+            const updates = { configId: config._id, target: config.target };
             if (config.type === 'PDF Itinerary' ||
                 config.type === 'Free Map' ||
                 config.type === 'Gourmet Guide' ||
@@ -71,7 +73,7 @@ const getMyAwards = async (userId) => {
             awards.push(awardObj);
         }
     }
-    return awards.sort((a, b) => a.type.localeCompare(b.type));
+    return awards.sort((a, b) => (a.target || 0) - (b.target || 0));
 };
 const updateAwardProgress = async (userId, type, progressIncrement) => {
     const award = await award_model_1.Award.findOne({ userId, type });
@@ -91,7 +93,7 @@ const redeemFreeMap = async (userId, mapId) => {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'You have already redeemed your free map');
     }
     // Check if Free Map award is unlocked
-    const freeMapAward = await award_model_1.Award.findOne({ userId, type: 'Free Map' });
+    const freeMapAward = await award_model_1.Award.findOne({ userId, type: 'Free Map', isUnlocked: true });
     if (!freeMapAward || !freeMapAward.isUnlocked) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Free Map award is not unlocked yet');
     }

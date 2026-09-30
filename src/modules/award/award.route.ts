@@ -1,6 +1,7 @@
 import express from 'express'
 import { AwardController } from './award.controller'
 import { AwardConfigController } from './awardConfig.controller'
+import { LevelConfigController } from './levelConfig.controller'
 import auth from '../../middleware/auth'
 import { USER_ROLES } from '../../enum/user'
 import { fileAndBodyProcessorUsingDiskStorage } from '../../middleware/processReqBody'
@@ -18,6 +19,30 @@ router.post(
   auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   AwardController.redeemFreeMap,
 )
+
+router
+  .route('/levels')
+  .get(
+    auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    LevelConfigController.getAllLevelConfigs,
+  )
+  .post(
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    fileAndBodyProcessorUsingDiskStorage(),
+    LevelConfigController.createLevelConfig,
+  )
+
+router
+  .route('/levels/:id')
+  .patch(
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    fileAndBodyProcessorUsingDiskStorage(),
+    LevelConfigController.updateLevelConfig,
+  )
+  .delete(
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    LevelConfigController.deleteLevelConfig,
+  )
 
 router
   .route('/configs')
@@ -44,3 +69,4 @@ router
   )
 
 export const AwardRoutes = router
+

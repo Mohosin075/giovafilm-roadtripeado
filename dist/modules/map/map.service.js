@@ -17,8 +17,18 @@ const place_constants_1 = require("../place/place.constants");
 const business_constants_1 = require("../business/business.constants");
 const autoTranslate_1 = require("../../utils/autoTranslate");
 const processMapTranslations = async (payload) => {
-    if (payload.name)
-        payload.name = await (0, autoTranslate_1.autoTranslateField)(payload.name);
+    if (payload.name) {
+        if (typeof payload.name === 'string') {
+            const trimmed = payload.name.trim();
+            payload.name = { en: trimmed, es: trimmed };
+        }
+        else if (typeof payload.name === 'object' && payload.name !== null) {
+            const enVal = (payload.name.en || '').trim();
+            const esVal = (payload.name.es || '').trim();
+            const fallback = enVal || esVal || '';
+            payload.name = { en: enVal || fallback, es: esVal || fallback };
+        }
+    }
     if (payload.description)
         payload.description = await (0, autoTranslate_1.autoTranslateField)(payload.description);
 };

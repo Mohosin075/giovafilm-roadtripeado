@@ -13,8 +13,12 @@ const paginationHelper_1 = require("../../helpers/paginationHelper");
 const config_1 = __importDefault(require("../../config"));
 const user_constants_1 = require("./user.constants");
 const crypto_1 = require("../../utils/crypto");
+const review_model_1 = require("../review/review.model");
 const emailTemplate_1 = require("../../shared/emailTemplate");
 const emailHelper_1 = require("../../helpers/emailHelper");
+const userLevels_constant_1 = require("../../constants/userLevels.constant");
+const offerRedemption_model_1 = require("../offer/offerRedemption.model");
+const award_model_1 = require("../award/award.model");
 const updateProfile = async (user, payload) => {
     console.log({ payload });
     const isUserExist = await user_model_1.User.findOne({
@@ -182,11 +186,46 @@ const getUserById = async (userId) => {
     const user = await user_model_1.User.findOne({
         _id: userId,
         status: { $nin: [user_1.USER_STATUS.DELETED] },
-    }).select('-password -authentication -__v');
+    })
+        .select('-password -authentication -__v')
+        .populate('purchasedMaps', 'name country images coverPhoto price description')
+        .populate('favoriteMaps', 'name country images')
+        .populate('assignedMaps', 'name country')
+        .populate('redeemedFreeMap', 'name country')
+        .lean();
     if (!user) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
     }
-    return user;
+    // Calculate level info
+    const points = user.points || 0;
+    const approvedReviews = user.totalReviewsApproved || 0;
+    const levelInfo = (0, userLevels_constant_1.calculateUserLevel)(points, approvedReviews);
+    // Fetch claimed offer redemptions
+    const offerRedemptions = await offerRedemption_model_1.OfferRedemption.find({ user: userId })
+        .populate({
+        path: 'offer',
+        populate: { path: 'place business', select: 'name' },
+    })
+        .sort({ createdAt: -1 })
+        .lean();
+    // Fetch unlocked and in-progress awards/badges
+    const awards = await award_model_1.Award.find({ userId })
+        .populate('configId')
+        .sort({ createdAt: -1 })
+        .lean();
+    // Fetch user's submitted reviews
+    const reviews = await review_model_1.Review.find({ reviewer: userId })
+        .populate('placeId', 'name')
+        .populate('businessId', 'name')
+        .sort({ createdAt: -1 })
+        .lean();
+    return {
+        ...user,
+        levelInfo,
+        offerRedemptions,
+        awards,
+        reviews,
+    };
 };
 /** Public, shareable profile — safe fields only */
 const getPublicProfile = async (userId) => {
@@ -205,7 +244,20 @@ const getPublicProfile = async (userId) => {
     if (((_a = user.settings) === null || _a === void 0 ? void 0 : _a.profileStatus) === 'private') {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'This profile is private.');
     }
-    return user;
+    // Fetch user's approved reviews with place/business names
+    const reviews = await review_model_1.Review.find({
+        reviewer: userId,
+        status: 'Approved',
+    })
+        .populate('placeId', 'name')
+        .populate('businessId', 'name')
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .lean();
+    return {
+        ...user.toObject(),
+        reviews,
+    };
 };
 const updateUserStatus = async (userId, status, actor) => {
     if (!mongoose_1.Types.ObjectId.isValid(userId)) {
@@ -473,8 +525,8 @@ const updatePointsAndLevel = async (userId, pointsToAdd) => {
     if (!user)
         return;
     const newPoints = (user.points || 0) + pointsToAdd;
-    // Simple level logic: every 1000 points = 1 level
-    const newLevel = Math.floor(newPoints / 1000) + 1;
+    const newApprovedCount = user.totalReviewsApproved || 0;
+    const newLevel = (0, userLevels_constant_1.calculateUserLevel)(newPoints, newApprovedCount);
     await user_model_1.User.findByIdAndUpdate(userId, {
         $set: {
             points: newPoints,

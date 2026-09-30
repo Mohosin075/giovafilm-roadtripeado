@@ -125,14 +125,6 @@ const autoTranslateField = async (input) => {
         const enVal = (input.en || '').trim();
         const esVal = (input.es || '').trim();
         if (enVal && esVal) {
-            if (enVal === esVal && (0, exports.isSpanishText)(esVal)) {
-                const translatedEn = await (0, exports.translateWithFallback)(esVal, 'en', 'es');
-                return { es: esVal, en: translatedEn };
-            }
-            else if (enVal === esVal && !(0, exports.isSpanishText)(enVal)) {
-                const translatedEs = await (0, exports.translateWithFallback)(enVal, 'es', 'en');
-                return { en: enVal, es: translatedEs };
-            }
             return { en: enVal, es: esVal };
         }
         if (esVal && !enVal) {

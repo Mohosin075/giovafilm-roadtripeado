@@ -36,13 +36,12 @@ const resolveTranslatableField = async (newVal, existingVal) => {
             }
         }
     }
-    // If newVal already has distinct, non-empty en and es values
+    // If newVal already has non-empty en and es values
     if (typeof newVal === 'object' &&
         newVal !== null &&
         newVal.en &&
-        newVal.es &&
-        newVal.en.trim() !== newVal.es.trim()) {
-        return newVal;
+        newVal.es) {
+        return { en: String(newVal.en).trim(), es: String(newVal.es).trim() };
     }
     return await (0, autoTranslate_1.autoTranslateField)(newVal);
 };
@@ -51,7 +50,26 @@ const processPlaceTranslations = async (payload, existingDoc) => {
     const tasks = [];
     if (payload.name) {
         tasks.push((async () => {
-            payload.name = await resolveTranslatableField(payload.name, existingDoc === null || existingDoc === void 0 ? void 0 : existingDoc.name);
+            var _a, _b;
+            if (typeof payload.name === 'string') {
+                const trimmed = payload.name.trim();
+                payload.name = { en: trimmed, es: trimmed };
+            }
+            else if (typeof payload.name === 'object' && payload.name !== null) {
+                const enVal = (payload.name.en || '').trim();
+                const esVal = (payload.name.es || '').trim();
+                if (enVal && esVal) {
+                    payload.name = { en: enVal, es: esVal };
+                }
+                else {
+                    const fallback = enVal ||
+                        esVal ||
+                        (typeof (existingDoc === null || existingDoc === void 0 ? void 0 : existingDoc.name) === 'string'
+                            ? existingDoc.name
+                            : ((_a = existingDoc === null || existingDoc === void 0 ? void 0 : existingDoc.name) === null || _a === void 0 ? void 0 : _a.en) || ((_b = existingDoc === null || existingDoc === void 0 ? void 0 : existingDoc.name) === null || _b === void 0 ? void 0 : _b.es) || '');
+                    payload.name = { en: enVal || fallback, es: esVal || fallback };
+                }
+            }
         })());
     }
     if (payload.description) {
@@ -158,6 +176,31 @@ const createPlace = async (payload) => {
         session.endSession();
     }
 };
+const commonSearchSynonyms = {
+    faro: ['lighthouse', 'faros', 'lighthouses'],
+    faros: ['lighthouse', 'lighthouses', 'faro'],
+    lighthouse: ['faro', 'faros', 'lighthouses'],
+    lighthouses: ['faro', 'faros', 'lighthouse'],
+    playa: ['beach', 'playas', 'beaches'],
+    playas: ['beach', 'beaches', 'playa'],
+    beach: ['playa', 'playas', 'beaches'],
+    beaches: ['playa', 'playas', 'beach'],
+    ruinas: ['ruins', 'ruina', 'ruin'],
+    ruins: ['ruinas', 'ruina', 'ruin'],
+    cascada: ['waterfall', 'cascadas', 'waterfalls'],
+    waterfall: ['cascada', 'cascadas', 'waterfalls'],
+    cueva: ['cave', 'cuevas', 'caves'],
+    cave: ['cueva', 'cuevas', 'caves'],
+};
+function buildEnhancedSearchRegex(term) {
+    const clean = term.trim().toLowerCase();
+    const terms = [clean];
+    if (commonSearchSynonyms[clean]) {
+        terms.push(...commonSearchSynonyms[clean]);
+    }
+    const patterns = terms.map(t => buildAccentInsensitivePattern(t));
+    return new RegExp(patterns.join('|'), 'i');
+}
 const getAllPlaces = async (query, isAdminOrEditor = false) => {
     const searchTerm = typeof query.searchTerm === 'string' ? query.searchTerm.trim() : '';
     const lat = toNumber(query.lat);
@@ -189,8 +232,7 @@ const getAllPlaces = async (query, isAdminOrEditor = false) => {
             : query.status;
     }
     if (searchTerm) {
-        const pattern = buildAccentInsensitivePattern(searchTerm);
-        const regex = new RegExp(pattern, 'i');
+        const regex = buildEnhancedSearchRegex(searchTerm);
         const matchingCategories = await category_model_1.Category.find({
             $or: [
                 { name: regex },
@@ -207,6 +249,9 @@ const getAllPlaces = async (query, isAdminOrEditor = false) => {
             { address: regex },
             { 'address.en': regex },
             { 'address.es': regex },
+            { description: regex },
+            { 'description.en': regex },
+            { 'description.es': regex },
             { 'location.city': regex },
             { 'location.address': regex },
             { country: regex },
@@ -292,8 +337,7 @@ const getAllPlaces = async (query, isAdminOrEditor = false) => {
             }
         }
         if (searchTerm) {
-            const pattern = buildAccentInsensitivePattern(searchTerm);
-            const regex = new RegExp(pattern, 'i');
+            const regex = buildEnhancedSearchRegex(searchTerm);
             const matchingCategories = await category_model_1.Category.find({
                 $or: [
                     { name: regex },
@@ -307,6 +351,9 @@ const getAllPlaces = async (query, isAdminOrEditor = false) => {
                 { name: regex },
                 { 'name.en': regex },
                 { 'name.es': regex },
+                { description: regex },
+                { 'description.en': regex },
+                { 'description.es': regex },
                 { 'location.address': regex },
                 { 'location.address.en': regex },
                 { 'location.address.es': regex },
@@ -364,34 +411,69 @@ const getAllPlaces = async (query, isAdminOrEditor = false) => {
     const combined = [...formattedPlaces, ...formattedBusinesses];
     // Sort combined results if not sorting by geo location distance
     if (!hasGeo) {
-        const isDesc = sort.startsWith('-');
-        const sortField = sort.replace('-', '');
-        combined.sort((a, b) => {
-            var _a, _b, _c, _d;
-            let valA = a[sortField];
-            let valB = b[sortField];
-            if (sortField === 'map') {
-                valA = ((_a = a.map) === null || _a === void 0 ? void 0 : _a.name) || '';
-                valB = ((_b = b.map) === null || _b === void 0 ? void 0 : _b.name) || '';
-            }
-            else if (sortField === 'category') {
-                valA = ((_c = a.category) === null || _c === void 0 ? void 0 : _c.name) || '';
-                valB = ((_d = b.category) === null || _d === void 0 ? void 0 : _d.name) || '';
-            }
-            else if (sortField === 'createdAt' || sortField === 'updatedAt') {
-                valA = valA ? new Date(valA).getTime() : 0;
-                valB = valB ? new Date(valB).getTime() : 0;
-            }
-            if (typeof valA === 'string')
-                valA = valA.toLowerCase();
-            if (typeof valB === 'string')
-                valB = valB.toLowerCase();
-            if (valA < valB)
-                return isDesc ? 1 : -1;
-            if (valA > valB)
-                return isDesc ? -1 : 1;
-            return 0;
-        });
+        if (searchTerm && (!query.sort || query.sort === '-createdAt')) {
+            const searchTermsLower = [
+                searchTerm.toLowerCase(),
+                ...(commonSearchSynonyms[searchTerm.toLowerCase()] || []),
+            ];
+            const getScore = (p) => {
+                var _a, _b, _c, _d;
+                let score = 0;
+                const nameEn = (((_a = p.name) === null || _a === void 0 ? void 0 : _a.en) || (typeof p.name === 'string' ? p.name : '')).toLowerCase();
+                const nameEs = (((_b = p.name) === null || _b === void 0 ? void 0 : _b.es) || (typeof p.name === 'string' ? p.name : '')).toLowerCase();
+                for (const t of searchTermsLower) {
+                    if (nameEn.startsWith(t) || nameEs.startsWith(t))
+                        score += 100;
+                    else if (nameEn.includes(t) || nameEs.includes(t))
+                        score += 80;
+                }
+                const addrEn = (((_c = p.address) === null || _c === void 0 ? void 0 : _c.en) || p.address || '').toLowerCase();
+                const addrEs = (((_d = p.address) === null || _d === void 0 ? void 0 : _d.es) || p.address || '').toLowerCase();
+                for (const t of searchTermsLower) {
+                    if (addrEn.includes(t) || addrEs.includes(t))
+                        score += 50;
+                }
+                if (score === 0)
+                    score = 20;
+                return score;
+            };
+            combined.sort((a, b) => {
+                const scoreDiff = getScore(b) - getScore(a);
+                if (scoreDiff !== 0)
+                    return scoreDiff;
+                return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+            });
+        }
+        else {
+            const isDesc = sort.startsWith('-');
+            const sortField = sort.replace('-', '');
+            combined.sort((a, b) => {
+                var _a, _b, _c, _d;
+                let valA = a[sortField];
+                let valB = b[sortField];
+                if (sortField === 'map') {
+                    valA = ((_a = a.map) === null || _a === void 0 ? void 0 : _a.name) || '';
+                    valB = ((_b = b.map) === null || _b === void 0 ? void 0 : _b.name) || '';
+                }
+                else if (sortField === 'category') {
+                    valA = ((_c = a.category) === null || _c === void 0 ? void 0 : _c.name) || '';
+                    valB = ((_d = b.category) === null || _d === void 0 ? void 0 : _d.name) || '';
+                }
+                else if (sortField === 'createdAt' || sortField === 'updatedAt') {
+                    valA = valA ? new Date(valA).getTime() : 0;
+                    valB = valB ? new Date(valB).getTime() : 0;
+                }
+                if (typeof valA === 'string')
+                    valA = valA.toLowerCase();
+                if (typeof valB === 'string')
+                    valB = valB.toLowerCase();
+                if (valA < valB)
+                    return isDesc ? 1 : -1;
+                if (valA > valB)
+                    return isDesc ? -1 : 1;
+                return 0;
+            });
+        }
     }
     const total = combined.length;
     const paginatedData = combined.slice(skip, skip + limit);

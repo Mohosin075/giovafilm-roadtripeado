@@ -142,31 +142,84 @@ const searchReportEntities = async (searchTerm) => {
         return [];
     const searchRegex = { $regex: escapeRegex(q), $options: 'i' };
     const [matchedPlaces, matchedBusinesses, matchedMaps, matchedOffers] = await Promise.all([
-        place_model_1.Place.find({ name: searchRegex })
-            .select('name country address')
+        place_model_1.Place.find({
+            $or: [
+                { name: searchRegex },
+                { 'name.en': searchRegex },
+                { 'name.es': searchRegex },
+                { address: searchRegex },
+                { 'address.en': searchRegex },
+                { 'address.es': searchRegex },
+                { country: searchRegex },
+                { 'location.address': searchRegex },
+                { 'location.city': searchRegex },
+            ],
+        })
+            .select('name country address location')
             .limit(6)
             .lean(),
-        business_model_1.Business.find({ name: searchRegex })
+        business_model_1.Business.find({
+            $or: [
+                { name: searchRegex },
+                { 'name.en': searchRegex },
+                { 'name.es': searchRegex },
+                { 'location.address': searchRegex },
+                { 'location.city': searchRegex },
+                { 'location.country': searchRegex },
+            ],
+        })
             .select('name location.country location.city location.address')
             .limit(6)
             .lean(),
-        map_model_1.Map.find({ name: searchRegex }).select('name country').limit(5).lean(),
-        offer_model_1.Offer.find({ title: searchRegex }).select('title').limit(5).lean(),
+        map_model_1.Map.find({
+            $or: [
+                { name: searchRegex },
+                { 'name.en': searchRegex },
+                { 'name.es': searchRegex },
+                { country: searchRegex },
+            ],
+        })
+            .select('name country')
+            .limit(5)
+            .lean(),
+        offer_model_1.Offer.find({
+            $or: [
+                { title: searchRegex },
+                { 'title.en': searchRegex },
+                { 'title.es': searchRegex },
+            ],
+        })
+            .select('title')
+            .limit(5)
+            .lean(),
     ]);
     return [
-        ...matchedPlaces.map((p) => ({
-            type: 'place',
-            id: String(p._id),
-            name: p.name,
-            location: [p.address, p.country].filter(Boolean).join(', '),
-        })),
+        ...matchedPlaces.map((p) => {
+            var _a, _b;
+            return ({
+                type: 'place',
+                id: String(p._id),
+                name: (0, localize_1.localizeField)(p.name, 'en') || (0, localize_1.localizeField)(p.name, 'es') || (typeof p.name === 'string' ? p.name : ''),
+                location: [
+                    (0, localize_1.localizeField)(p.address, 'en') || (0, localize_1.localizeField)(p.address, 'es') || ((_a = p.location) === null || _a === void 0 ? void 0 : _a.city),
+                    p.country || ((_b = p.location) === null || _b === void 0 ? void 0 : _b.country),
+                ]
+                    .filter(Boolean)
+                    .join(', '),
+            });
+        }),
         ...matchedBusinesses.map((b) => {
-            var _a, _b, _c;
+            var _a, _b, _c, _d;
             return ({
                 type: 'business',
                 id: String(b._id),
-                name: b.name,
-                location: [((_a = b.location) === null || _a === void 0 ? void 0 : _a.address) || ((_b = b.location) === null || _b === void 0 ? void 0 : _b.city), (_c = b.location) === null || _c === void 0 ? void 0 : _c.country]
+                name: (0, localize_1.localizeField)(b.name, 'en') || (0, localize_1.localizeField)(b.name, 'es') || (typeof b.name === 'string' ? b.name : ''),
+                location: [
+                    (0, localize_1.localizeField)((_a = b.location) === null || _a === void 0 ? void 0 : _a.address, 'en') ||
+                        (0, localize_1.localizeField)((_b = b.location) === null || _b === void 0 ? void 0 : _b.address, 'es') ||
+                        ((_c = b.location) === null || _c === void 0 ? void 0 : _c.city),
+                    (_d = b.location) === null || _d === void 0 ? void 0 : _d.country,
+                ]
                     .filter(Boolean)
                     .join(', '),
             });
@@ -174,13 +227,13 @@ const searchReportEntities = async (searchTerm) => {
         ...matchedMaps.map((m) => ({
             type: 'map',
             id: String(m._id),
-            name: m.name,
+            name: (0, localize_1.localizeField)(m.name, 'en') || (0, localize_1.localizeField)(m.name, 'es') || (typeof m.name === 'string' ? m.name : ''),
             location: m.country || '',
         })),
         ...matchedOffers.map((o) => ({
             type: 'offer',
             id: String(o._id),
-            name: o.title,
+            name: (0, localize_1.localizeField)(o.title, 'en') || (0, localize_1.localizeField)(o.title, 'es') || (typeof o.title === 'string' ? o.title : ''),
         })),
     ];
 };

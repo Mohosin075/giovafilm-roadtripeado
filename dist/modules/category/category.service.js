@@ -9,10 +9,22 @@ const ApiError_1 = __importDefault(require("../../errors/ApiError"));
 const category_model_1 = require("./category.model");
 const QueryBuilder_1 = __importDefault(require("../../builder/QueryBuilder"));
 const category_constants_1 = require("./category.constants");
-const autoTranslate_1 = require("../../utils/autoTranslate");
+const processCategoryName = (name) => {
+    if (typeof name === 'string') {
+        const trimmed = name.trim();
+        return { en: trimmed, es: trimmed };
+    }
+    else if (typeof name === 'object' && name !== null) {
+        const enVal = (name.en || '').trim();
+        const esVal = (name.es || '').trim();
+        const fallback = enVal || esVal || '';
+        return { en: enVal || fallback, es: esVal || fallback };
+    }
+    return name;
+};
 const createCategory = async (payload) => {
     if (payload.name) {
-        payload.name = await (0, autoTranslate_1.autoTranslateField)(payload.name);
+        payload.name = processCategoryName(payload.name);
     }
     const result = await category_model_1.Category.create(payload);
     return result;
@@ -44,7 +56,7 @@ const updateCategory = async (id, payload) => {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Category not found');
     }
     if (payload.name) {
-        payload.name = await (0, autoTranslate_1.autoTranslateField)(payload.name);
+        payload.name = processCategoryName(payload.name);
     }
     const result = await category_model_1.Category.findByIdAndUpdate(id, payload, {
         new: true,

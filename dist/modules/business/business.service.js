@@ -31,8 +31,23 @@ const stripPrivateInfo = (business) => {
     return obj;
 };
 const processBusinessTranslations = async (payload) => {
-    if (payload.name)
-        payload.name = await (0, autoTranslate_1.autoTranslateField)(payload.name);
+    if (payload.name) {
+        if (typeof payload.name === 'string') {
+            const trimmed = payload.name.trim();
+            payload.name = { en: trimmed, es: trimmed };
+        }
+        else if (typeof payload.name === 'object' && payload.name !== null) {
+            const enVal = (payload.name.en || '').trim();
+            const esVal = (payload.name.es || '').trim();
+            if (enVal && esVal) {
+                payload.name = { en: enVal, es: esVal };
+            }
+            else {
+                const fallback = enVal || esVal || '';
+                payload.name = { en: enVal || fallback, es: esVal || fallback };
+            }
+        }
+    }
     if (payload.description)
         payload.description = await (0, autoTranslate_1.autoTranslateField)(payload.description);
 };

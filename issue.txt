@@ -1,172 +1,21 @@
-giovafilm
-
-Sep 14, 12:26 PM
-GENERAL VERSION:
-Dashboard:
-1. The same issue persists when adding a video to a location; I am unable to upload videos. It stayed on the loading screen for 20 minutes and never uploaded. 🚨 - solved (Client confirmed: 117MB video uploaded in 1 min)
-2. On the "Places" page, if a field is left blank, it should not appear on the user's screen. (Example: I add a business/restaurant but don't include access info; that section shouldn't be visible when a user navigates via that restaurant's pin.🚨 - solved
-3. On the "rewards" page, I can't delete some rewards that have already been added. - solved
-4. The "rewards" page has many errors and confusing options that I don't understand or find logical. I’d like to refine this page and its options.
-5. When editing a location's info, I’d like to be able to drag and rearrange the images or photos, so I don't have to delete and re-upload them just to get a specific order. - solved
-
+GENERAL VERSION
+Dashboarci:
+1. When adding a new location. please include a •Save as Draft• button-
+2. On the dashboard page. remove the •Sales. Net Income. Taxes' information.
+3. On the •Rewards• pae. I don't see an option to add or tiers/levels.
 Users:
-1. When a user selects a pin, the map zooms in aggressively on it. I don't want it to zoom in that close; just a little bit would be fine.🚨 - solved
-2. On the "map" page, when typing in the search bar, I’d like the system to treat words with and without accents as the same word. For instance, if a user types "Manati" (without the accent on the "i") instead of the correct "Manatí" (with the accent), the locations for that municipality won't appear due to a simple accent/spelling issue.🚨
-3. Business hours aren't showing up on the location's info page.🚨
-4. The points and levels don't match the document I sent. Will I be able to manage and adjust that part myself?
-
-MOBILE VERSION:
-Users:
-1. On the business info page, the buttons for the business's website and Instagram are getting cut off on the right side.🚨
-2. On the "places" page, within the filter area, the "categories" button extends too far to the right, and the "countries" button does the same.🚨
-3. I can't use the dashboard on the mobile version because the screen gets cut off.
-
-solved
-
-
-
-
-
-new
-Hi, the video is 117 MB; it has finished uploading. It took one minute.
-
-
-GENERAL VERSION:
-Dashboard:
-1. On the "Places" page, the "eye" icon used to set a place to "draft" status isn't working.
-2. The dashboard and statistics pages do not show up-to-date information regarding sales, taxes,
-active offers, etc.
-3. The map on the "Places" page displays an image error when zoomed in significantly.
-4. On the "Places" map, there is lag or a delay when opening the pop-up after clicking a location pin
-to edit it.
-solved
-5. When editing location details, certain checked boxes or filled-in fields—such as the "Always Open" checkbox—are not saving correctly.
-6. On the "Offers" page, I cannot set up a fixed-price offer (e.g., an offer for two pizzas and one donut for a total of $25).
-solved
-
-
-Users:
-1. On the "Map" page, I would like the search function to treat words with and without accents as the
-same word. Currently, if a user types "Manati" (without the accent on the instead of the correct
-"Manatf," the locations for that municipality won't appear due to a simple spelling/accentuation issue.
-solved
-2. Business operating hours are not showing up on the location's information page.
-solved
-
-3. The point and level values do not match the document I sent. Will I be able to manage and adjust
-that section myself?
-solved
-4. On the "Places" page, if I select a category, view a specific location, and then go back, the filters
-and the user's previous scroll position are not saved.
-solved
-5. On the catalog page, please remove the map reviews.
-solved
-
-
-6. Create the landing page based on the design I sent you. Let me know if you need any information, such as reviews from past customers. no need
-
-7. On the "Map" page, some pins disappear when zoomed out, and they reappear when zooming in. no need
-
-MOBILE VERSION:
-Users:
-1. On the mobile dashboard, I cannot see the map on the "Places" page because the categories section (and other elements) covers it.
-2. On the mobile dashboard, the filters on each page are stacked vertically; could they be placed
-side-by-side instead so they don't take up so much screen space?
-
-3. The "satellite" view option is missing from the "Map" page in the mobile version. Please place it in a strategic spot where it looks compact and doesn't take up the entire screen.
-solved
-
-
-
-
-GENERAL VERSION:
-Dashboard:
-1. The translator is changing the original names of businesses and locations.
-2. When accessing the "Places" map, it should load with no country selected to avoid errors.
-3. When editing location information and changing the photo order, an error occurs with the images/thumbnails.
-solved
-
-user
-1. It iS not possible to swipe between photos in the business menus.
-2. On the •Places• and •Offers• paws, set the default View to show 45 items so the user doesn•t have
-to select a quantity
-3. In the location details, the opening hours look cluttered because they contain so much information.
-4. On the business info p., replace the camera emoji next to the Instagram link With the actual Instagam logo.
-solved
-
-
-
-Dashboard:
-1. I granted map editor access to someone, but the dashboard won't open for them. 🚨 - solved
-
-Users:
-1. When users receive the email or email invitation, the email should be in Spanish, given that the audience is primarily Latino. 🚨 - solved
-2. When redeeming the free map, an error message appears stating the invitation has expired, though the process continues without issues afterward. 🚨 - solved
-3. Clarify the message displayed when redeeming a coupon by changing it to: "Show this screen to the staff and start the timer when redeeming your offer with the attendant." 🚨 - solved
-4. Photos do not look good because they get cropped due to their size or format; is there a solution to ensure the visible part of the image is the relevant one, or what can be done here? 🚨 - solved
-
-
-NEW BUGS:
-Users:
-1. Regular locations are displaying business location information. (I fixed this bug.)
-
-2. In the map page's search bar, when I search by municipality or region and press Enter, map pins for that municipality
-appear alongside others that are not within that same municipality. I would like only the pins
-corresponding to the specific search location to appear. IMPORTANT: When searching for a place by
-name, the suggestion options should still appear below the search bar, just as they did previously.
-
-3. If a user has not purchased the map, they should not be able to view any information about
-standard locations on the maps, places, and offers pages, nor should they be able to access offers or
-discounts. Currently, information is being displayed to users who have not purchased the map.
-
-
-4. The search function on the "places" page is not working correctly; typing "faro" (lighthouse) yields
-no lighthouse results.
-
-
-
-
-
-
-NEW BUGS:
-Users:
-5. The full description is not visible on the "reward" page.
-6. On the "reward" page, I would like the cover photos of locked rewards to appear in color, while still
-clearly indicating that they are locked without obscuring the cover image.
-
-solved
-
-
-
-
-
-
-
-GENERAL VERSION:
-Dashboard:
-1. The lag or bug persists when opening a location to edit it from the map on the "Places" page of the
-desktop dashboard. solved
-2. The search function on the dashboard's statistics page still isn't working; when I type a location's
-name to view its stats, nothing appears.
-3. On the "Places" page map, there is still an error where the map disappears when zooming in too
-far.
-solved
-4. In the dashboard, rewards are not organized by level.
-5. On the "Maps" page of the dashboard, maps saved as drafts are incorrectly flagged as "published."
-solved
-6. On the "Places" page, clicking the "form" icon to view location details prevents scrolling down to
-see the rest of the information.
-7. On the reports and statistics page, please remove the revenue, tax, and total sales sections, as
-Stripe will provide this data. This will allow for a more comprehensive view of statistics such as
-location visits, redeemed offers, most-used maps, etc.
-
-Users:
-1. The times displayed at the bottom still lack AM/PM indicators.
-2. Some locations are still being translated into Spanish even though their names are in English; will I
-have to translate them manually again?
-
-
-
-
-
-
+1. Users who add a business cannot see how many discounts have been redeemed in the •My
+Busüless• section.
+2. When a user wins a prize on the •Rewards• and dow•nloads the POF. it doesn't download with
+the original fiename. Can it be set to download using the original filename for each POF?
+3. On the •Locations- page. when typing something like •faros• (IiØ1thouses). au the Mithouses
+appear first. foUowed by locations unrelated to •faros.• I would like only the search restits to appeac
+4. The operating hours at the bottom still do not disc*ay AM/PM.
+5. On the ciscoutt page, chan# the cotQon redemption confirmation tune from 3 seconds to 5
+seconds.
+CHANGES:
+1. I will remove the free map option; users will not be able to use or view any features until they
+purchase the map. The user will first arrive at the landing log in or sigl md then be directed
+to the to purchase the map and Inlock an information Alternatively. they could visit the
+page. to the catalog. and—upon selecting a purchase—complete reØstration and payment.
+•O wil conüier a free version later

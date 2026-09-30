@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OfferService = void 0;
+const mongoose_1 = require("mongoose");
 const http_status_codes_1 = require("http-status-codes");
 const ApiError_1 = __importDefault(require("../../errors/ApiError"));
 const offer_model_1 = require("./offer.model");
@@ -358,11 +359,40 @@ const getOffersByPlaceOrBusinessId = async (id, authHeader) => {
     let offerObj = null;
     if (result) {
         offerObj = typeof result.toObject === 'function' ? result.toObject() : result;
+        const actualRedemptionsCount = await offerRedemption_model_1.OfferRedemption.countDocuments({ offer: offerObj._id });
+        offerObj.redemptionsCount = Math.max(Number(offerObj.redemptionsCount) || 0, actualRedemptionsCount);
         const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
         const placeMapId = await (0, mapAccessHelper_1.resolveOfferMapIdAsync)(offerObj);
         offerObj.isLocked = !isPremium && (!placeMapId || !accessibleMapIds.includes(placeMapId));
     }
     return offerObj;
+};
+const getOfferRedemptions = async (id, authHeader) => {
+    const [user, offer] = await Promise.all([
+        (0, mapAccessHelper_1.getUserFromToken)(authHeader),
+        offer_model_1.Offer.findOne({
+            $or: [
+                ...(mongoose_1.Types.ObjectId.isValid(id) ? [{ _id: id }] : []),
+                { place: id },
+                { business: id },
+            ],
+        }).lean(),
+    ]);
+    if (!offer) {
+        return { count: 0, redemptions: [] };
+    }
+    const [actualCount, redemptions] = await Promise.all([
+        offerRedemption_model_1.OfferRedemption.countDocuments({ offer: offer._id }),
+        offerRedemption_model_1.OfferRedemption.find({ offer: offer._id })
+            .populate('user', 'name profile.avatar profile.photo email')
+            .sort({ createdAt: -1 })
+            .limit(100)
+            .lean(),
+    ]);
+    return {
+        count: Math.max(actualCount, Number(offer.redemptionsCount) || 0),
+        redemptions,
+    };
 };
 const deleteOffer = async (id) => {
     const isExist = await offer_model_1.Offer.findById(id);
@@ -482,4 +512,5 @@ exports.OfferService = {
     calculateDiscount,
     redeemOffer,
     getOffersByPlaceOrBusinessId,
+    getOfferRedemptions,
 };

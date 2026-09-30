@@ -1,8 +1,10 @@
+import { Types } from 'mongoose'
 import { StatusCodes } from 'http-status-codes'
 import ApiError from '../../errors/ApiError'
 import { IOffer } from './offer.interface'
 import { Offer } from './offer.model'
 import { OfferRedemption } from './offerRedemption.model'
+
 import QueryBuilder from '../../builder/QueryBuilder'
 import { BOGO_SECOND_TYPE, DISCOUNT_TYPE, OFFER_STATUS } from '../../enum/offer'
 import { Business } from '../business/business.model'
@@ -441,6 +443,8 @@ const getOffersByPlaceOrBusinessId = async (id: string, authHeader?: string) => 
   let offerObj: any = null
   if (result) {
     offerObj = typeof (result as any).toObject === 'function' ? (result as any).toObject() : result
+    const actualRedemptionsCount = await OfferRedemption.countDocuments({ offer: offerObj._id })
+    offerObj.redemptionsCount = Math.max(Number(offerObj.redemptionsCount) || 0, actualRedemptionsCount)
     const accessibleMapIds = await getAccessibleMapIds(user)
     const placeMapId = await resolveOfferMapIdAsync(offerObj)
     offerObj.isLocked = !isPremium && (!placeMapId || !accessibleMapIds.includes(placeMapId))
@@ -448,6 +452,38 @@ const getOffersByPlaceOrBusinessId = async (id: string, authHeader?: string) => 
 
   return offerObj
 }
+
+const getOfferRedemptions = async (id: string, authHeader?: string) => {
+  const [user, offer] = await Promise.all([
+    getUserFromToken(authHeader),
+    Offer.findOne({
+      $or: [
+        ...(Types.ObjectId.isValid(id) ? [{ _id: id }] : []),
+        { place: id },
+        { business: id },
+      ],
+    }).lean(),
+  ])
+
+  if (!offer) {
+    return { count: 0, redemptions: [] }
+  }
+
+  const [actualCount, redemptions] = await Promise.all([
+    OfferRedemption.countDocuments({ offer: offer._id }),
+    OfferRedemption.find({ offer: offer._id })
+      .populate('user', 'name profile.avatar profile.photo email')
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean(),
+  ])
+
+  return {
+    count: Math.max(actualCount, Number(offer.redemptionsCount) || 0),
+    redemptions,
+  }
+}
+
 
 const deleteOffer = async (id: string): Promise<IOffer | null> => {
   const isExist = await Offer.findById(id)
@@ -607,4 +643,6 @@ export const OfferService = {
   calculateDiscount,
   redeemOffer,
   getOffersByPlaceOrBusinessId,
+  getOfferRedemptions,
 }
+

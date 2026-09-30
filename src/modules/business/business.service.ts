@@ -184,11 +184,34 @@ const getMyBusinesses = async (userId: string, query: Record<string, unknown>) =
     }
   }
 
+  // Populate offer information and discounts redeemed count for each business
+  const businessIds = (result as any[]).map((business) => business._id)
+  if (businessIds.length > 0) {
+    const offers = await Offer.find({ business: { $in: businessIds } })
+      .select('_id business redemptionsCount title discountType discountValue')
+      .lean()
+
+    const offerByBusiness = new Map(
+      offers.map((off) => [String(off.business), off])
+    )
+
+    for (const business of result as any[]) {
+      const off = offerByBusiness.get(String(business._id))
+      if (off) {
+        business.offer = off
+        business.discountsRedeemed = off.redemptionsCount || 0
+      } else {
+        business.discountsRedeemed = 0
+      }
+    }
+  }
+
   return {
     meta,
     data: result,
   }
 }
+
 
 /**
  * Retrieves a single business by its ID.

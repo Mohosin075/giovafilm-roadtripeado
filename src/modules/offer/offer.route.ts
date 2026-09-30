@@ -16,6 +16,13 @@ router.get(
   OfferController.getOffersByPlaceOrBusinessId,
 )
 
+router.get(
+  '/by-place-or-business/:id/redemptions',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER, USER_ROLES.MAP_EDITOR),
+  OfferController.getOfferRedemptions,
+)
+
+
 router
   .route('/')
   .post(

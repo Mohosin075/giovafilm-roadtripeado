@@ -5,7 +5,8 @@ Dashboarci:
 3. On the •Rewards• page. I don't see an option to add or tiers/levels. - solved
 Users:
 1. Users who add a business cannot see how many discounts have been redeemed in the •My
-Busüless• section.
+Busüless• section. - solved
+
 2. When a user wins a prize on the •Rewards• and dow•nloads the POF. it doesn't download with
 the original fiename. Can it be set to download using the original filename for each POF?
 3. On the •Locations- page. when typing something like •faros• (IiØ1thouses). au the Mithouses

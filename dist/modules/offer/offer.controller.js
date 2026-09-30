@@ -91,6 +91,16 @@ const redeemOffer = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const getOfferRedemptions = (0, catchAsync_1.default)(async (req, res) => {
+    const { id } = req.params;
+    const result = await offer_service_1.OfferService.getOfferRedemptions(id, req.headers.authorization);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Offer redemptions retrieved successfully',
+        data: result,
+    });
+});
 exports.OfferController = {
     createOffer,
     getAllOffers,
@@ -100,4 +110,5 @@ exports.OfferController = {
     calculateDiscount,
     redeemOffer,
     getOffersByPlaceOrBusinessId,
+    getOfferRedemptions,
 };

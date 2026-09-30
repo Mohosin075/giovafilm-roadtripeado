@@ -97,6 +97,17 @@ const redeemOffer = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const getOfferRedemptions = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params
+  const result = await OfferService.getOfferRedemptions(id, req.headers.authorization)
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Offer redemptions retrieved successfully',
+    data: result,
+  })
+})
+
 export const OfferController = {
   createOffer,
   getAllOffers,
@@ -106,4 +117,6 @@ export const OfferController = {
   calculateDiscount,
   redeemOffer,
   getOffersByPlaceOrBusinessId,
+  getOfferRedemptions,
 }
+

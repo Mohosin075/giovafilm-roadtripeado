@@ -99,7 +99,12 @@ const redeemOffer = catchAsync(async (req: Request, res: Response) => {
 
 const getOfferRedemptions = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
-  const result = await OfferService.getOfferRedemptions(id, req.headers.authorization)
+  const timeFilter = req.query.timeFilter as string | undefined
+  const result = await OfferService.getOfferRedemptions(
+    id,
+    req.headers.authorization,
+    timeFilter,
+  )
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,

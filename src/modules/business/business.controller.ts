@@ -115,7 +115,8 @@ const deleteBusiness = catchAsync(async (req: Request, res: Response) => {
 
 const getBusinessStats = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
-  const result = await BusinessService.getBusinessStats(id)
+  const timeFilter = req.query.timeFilter as string | undefined
+  const result = await BusinessService.getBusinessStats(id, timeFilter)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,

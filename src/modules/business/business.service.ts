@@ -3,6 +3,9 @@ import ApiError from '../../errors/ApiError'
 import { IBusiness, BusinessStatus } from './business.interface'
 import { Business } from './business.model'
 import { Offer } from '../offer/offer.model'
+import { OfferRedemption } from '../offer/offerRedemption.model'
+import { UsageView } from '../stats/usageView.model'
+import { getTimeFilterQuery } from '../../helpers/dateHelper'
 import QueryBuilder from '../../builder/QueryBuilder'
 import { businessSearchableFields } from './business.constants'
 import { OFFER_STATUS } from '../../enum/offer'
@@ -184,26 +187,100 @@ const getMyBusinesses = async (userId: string, query: Record<string, unknown>) =
     }
   }
 
-  // Populate offer information and discounts redeemed count for each business
+  const timeFilter = typeof query.timeFilter === 'string' ? query.timeFilter : undefined
+  const dateRange = getTimeFilterQuery(timeFilter)
+
+  // Populate offer information, views, and discounts redeemed count for each business
   const businessIds = (result as any[]).map((business) => business._id)
+  let overallTotalViews = 0
+  let overallTotalRedemptions = 0
+
   if (businessIds.length > 0) {
     const offers = await Offer.find({ business: { $in: businessIds } })
       .select('_id business redemptionsCount title discountType discountValue')
       .lean()
 
-    const offerByBusiness = new Map(
-      offers.map((off) => [String(off.business), off])
-    )
+    const offersByBusiness = new Map<string, any[]>()
+    for (const off of offers) {
+      const bId = String(off.business)
+      if (!offersByBusiness.has(bId)) offersByBusiness.set(bId, [])
+      offersByBusiness.get(bId)!.push(off)
+    }
 
-    for (const business of result as any[]) {
-      const off = offerByBusiness.get(String(business._id))
-      if (off) {
-        business.offer = off
-        business.discountsRedeemed = off.redemptionsCount || 0
-      } else {
-        business.discountsRedeemed = 0
+    // Get views for each business
+    const viewsByBusiness = new Map<string, number>()
+    if (dateRange) {
+      const viewAgg = await UsageView.aggregate([
+        {
+          $match: {
+            type: 'business',
+            entityId: { $in: businessIds.map(String) },
+            lastSeenAt: dateRange,
+          },
+        },
+        {
+          $group: {
+            _id: '$entityId',
+            count: { $sum: 1 },
+          },
+        },
+      ])
+      for (const item of viewAgg) {
+        viewsByBusiness.set(String(item._id), item.count)
       }
     }
+
+    // Get redemptions for all offers
+    const offerIds = offers.map((o) => o._id)
+    const redemptionsByOffer = new Map<string, number>()
+    if (offerIds.length > 0) {
+      const redemptQuery: any = { offer: { $in: offerIds } }
+      if (dateRange) redemptQuery.createdAt = dateRange
+      const redemptAgg = await OfferRedemption.aggregate([
+        { $match: redemptQuery },
+        {
+          $group: {
+            _id: '$offer',
+            count: { $sum: 1 },
+          },
+        },
+      ])
+      for (const item of redemptAgg) {
+        redemptionsByOffer.set(String(item._id), item.count)
+      }
+    }
+
+    for (const business of result as any[]) {
+      const bOffers = offersByBusiness.get(String(business._id)) || []
+      business.offer = bOffers[0] || null
+
+      let bRedemptions = 0
+      for (const off of bOffers) {
+        const rCount = redemptionsByOffer.get(String(off._id))
+        if (rCount !== undefined) {
+          bRedemptions += rCount
+        } else if (!dateRange) {
+          bRedemptions += off.redemptionsCount || 0
+        }
+      }
+      business.discountsRedeemed = bRedemptions
+      overallTotalRedemptions += bRedemptions
+
+      if (dateRange) {
+        business.viewCount = viewsByBusiness.get(String(business._id)) || 0
+      }
+      overallTotalViews += business.viewCount || 0
+    }
+  }
+
+  (meta as any).stats = {
+    totalBusinesses: (result as any[]).length,
+    totalViews: overallTotalViews,
+    totalDiscountsRedeemed: overallTotalRedemptions,
+    activeBusinesses: (result as any[]).filter(
+      (b) => b.hasActiveSubscription && b.status === 'Approved'
+    ).length,
+    timeFilter: timeFilter || 'all_time',
   }
 
   return {
@@ -369,23 +446,53 @@ const deleteBusiness = async (
 }
 
 
-const getBusinessStats = async (businessId: string) => {
+const getBusinessStats = async (businessId: string, timeFilter?: string) => {
   const business = await Business.findById(businessId)
   if (!business) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Business not found')
   }
 
+  const dateRange = getTimeFilterQuery(timeFilter)
+
   // Get all offers for this business and sum their redemptions
-  const offers = await Offer.find({ business: businessId })
-  const totalOfferRedemptions = offers.reduce(
-    (acc, offer) => acc + (offer.redemptionsCount || 0),
-    0,
+  const offers = await Offer.find({ business: businessId }).select(
+    '_id status redemptionsCount',
   )
+  const offerIds = offers.map((o) => o._id)
+
+  let totalOfferRedemptions = 0
+  if (offerIds.length > 0) {
+    const redemptionQuery: any = { offer: { $in: offerIds } }
+    if (dateRange) {
+      redemptionQuery.createdAt = dateRange
+    }
+    const redemptionsCount = await OfferRedemption.countDocuments(redemptionQuery)
+    if (!dateRange && redemptionsCount === 0) {
+      totalOfferRedemptions = offers.reduce(
+        (acc, offer) => acc + (offer.redemptionsCount || 0),
+        0,
+      )
+    } else {
+      totalOfferRedemptions = redemptionsCount
+    }
+  }
+
+  // Views from UsageView
+  let viewCount = 0
+  const viewQuery: any = { type: 'business', entityId: businessId }
+  if (dateRange) {
+    viewQuery.lastSeenAt = dateRange
+    viewCount = await UsageView.countDocuments(viewQuery)
+  } else {
+    const trackedViews = await UsageView.countDocuments(viewQuery)
+    viewCount = Math.max(trackedViews, business.viewCount || 0)
+  }
 
   return {
-    viewCount: business.viewCount || 0,
+    viewCount,
     totalOfferRedemptions,
-    activeOffersCount: offers.filter(o => o.status === OFFER_STATUS.ACTIVE).length,
+    activeOffersCount: offers.filter((o) => o.status === OFFER_STATUS.ACTIVE).length,
+    timeFilter: timeFilter || 'all_time',
   }
 }
 

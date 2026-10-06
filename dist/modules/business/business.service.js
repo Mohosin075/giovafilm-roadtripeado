@@ -8,6 +8,9 @@ const http_status_codes_1 = require("http-status-codes");
 const ApiError_1 = __importDefault(require("../../errors/ApiError"));
 const business_model_1 = require("./business.model");
 const offer_model_1 = require("../offer/offer.model");
+const offerRedemption_model_1 = require("../offer/offerRedemption.model");
+const usageView_model_1 = require("../stats/usageView.model");
+const dateHelper_1 = require("../../helpers/dateHelper");
 const QueryBuilder_1 = __importDefault(require("../../builder/QueryBuilder"));
 const business_constants_1 = require("./business.constants");
 const offer_1 = require("../../enum/offer");
@@ -156,24 +159,93 @@ const getMyBusinesses = async (userId, query) => {
             }
         }
     }
-    // Populate offer information and discounts redeemed count for each business
+    const timeFilter = typeof query.timeFilter === 'string' ? query.timeFilter : undefined;
+    const dateRange = (0, dateHelper_1.getTimeFilterQuery)(timeFilter);
+    // Populate offer information, views, and discounts redeemed count for each business
     const businessIds = result.map((business) => business._id);
+    let overallTotalViews = 0;
+    let overallTotalRedemptions = 0;
     if (businessIds.length > 0) {
         const offers = await offer_model_1.Offer.find({ business: { $in: businessIds } })
             .select('_id business redemptionsCount title discountType discountValue')
             .lean();
-        const offerByBusiness = new Map(offers.map((off) => [String(off.business), off]));
-        for (const business of result) {
-            const off = offerByBusiness.get(String(business._id));
-            if (off) {
-                business.offer = off;
-                business.discountsRedeemed = off.redemptionsCount || 0;
-            }
-            else {
-                business.discountsRedeemed = 0;
+        const offersByBusiness = new Map();
+        for (const off of offers) {
+            const bId = String(off.business);
+            if (!offersByBusiness.has(bId))
+                offersByBusiness.set(bId, []);
+            offersByBusiness.get(bId).push(off);
+        }
+        // Get views for each business
+        const viewsByBusiness = new Map();
+        if (dateRange) {
+            const viewAgg = await usageView_model_1.UsageView.aggregate([
+                {
+                    $match: {
+                        type: 'business',
+                        entityId: { $in: businessIds.map(String) },
+                        lastSeenAt: dateRange,
+                    },
+                },
+                {
+                    $group: {
+                        _id: '$entityId',
+                        count: { $sum: 1 },
+                    },
+                },
+            ]);
+            for (const item of viewAgg) {
+                viewsByBusiness.set(String(item._id), item.count);
             }
         }
+        // Get redemptions for all offers
+        const offerIds = offers.map((o) => o._id);
+        const redemptionsByOffer = new Map();
+        if (offerIds.length > 0) {
+            const redemptQuery = { offer: { $in: offerIds } };
+            if (dateRange)
+                redemptQuery.createdAt = dateRange;
+            const redemptAgg = await offerRedemption_model_1.OfferRedemption.aggregate([
+                { $match: redemptQuery },
+                {
+                    $group: {
+                        _id: '$offer',
+                        count: { $sum: 1 },
+                    },
+                },
+            ]);
+            for (const item of redemptAgg) {
+                redemptionsByOffer.set(String(item._id), item.count);
+            }
+        }
+        for (const business of result) {
+            const bOffers = offersByBusiness.get(String(business._id)) || [];
+            business.offer = bOffers[0] || null;
+            let bRedemptions = 0;
+            for (const off of bOffers) {
+                const rCount = redemptionsByOffer.get(String(off._id));
+                if (rCount !== undefined) {
+                    bRedemptions += rCount;
+                }
+                else if (!dateRange) {
+                    bRedemptions += off.redemptionsCount || 0;
+                }
+            }
+            business.discountsRedeemed = bRedemptions;
+            overallTotalRedemptions += bRedemptions;
+            if (dateRange) {
+                business.viewCount = viewsByBusiness.get(String(business._id)) || 0;
+            }
+            overallTotalViews += business.viewCount || 0;
+        }
     }
+    meta.stats = {
+        totalBusinesses: result.length,
+        totalViews: overallTotalViews,
+        totalDiscountsRedeemed: overallTotalRedemptions,
+        activeBusinesses: result.filter((b) => b.hasActiveSubscription && b.status === 'Approved').length,
+        timeFilter: timeFilter || 'all_time',
+    };
     return {
         meta,
         data: result,
@@ -295,18 +367,45 @@ const deleteBusiness = async (id, authUser) => {
     const result = await business_model_1.Business.findByIdAndDelete(id);
     return result;
 };
-const getBusinessStats = async (businessId) => {
+const getBusinessStats = async (businessId, timeFilter) => {
     const business = await business_model_1.Business.findById(businessId);
     if (!business) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Business not found');
     }
+    const dateRange = (0, dateHelper_1.getTimeFilterQuery)(timeFilter);
     // Get all offers for this business and sum their redemptions
-    const offers = await offer_model_1.Offer.find({ business: businessId });
-    const totalOfferRedemptions = offers.reduce((acc, offer) => acc + (offer.redemptionsCount || 0), 0);
+    const offers = await offer_model_1.Offer.find({ business: businessId }).select('_id status redemptionsCount');
+    const offerIds = offers.map((o) => o._id);
+    let totalOfferRedemptions = 0;
+    if (offerIds.length > 0) {
+        const redemptionQuery = { offer: { $in: offerIds } };
+        if (dateRange) {
+            redemptionQuery.createdAt = dateRange;
+        }
+        const redemptionsCount = await offerRedemption_model_1.OfferRedemption.countDocuments(redemptionQuery);
+        if (!dateRange && redemptionsCount === 0) {
+            totalOfferRedemptions = offers.reduce((acc, offer) => acc + (offer.redemptionsCount || 0), 0);
+        }
+        else {
+            totalOfferRedemptions = redemptionsCount;
+        }
+    }
+    // Views from UsageView
+    let viewCount = 0;
+    const viewQuery = { type: 'business', entityId: businessId };
+    if (dateRange) {
+        viewQuery.lastSeenAt = dateRange;
+        viewCount = await usageView_model_1.UsageView.countDocuments(viewQuery);
+    }
+    else {
+        const trackedViews = await usageView_model_1.UsageView.countDocuments(viewQuery);
+        viewCount = Math.max(trackedViews, business.viewCount || 0);
+    }
     return {
-        viewCount: business.viewCount || 0,
+        viewCount,
         totalOfferRedemptions,
-        activeOffersCount: offers.filter(o => o.status === offer_1.OFFER_STATUS.ACTIVE).length,
+        activeOffersCount: offers.filter((o) => o.status === offer_1.OFFER_STATUS.ACTIVE).length,
+        timeFilter: timeFilter || 'all_time',
     };
 };
 const incrementViewCount = async (id) => {

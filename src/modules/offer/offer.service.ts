@@ -4,6 +4,7 @@ import ApiError from '../../errors/ApiError'
 import { IOffer } from './offer.interface'
 import { Offer } from './offer.model'
 import { OfferRedemption } from './offerRedemption.model'
+import { getTimeFilterQuery } from '../../helpers/dateHelper'
 
 import QueryBuilder from '../../builder/QueryBuilder'
 import { BOGO_SECOND_TYPE, DISCOUNT_TYPE, OFFER_STATUS } from '../../enum/offer'
@@ -453,7 +454,11 @@ const getOffersByPlaceOrBusinessId = async (id: string, authHeader?: string) => 
   return offerObj
 }
 
-const getOfferRedemptions = async (id: string, authHeader?: string) => {
+const getOfferRedemptions = async (
+  id: string,
+  authHeader?: string,
+  timeFilter?: string,
+) => {
   const [user, offer] = await Promise.all([
     getUserFromToken(authHeader),
     Offer.findOne({
@@ -469,9 +474,15 @@ const getOfferRedemptions = async (id: string, authHeader?: string) => {
     return { count: 0, redemptions: [] }
   }
 
+  const dateRange = getTimeFilterQuery(timeFilter)
+  const redemptQuery: any = { offer: offer._id }
+  if (dateRange) {
+    redemptQuery.createdAt = dateRange
+  }
+
   const [actualCount, redemptions] = await Promise.all([
-    OfferRedemption.countDocuments({ offer: offer._id }),
-    OfferRedemption.find({ offer: offer._id })
+    OfferRedemption.countDocuments(redemptQuery),
+    OfferRedemption.find(redemptQuery)
       .populate('user', 'name profile.avatar profile.photo email')
       .sort({ createdAt: -1 })
       .limit(100)
@@ -479,8 +490,11 @@ const getOfferRedemptions = async (id: string, authHeader?: string) => {
   ])
 
   return {
-    count: Math.max(actualCount, Number(offer.redemptionsCount) || 0),
+    count: dateRange
+      ? actualCount
+      : Math.max(actualCount, Number(offer.redemptionsCount) || 0),
     redemptions,
+    timeFilter: timeFilter || 'all_time',
   }
 }
 

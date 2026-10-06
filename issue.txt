@@ -1,22 +1,35 @@
-GENERAL VERSION
-Dashboarci:
-1. When adding a new location. please include a •Save as Draft• button- solved
-2. On the dashboard page. remove the •Sales. Net Income. Taxes' information. - solved
-3. On the •Rewards• page. I don't see an option to add or tiers/levels. - solved
-Users:
-1. Users who add a business cannot see how many discounts have been redeemed in the •My
-Busüless• section. - solved
-
-2. When a user wins a prize on the •Rewards• and dow•nloads the POF. it doesn't download with
-the original fiename. Can it be set to download using the original filename for each POF? - solved
-3. On the •Locations- page. when typing something like •faros• (IiØ1thouses). au the Mithouses
-appear first. foUowed by locations unrelated to •faros.• I would like only the search restits to appeac - solved
-4. The operating hours at the bottom still do not disc*ay AM/PM.
-5. On the ciscoutt page, chan# the cotQon redemption confirmation tune from 3 seconds to 5
-seconds.
 CHANGES:
 1. I will remove the free map option; users will not be able to use or view any features until they
 purchase the map. The user will first arrive at the landing log in or sigl md then be directed
 to the to purchase the map and Inlock an information Alternatively. they could visit the
 page. to the catalog. and—upon selecting a purchase—complete reØstration and payment.
 •O wil conüier a free version later
+
+Dashboard:
+
+1. On the "Places" page map, ensure that pins and locations typically found on Google Maps are visible so they can be easily selected.
+solved
+2. On the "Places" page map, I would like the editing pop-up to maintain a consistent size across all sections (Basic Info, Access, Local Tips, etc.); currently, the size changes depending on the section being edited, which negatively affects the administrator's or editor's experience.
+solved
+3. On the "Places" page map, I would like the editing pop-up to remain open when clicking outside of it; this would prevent accidental closure and the loss of added information.
+solved
+
+
+Users:
+
+1. For users adding a business: on the "My Business" page, allow users to filter statistics by time period (this month, last month, today, etc.).
+solved
+
+2. Downloading an itinerary takes more than 2 minutes; is this an error?
+
+3. Business discounts are not working correctly; if I set a discount to be daily (every 24 hours), it cannot be redeemed again even after several days have passed-it remains marked as "already used."
+
+4. On the "Places" page, the search function should only return results based on the place name and address. Currently, it returns results based on place descriptions, which reduces the search tool's effectiveness.
+
+5. On the "Awards" page, remove the visible description; the description should only appear when the user clicks "View more details."
+
+
+
+
+
+

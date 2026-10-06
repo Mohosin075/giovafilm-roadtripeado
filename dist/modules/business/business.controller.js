@@ -110,7 +110,8 @@ const deleteBusiness = (0, catchAsync_1.default)(async (req, res) => {
 });
 const getBusinessStats = (0, catchAsync_1.default)(async (req, res) => {
     const { id } = req.params;
-    const result = await business_service_1.BusinessService.getBusinessStats(id);
+    const timeFilter = req.query.timeFilter;
+    const result = await business_service_1.BusinessService.getBusinessStats(id, timeFilter);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,

@@ -9,6 +9,7 @@ const http_status_codes_1 = require("http-status-codes");
 const ApiError_1 = __importDefault(require("../../errors/ApiError"));
 const offer_model_1 = require("./offer.model");
 const offerRedemption_model_1 = require("./offerRedemption.model");
+const dateHelper_1 = require("../../helpers/dateHelper");
 const QueryBuilder_1 = __importDefault(require("../../builder/QueryBuilder"));
 const offer_1 = require("../../enum/offer");
 const business_model_1 = require("../business/business.model");
@@ -367,7 +368,7 @@ const getOffersByPlaceOrBusinessId = async (id, authHeader) => {
     }
     return offerObj;
 };
-const getOfferRedemptions = async (id, authHeader) => {
+const getOfferRedemptions = async (id, authHeader, timeFilter) => {
     const [user, offer] = await Promise.all([
         (0, mapAccessHelper_1.getUserFromToken)(authHeader),
         offer_model_1.Offer.findOne({
@@ -381,17 +382,25 @@ const getOfferRedemptions = async (id, authHeader) => {
     if (!offer) {
         return { count: 0, redemptions: [] };
     }
+    const dateRange = (0, dateHelper_1.getTimeFilterQuery)(timeFilter);
+    const redemptQuery = { offer: offer._id };
+    if (dateRange) {
+        redemptQuery.createdAt = dateRange;
+    }
     const [actualCount, redemptions] = await Promise.all([
-        offerRedemption_model_1.OfferRedemption.countDocuments({ offer: offer._id }),
-        offerRedemption_model_1.OfferRedemption.find({ offer: offer._id })
+        offerRedemption_model_1.OfferRedemption.countDocuments(redemptQuery),
+        offerRedemption_model_1.OfferRedemption.find(redemptQuery)
             .populate('user', 'name profile.avatar profile.photo email')
             .sort({ createdAt: -1 })
             .limit(100)
             .lean(),
     ]);
     return {
-        count: Math.max(actualCount, Number(offer.redemptionsCount) || 0),
+        count: dateRange
+            ? actualCount
+            : Math.max(actualCount, Number(offer.redemptionsCount) || 0),
         redemptions,
+        timeFilter: timeFilter || 'all_time',
     };
 };
 const deleteOffer = async (id) => {

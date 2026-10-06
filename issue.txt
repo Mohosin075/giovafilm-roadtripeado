@@ -26,8 +26,10 @@ solved
 solved
 
 4. On the "Places" page, the search function should only return results based on the place name and address. Currently, it returns results based on place descriptions, which reduces the search tool's effectiveness.
+solved
 
 5. On the "Awards" page, remove the visible description; the description should only appear when the user clicks "View more details."
+solved
 
 
 

@@ -345,9 +345,6 @@ const getAllPlaces = async (
       { address: regex },
       { 'address.en': regex },
       { 'address.es': regex },
-      { description: regex },
-      { 'description.en': regex },
-      { 'description.es': regex },
       { 'location.city': regex },
       { 'location.address': regex },
     ]
@@ -442,9 +439,6 @@ const getAllPlaces = async (
         { name: regex },
         { 'name.en': regex },
         { 'name.es': regex },
-        { description: regex },
-        { 'description.en': regex },
-        { 'description.es': regex },
         { 'location.address': regex },
         { 'location.address.en': regex },
         { 'location.address.es': regex },
@@ -541,12 +535,6 @@ const getAllPlaces = async (
       const addrEs = stripAccents(p.address?.es || p.address || p.location?.address || p.location?.city || '')
       for (const t of searchTermsClean) {
         if (addrEn.includes(t) || addrEs.includes(t)) score += 50
-      }
-
-      const descEn = stripAccents(p.description?.en || (typeof p.description === 'string' ? p.description : ''))
-      const descEs = stripAccents(p.description?.es || (typeof p.description === 'string' ? p.description : ''))
-      for (const t of searchTermsClean) {
-        if (descEn.includes(t) || descEs.includes(t)) score += 30
       }
 
       return score

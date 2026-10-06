@@ -279,9 +279,6 @@ const getAllPlaces = async (query, isAdminOrEditor = false) => {
             { address: regex },
             { 'address.en': regex },
             { 'address.es': regex },
-            { description: regex },
-            { 'description.en': regex },
-            { 'description.es': regex },
             { 'location.city': regex },
             { 'location.address': regex },
         ];
@@ -368,9 +365,6 @@ const getAllPlaces = async (query, isAdminOrEditor = false) => {
                 { name: regex },
                 { 'name.en': regex },
                 { 'name.es': regex },
-                { description: regex },
-                { 'description.en': regex },
-                { 'description.es': regex },
                 { 'location.address': regex },
                 { 'location.address.en': regex },
                 { 'location.address.es': regex },
@@ -446,7 +440,7 @@ const getAllPlaces = async (query, isAdminOrEditor = false) => {
         const stripAccents = (str) => (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
         const searchTermsClean = searchTermsLower.map(t => stripAccents(t)).filter(Boolean);
         const getScore = (p) => {
-            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+            var _a, _b, _c, _d, _e, _f, _g, _h;
             let score = 0;
             const nameEn = stripAccents(((_a = p.name) === null || _a === void 0 ? void 0 : _a.en) || (typeof p.name === 'string' ? p.name : ''));
             const nameEs = stripAccents(((_b = p.name) === null || _b === void 0 ? void 0 : _b.es) || (typeof p.name === 'string' ? p.name : ''));
@@ -461,12 +455,6 @@ const getAllPlaces = async (query, isAdminOrEditor = false) => {
             for (const t of searchTermsClean) {
                 if (addrEn.includes(t) || addrEs.includes(t))
                     score += 50;
-            }
-            const descEn = stripAccents(((_j = p.description) === null || _j === void 0 ? void 0 : _j.en) || (typeof p.description === 'string' ? p.description : ''));
-            const descEs = stripAccents(((_k = p.description) === null || _k === void 0 ? void 0 : _k.es) || (typeof p.description === 'string' ? p.description : ''));
-            for (const t of searchTermsClean) {
-                if (descEn.includes(t) || descEs.includes(t))
-                    score += 30;
             }
             return score;
         };

@@ -27,6 +27,11 @@ const OfferSchema = new mongoose_1.Schema({
     redemptionRules: { type: [String], default: [] },
     buttonLabel: { type: mongoose_1.Schema.Types.Mixed, default: 'Redeem Offer' },
     redemptionDuration: { type: Number, default: 5 }, // Default to 5 minutes
+    redemptionFrequency: {
+        type: String,
+        enum: ['daily', 'weekly', 'monthly', 'once', 'custom'],
+        default: 'daily',
+    },
     status: {
         type: String,
         enum: Object.values(offer_1.OFFER_STATUS),

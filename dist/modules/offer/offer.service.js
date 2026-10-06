@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.OfferService = void 0;
+exports.OfferService = exports.getOfferRecurrenceWindowMs = void 0;
 const mongoose_1 = require("mongoose");
 const http_status_codes_1 = require("http-status-codes");
 const ApiError_1 = __importDefault(require("../../errors/ApiError"));
@@ -221,6 +221,30 @@ const getAllOffers = async (query, authHeader) => {
         data: updatedData,
     };
 };
+const getOfferRecurrenceWindowMs = (offer) => {
+    const freq = String((offer === null || offer === void 0 ? void 0 : offer.redemptionFrequency) || '').toLowerCase();
+    if (freq === 'once')
+        return null;
+    if (freq === 'daily')
+        return 24 * 60 * 60 * 1000;
+    if (freq === 'weekly')
+        return 7 * 24 * 60 * 60 * 1000;
+    if (freq === 'monthly')
+        return 30 * 24 * 60 * 60 * 1000;
+    const duration = Number(offer === null || offer === void 0 ? void 0 : offer.redemptionDuration) || 0;
+    if (duration >= 525600)
+        return null; // 1 year / once
+    if (duration === 1440)
+        return 24 * 60 * 60 * 1000;
+    if (duration === 10080)
+        return 7 * 24 * 60 * 60 * 1000;
+    if (duration === 43200)
+        return 30 * 24 * 60 * 60 * 1000;
+    if (duration > 0 && duration < 525600)
+        return duration * 60 * 1000;
+    return 24 * 60 * 60 * 1000; // Default to daily (24 hours) for recurring offers
+};
+exports.getOfferRecurrenceWindowMs = getOfferRecurrenceWindowMs;
 const getOfferById = async (id, authHeader) => {
     const [user, rawResult] = await Promise.all([
         (0, mapAccessHelper_1.getUserFromToken)(authHeader),
@@ -241,22 +265,46 @@ const getOfferById = async (id, authHeader) => {
     }
     let result = rawResult;
     if (user) {
+        const recurrenceWindowMs = (0, exports.getOfferRecurrenceWindowMs)(rawResult);
+        const redemptionFilter = {
+            user: user._id,
+            offer: id,
+        };
+        if (recurrenceWindowMs !== null) {
+            const windowStart = new Date(Date.now() - recurrenceWindowMs);
+            redemptionFilter.$or = [
+                { createdAt: { $gte: windowStart } },
+                { redemptionTime: { $gte: windowStart } },
+            ];
+        }
         const [activeRedemption, userRedemptionCount] = await Promise.all([
             offerRedemption_model_1.OfferRedemption.findOne({
                 user: user._id,
                 offer: id,
                 expiresAt: { $gt: new Date() },
             }),
-            offerRedemption_model_1.OfferRedemption.countDocuments({
-                user: user._id,
-                offer: id,
-            }),
+            offerRedemption_model_1.OfferRedemption.countDocuments(redemptionFilter),
         ]);
+        let nextAvailableAt = null;
+        const maxRedemptions = rawResult.maxRedemptions || 1;
+        if (recurrenceWindowMs !== null && userRedemptionCount >= maxRedemptions) {
+            const oldestInWindow = await offerRedemption_model_1.OfferRedemption.findOne(redemptionFilter).sort({
+                createdAt: 1,
+                redemptionTime: 1,
+            });
+            const oldestTime = (oldestInWindow === null || oldestInWindow === void 0 ? void 0 : oldestInWindow.createdAt) || (oldestInWindow === null || oldestInWindow === void 0 ? void 0 : oldestInWindow.redemptionTime);
+            if (oldestTime) {
+                nextAvailableAt = new Date(new Date(oldestTime).getTime() + recurrenceWindowMs);
+            }
+        }
         const offerObj = typeof result.toObject === 'function' ? result.toObject() : result;
         result = {
             ...offerObj,
             activeRedemption,
             userRedemptionCount,
+            isRecurring: recurrenceWindowMs !== null,
+            recurrenceWindowMs,
+            nextAvailableAt,
         };
     }
     return result;
@@ -365,6 +413,45 @@ const getOffersByPlaceOrBusinessId = async (id, authHeader) => {
         const accessibleMapIds = await (0, mapAccessHelper_1.getAccessibleMapIds)(user);
         const placeMapId = await (0, mapAccessHelper_1.resolveOfferMapIdAsync)(offerObj);
         offerObj.isLocked = !isPremium && (!placeMapId || !accessibleMapIds.includes(placeMapId));
+        if (user) {
+            const recurrenceWindowMs = (0, exports.getOfferRecurrenceWindowMs)(offerObj);
+            const redemptionFilter = {
+                user: user._id,
+                offer: offerObj._id,
+            };
+            if (recurrenceWindowMs !== null) {
+                const windowStart = new Date(Date.now() - recurrenceWindowMs);
+                redemptionFilter.$or = [
+                    { createdAt: { $gte: windowStart } },
+                    { redemptionTime: { $gte: windowStart } },
+                ];
+            }
+            const [activeRedemption, userRedemptionCount] = await Promise.all([
+                offerRedemption_model_1.OfferRedemption.findOne({
+                    user: user._id,
+                    offer: offerObj._id,
+                    expiresAt: { $gt: new Date() },
+                }),
+                offerRedemption_model_1.OfferRedemption.countDocuments(redemptionFilter),
+            ]);
+            let nextAvailableAt = null;
+            const maxRedemptions = offerObj.maxRedemptions || 1;
+            if (recurrenceWindowMs !== null && userRedemptionCount >= maxRedemptions) {
+                const oldestInWindow = await offerRedemption_model_1.OfferRedemption.findOne(redemptionFilter).sort({
+                    createdAt: 1,
+                    redemptionTime: 1,
+                });
+                const oldestTime = (oldestInWindow === null || oldestInWindow === void 0 ? void 0 : oldestInWindow.createdAt) || (oldestInWindow === null || oldestInWindow === void 0 ? void 0 : oldestInWindow.redemptionTime);
+                if (oldestTime) {
+                    nextAvailableAt = new Date(new Date(oldestTime).getTime() + recurrenceWindowMs);
+                }
+            }
+            offerObj.activeRedemption = activeRedemption;
+            offerObj.userRedemptionCount = userRedemptionCount;
+            offerObj.isRecurring = recurrenceWindowMs !== null;
+            offerObj.recurrenceWindowMs = recurrenceWindowMs;
+            offerObj.nextAvailableAt = nextAvailableAt;
+        }
     }
     return offerObj;
 };
@@ -468,16 +555,37 @@ const redeemOffer = async (id, userId, authHeader) => {
         offer.redemptionsCount >= offer.totalRedemptionLimit) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Offer redemption limit reached');
     }
-    // maxRedemptions is per user, not global
+    // maxRedemptions is evaluated within the recurrence window (e.g. daily = 24 hours)
     if (offer.maxRedemptions) {
-        const userRedemptions = await offerRedemption_model_1.OfferRedemption.countDocuments({
+        const recurrenceWindowMs = (0, exports.getOfferRecurrenceWindowMs)(offer);
+        let userRedemptionsQuery = {
             user: userId,
             offer: id,
-        });
+        };
+        if (recurrenceWindowMs !== null) {
+            const windowStart = new Date(Date.now() - recurrenceWindowMs);
+            userRedemptionsQuery = {
+                user: userId,
+                offer: id,
+                $or: [
+                    { createdAt: { $gte: windowStart } },
+                    { redemptionTime: { $gte: windowStart } },
+                ],
+            };
+        }
+        const userRedemptions = await offerRedemption_model_1.OfferRedemption.countDocuments(userRedemptionsQuery);
         if (userRedemptions >= offer.maxRedemptions) {
+            const freq = String(offer.redemptionFrequency || '').toLowerCase();
+            const freqLabel = freq === 'daily' || recurrenceWindowMs === 24 * 60 * 60 * 1000
+                ? 'today'
+                : freq === 'weekly' || recurrenceWindowMs === 7 * 24 * 60 * 60 * 1000
+                    ? 'this week'
+                    : freq === 'monthly' || recurrenceWindowMs === 30 * 24 * 60 * 60 * 1000
+                        ? 'this month'
+                        : '';
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, offer.maxRedemptions === 1
-                ? 'You have already redeemed this offer'
-                : `You can redeem this offer only ${offer.maxRedemptions} times`);
+                ? `You have already redeemed this offer${freqLabel ? ` ${freqLabel}` : ''}`
+                : `You can redeem this offer only ${offer.maxRedemptions} times${freqLabel ? ` ${freqLabel}` : ''}`);
         }
     }
     // Check expiration date
@@ -499,8 +607,10 @@ const redeemOffer = async (id, userId, authHeader) => {
     if (activeRedemption) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'You already have an active redemption for this offer');
     }
-    // Use redemptionDuration from offer model or default to 15
-    const durationInMinutes = offer.redemptionDuration || 15;
+    // Active session for staff verification: default 15 mins (or offer.redemptionDuration if <= 120 mins)
+    const durationInMinutes = offer.redemptionDuration && offer.redemptionDuration > 0 && offer.redemptionDuration <= 120
+        ? offer.redemptionDuration
+        : 15;
     const expiresAt = new Date(Date.now() + durationInMinutes * 60 * 1000);
     const redemption = await offerRedemption_model_1.OfferRedemption.create({
         user: userId,

@@ -23,6 +23,7 @@ solved
 2. Downloading an itinerary takes more than 2 minutes; is this an error?
 
 3. Business discounts are not working correctly; if I set a discount to be daily (every 24 hours), it cannot be redeemed again even after several days have passed-it remains marked as "already used."
+solved
 
 4. On the "Places" page, the search function should only return results based on the place name and address. Currently, it returns results based on place descriptions, which reduces the search tool's effectiveness.
 

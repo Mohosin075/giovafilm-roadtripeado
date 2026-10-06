@@ -271,6 +271,23 @@ const getAllOffers = async (query: Record<string, unknown>, authHeader?: string)
   }
 }
 
+export const getOfferRecurrenceWindowMs = (offer: any): number | null => {
+  const freq = String(offer?.redemptionFrequency || '').toLowerCase()
+  if (freq === 'once') return null
+  if (freq === 'daily') return 24 * 60 * 60 * 1000
+  if (freq === 'weekly') return 7 * 24 * 60 * 60 * 1000
+  if (freq === 'monthly') return 30 * 24 * 60 * 60 * 1000
+
+  const duration = Number(offer?.redemptionDuration) || 0
+  if (duration >= 525600) return null // 1 year / once
+  if (duration === 1440) return 24 * 60 * 60 * 1000
+  if (duration === 10080) return 7 * 24 * 60 * 60 * 1000
+  if (duration === 43200) return 30 * 24 * 60 * 60 * 1000
+  if (duration > 0 && duration < 525600) return duration * 60 * 1000
+
+  return 24 * 60 * 60 * 1000 // Default to daily (24 hours) for recurring offers
+}
+
 const getOfferById = async (id: string, authHeader?: string): Promise<any> => {
   const [user, rawResult] = await Promise.all([
     getUserFromToken(authHeader),
@@ -300,23 +317,50 @@ const getOfferById = async (id: string, authHeader?: string): Promise<any> => {
 
   let result: any = rawResult
   if (user) {
+    const recurrenceWindowMs = getOfferRecurrenceWindowMs(rawResult)
+    const redemptionFilter: any = {
+      user: user._id,
+      offer: id,
+    }
+
+    if (recurrenceWindowMs !== null) {
+      const windowStart = new Date(Date.now() - recurrenceWindowMs)
+      redemptionFilter.$or = [
+        { createdAt: { $gte: windowStart } },
+        { redemptionTime: { $gte: windowStart } },
+      ]
+    }
+
     const [activeRedemption, userRedemptionCount] = await Promise.all([
       OfferRedemption.findOne({
         user: user._id,
         offer: id,
         expiresAt: { $gt: new Date() },
       }),
-      OfferRedemption.countDocuments({
-        user: user._id,
-        offer: id,
-      }),
+      OfferRedemption.countDocuments(redemptionFilter),
     ])
+
+    let nextAvailableAt: Date | null = null
+    const maxRedemptions = rawResult.maxRedemptions || 1
+    if (recurrenceWindowMs !== null && userRedemptionCount >= maxRedemptions) {
+      const oldestInWindow = await OfferRedemption.findOne(redemptionFilter).sort({
+        createdAt: 1,
+        redemptionTime: 1,
+      })
+      const oldestTime = oldestInWindow?.createdAt || oldestInWindow?.redemptionTime
+      if (oldestTime) {
+        nextAvailableAt = new Date(new Date(oldestTime).getTime() + recurrenceWindowMs)
+      }
+    }
 
     const offerObj = typeof result.toObject === 'function' ? result.toObject() : result
     result = {
       ...offerObj,
       activeRedemption,
       userRedemptionCount,
+      isRecurring: recurrenceWindowMs !== null,
+      recurrenceWindowMs,
+      nextAvailableAt,
     }
   }
 
@@ -449,6 +493,50 @@ const getOffersByPlaceOrBusinessId = async (id: string, authHeader?: string) => 
     const accessibleMapIds = await getAccessibleMapIds(user)
     const placeMapId = await resolveOfferMapIdAsync(offerObj)
     offerObj.isLocked = !isPremium && (!placeMapId || !accessibleMapIds.includes(placeMapId))
+
+    if (user) {
+      const recurrenceWindowMs = getOfferRecurrenceWindowMs(offerObj)
+      const redemptionFilter: any = {
+        user: user._id,
+        offer: offerObj._id,
+      }
+
+      if (recurrenceWindowMs !== null) {
+        const windowStart = new Date(Date.now() - recurrenceWindowMs)
+        redemptionFilter.$or = [
+          { createdAt: { $gte: windowStart } },
+          { redemptionTime: { $gte: windowStart } },
+        ]
+      }
+
+      const [activeRedemption, userRedemptionCount] = await Promise.all([
+        OfferRedemption.findOne({
+          user: user._id,
+          offer: offerObj._id,
+          expiresAt: { $gt: new Date() },
+        }),
+        OfferRedemption.countDocuments(redemptionFilter),
+      ])
+
+      let nextAvailableAt: Date | null = null
+      const maxRedemptions = offerObj.maxRedemptions || 1
+      if (recurrenceWindowMs !== null && userRedemptionCount >= maxRedemptions) {
+        const oldestInWindow = await OfferRedemption.findOne(redemptionFilter).sort({
+          createdAt: 1,
+          redemptionTime: 1,
+        })
+        const oldestTime = oldestInWindow?.createdAt || oldestInWindow?.redemptionTime
+        if (oldestTime) {
+          nextAvailableAt = new Date(new Date(oldestTime).getTime() + recurrenceWindowMs)
+        }
+      }
+
+      offerObj.activeRedemption = activeRedemption
+      offerObj.userRedemptionCount = userRedemptionCount
+      offerObj.isRecurring = recurrenceWindowMs !== null
+      offerObj.recurrenceWindowMs = recurrenceWindowMs
+      offerObj.nextAvailableAt = nextAvailableAt
+    }
   }
 
   return offerObj
@@ -590,18 +678,43 @@ const redeemOffer = async (id: string, userId: string, authHeader?: string) => {
     )
   }
 
-  // maxRedemptions is per user, not global
+  // maxRedemptions is evaluated within the recurrence window (e.g. daily = 24 hours)
   if (offer.maxRedemptions) {
-    const userRedemptions = await OfferRedemption.countDocuments({
+    const recurrenceWindowMs = getOfferRecurrenceWindowMs(offer)
+    let userRedemptionsQuery: any = {
       user: userId,
       offer: id,
-    })
+    }
+
+    if (recurrenceWindowMs !== null) {
+      const windowStart = new Date(Date.now() - recurrenceWindowMs)
+      userRedemptionsQuery = {
+        user: userId,
+        offer: id,
+        $or: [
+          { createdAt: { $gte: windowStart } },
+          { redemptionTime: { $gte: windowStart } },
+        ],
+      }
+    }
+
+    const userRedemptions = await OfferRedemption.countDocuments(userRedemptionsQuery)
     if (userRedemptions >= offer.maxRedemptions) {
+      const freq = String(offer.redemptionFrequency || '').toLowerCase()
+      const freqLabel =
+        freq === 'daily' || recurrenceWindowMs === 24 * 60 * 60 * 1000
+          ? 'today'
+          : freq === 'weekly' || recurrenceWindowMs === 7 * 24 * 60 * 60 * 1000
+            ? 'this week'
+            : freq === 'monthly' || recurrenceWindowMs === 30 * 24 * 60 * 60 * 1000
+              ? 'this month'
+              : ''
+
       throw new ApiError(
         StatusCodes.BAD_REQUEST,
         offer.maxRedemptions === 1
-          ? 'You have already redeemed this offer'
-          : `You can redeem this offer only ${offer.maxRedemptions} times`,
+          ? `You have already redeemed this offer${freqLabel ? ` ${freqLabel}` : ''}`
+          : `You can redeem this offer only ${offer.maxRedemptions} times${freqLabel ? ` ${freqLabel}` : ''}`,
       )
     }
   }
@@ -631,8 +744,11 @@ const redeemOffer = async (id: string, userId: string, authHeader?: string) => {
     )
   }
 
-  // Use redemptionDuration from offer model or default to 15
-  const durationInMinutes = offer.redemptionDuration || 15
+  // Active session for staff verification: default 15 mins (or offer.redemptionDuration if <= 120 mins)
+  const durationInMinutes =
+    offer.redemptionDuration && offer.redemptionDuration > 0 && offer.redemptionDuration <= 120
+      ? offer.redemptionDuration
+      : 15
   const expiresAt = new Date(Date.now() + durationInMinutes * 60 * 1000)
 
   const redemption = await OfferRedemption.create({

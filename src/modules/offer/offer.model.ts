@@ -27,6 +27,11 @@ const OfferSchema = new Schema<IOffer, OfferModel>(
     redemptionRules: { type: [String], default: [] },
     buttonLabel: { type: Schema.Types.Mixed, default: 'Redeem Offer' },
     redemptionDuration: { type: Number, default: 5 }, // Default to 5 minutes
+    redemptionFrequency: {
+      type: String,
+      enum: ['daily', 'weekly', 'monthly', 'once', 'custom'],
+      default: 'daily',
+    },
     status: {
       type: String,
       enum: Object.values(OFFER_STATUS),

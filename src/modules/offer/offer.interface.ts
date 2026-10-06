@@ -20,6 +20,7 @@ export interface IOffer {
   redemptionRules?: string[]
   buttonLabel?: TranslatableString
   redemptionDuration?: number // Duration in minutes, e.g., 15
+  redemptionFrequency?: string // 'daily' | 'weekly' | 'monthly' | 'once' | 'custom'
   status: OFFER_STATUS
   redemptionsCount: number // Default 0
   createdAt: Date

@@ -40,13 +40,44 @@ const toggleFavourite = async (
     } else if (type === 'Place' && place) {
       const isPlaceExist = await Place.findById(place).session(session)
       if (!isPlaceExist) {
+        // Fallback: check if id exists in Business collection
+        const isBusinessExist = await Business.findById(place).session(session)
+        if (isBusinessExist) {
+          const isFavouriteExist = await Favourite.findOne({
+            user: userId,
+            $or: [{ business: place }, { place }],
+          }).session(session)
+          if (isFavouriteExist) {
+            await Favourite.findByIdAndDelete(isFavouriteExist._id).session(session)
+            await User.findByIdAndUpdate(userId, {
+              $pull: { favoriteBusinesses: place, favoritePlaces: place },
+            }).session(session)
+            await session.commitTransaction()
+            return null
+          } else {
+            const result = await Favourite.create(
+              [{ user: userId, business: place, type: 'Business' }],
+              { session },
+            )
+            await User.findByIdAndUpdate(userId, {
+              $addToSet: { favoriteBusinesses: place },
+            }).session(session)
+            await session.commitTransaction()
+            return result[0]
+          }
+        }
         throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
       }
 
-      const isFavouriteExist = await Favourite.findOne({ user: userId, place }).session(session)
+      const isFavouriteExist = await Favourite.findOne({
+        user: userId,
+        $or: [{ place }, { business: place }],
+      }).session(session)
       if (isFavouriteExist) {
-        await Favourite.findOneAndDelete({ user: userId, place }).session(session)
-        await User.findByIdAndUpdate(userId, { $pull: { favoritePlaces: place } }).session(session)
+        await Favourite.findByIdAndDelete(isFavouriteExist._id).session(session)
+        await User.findByIdAndUpdate(userId, {
+          $pull: { favoritePlaces: place, favoriteBusinesses: place },
+        }).session(session)
         await session.commitTransaction()
         return null
       } else {
@@ -73,32 +104,57 @@ const toggleFavourite = async (
         await session.commitTransaction()
         return result[0]
       }
-    } else if (type === 'Business' && business) {
-      const isBusinessExist = await Business.findById(business).session(session)
+    } else if (type === 'Business' && (business || place)) {
+      const targetId = String(business || place)
+      const isBusinessExist = await Business.findById(targetId).session(session)
       if (!isBusinessExist) {
+        // Fallback: check if targetId is in Place collection (where type may be 'Business' or 'Regular')
+        const isPlaceExist = await Place.findById(targetId).session(session)
+        if (isPlaceExist) {
+          const isFavouriteExist = await Favourite.findOne({
+            user: userId,
+            $or: [{ place: targetId }, { business: targetId }],
+          }).session(session)
+          if (isFavouriteExist) {
+            await Favourite.findByIdAndDelete(isFavouriteExist._id).session(session)
+            await User.findByIdAndUpdate(userId, {
+              $pull: { favoritePlaces: targetId, favoriteBusinesses: targetId },
+            }).session(session)
+            await session.commitTransaction()
+            return null
+          } else {
+            const result = await Favourite.create(
+              [{ user: userId, place: targetId, type: isPlaceExist.type === 'Business' ? 'Business' : 'Place' }],
+              { session },
+            )
+            await User.findByIdAndUpdate(userId, {
+              $addToSet: { favoritePlaces: targetId },
+            }).session(session)
+            await session.commitTransaction()
+            return result[0]
+          }
+        }
         throw new ApiError(StatusCodes.NOT_FOUND, 'Business not found')
       }
 
       const isFavouriteExist = await Favourite.findOne({
         user: userId,
-        business,
+        $or: [{ business: targetId }, { place: targetId }],
       }).session(session)
       if (isFavouriteExist) {
-        await Favourite.findOneAndDelete({ user: userId, business }).session(
-          session,
-        )
+        await Favourite.findByIdAndDelete(isFavouriteExist._id).session(session)
         await User.findByIdAndUpdate(userId, {
-          $pull: { favoriteBusinesses: business },
+          $pull: { favoriteBusinesses: targetId, favoritePlaces: targetId },
         }).session(session)
         await session.commitTransaction()
         return null
       } else {
         const result = await Favourite.create(
-          [{ user: userId, business, type }],
+          [{ user: userId, business: targetId, type }],
           { session },
         )
         await User.findByIdAndUpdate(userId, {
-          $addToSet: { favoriteBusinesses: business },
+          $addToSet: { favoriteBusinesses: targetId },
         }).session(session)
         await session.commitTransaction()
         return result[0]
@@ -115,7 +171,7 @@ const toggleFavourite = async (
 }
 
 const getMyFavourites = async (userId: string, query: Record<string, unknown>) => {
-  const { page = 1, limit = 10, sort = '-createdAt', ...filterData } = query
+  const { page = 1, limit = 1000, sort = '-createdAt', ...filterData } = query
   const skip = (Number(page) - 1) * Number(limit)
 
   const sortStr = sort as string
@@ -151,7 +207,19 @@ const getMyFavourites = async (userId: string, query: Record<string, unknown>) =
         localField: 'place',
         foreignField: '_id',
         pipeline: [
-          { $project: { name: 1, name_es: 1, description: 1, description_es: 1, media: 1 } },
+          {
+            $project: {
+              name: 1,
+              name_es: 1,
+              description: 1,
+              description_es: 1,
+              media: 1,
+              type: 1,
+              map: 1,
+              category: 1,
+              address: 1,
+            },
+          },
         ],
         as: 'place',
       },
@@ -218,13 +286,16 @@ const removeFavourite = async (id: string, userId: string): Promise<IFavourite |
       throw new ApiError(StatusCodes.NOT_FOUND, 'Favourite not found')
     }
 
-    if (result.type === 'Map' && result.map) {
+    if (result.map) {
       await User.findByIdAndUpdate(userId, { $pull: { favoriteMaps: result.map } }).session(session)
-    } else if (result.type === 'Place' && result.place) {
+    }
+    if (result.place) {
       await User.findByIdAndUpdate(userId, { $pull: { favoritePlaces: result.place } }).session(session)
-    } else if (result.type === 'Offer' && result.offer) {
+    }
+    if (result.offer) {
       await User.findByIdAndUpdate(userId, { $pull: { favoriteOffers: result.offer } }).session(session)
-    } else if (result.type === 'Business' && result.business) {
+    }
+    if (result.business) {
       await User.findByIdAndUpdate(userId, {
         $pull: { favoriteBusinesses: result.business },
       }).session(session)

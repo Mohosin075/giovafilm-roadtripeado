@@ -155,17 +155,6 @@ const seedAwardConfigs = async () => {
     for (const config of defaultConfigs) {
       await AwardConfig.create(config)
     }
-  } else {
-    // Ensure all default spec configs are present in DB
-    for (const config of defaultConfigs) {
-      const exists = await AwardConfig.findOne({
-        type: config.type,
-        target: config.target,
-      })
-      if (!exists) {
-        await AwardConfig.create(config)
-      }
-    }
   }
 }
 

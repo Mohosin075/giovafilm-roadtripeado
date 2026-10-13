@@ -17,6 +17,7 @@ const place_model_1 = require("../place/place.model");
 const autoTranslate_1 = require("../../utils/autoTranslate");
 const mapAccessHelper_1 = require("../../helpers/mapAccessHelper");
 const user_1 = require("../../enum/user");
+const notification_integration_1 = require("../notification/notification.integration");
 const processOfferTranslations = async (payload) => {
     if (payload.title)
         payload.title = await (0, autoTranslate_1.autoTranslateField)(payload.title);
@@ -103,6 +104,9 @@ const createOffer = async (payload, authHeader) => {
         }
     }
     const result = await offer_model_1.Offer.create(offerData);
+    if (result.status === offer_1.OFFER_STATUS.ACTIVE) {
+        notification_integration_1.NotificationIntegration.onNewOffer(result).catch(err => console.error('Failed to dispatch new offer notification:', err));
+    }
     return result;
 };
 const getAllOffers = async (query, authHeader) => {
@@ -395,6 +399,11 @@ const updateOffer = async (id, payload, authHeader) => {
         new: true,
         runValidators: true,
     }).populate('place');
+    if (existingOffer.status !== offer_1.OFFER_STATUS.ACTIVE &&
+        result &&
+        result.status === offer_1.OFFER_STATUS.ACTIVE) {
+        notification_integration_1.NotificationIntegration.onNewOffer(result).catch(err => console.error('Failed to dispatch new offer notification:', err));
+    }
     return result;
 };
 const getOffersByPlaceOrBusinessId = async (id, authHeader) => {

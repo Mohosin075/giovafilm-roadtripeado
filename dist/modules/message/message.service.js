@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MessageService = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
+const notification_integration_1 = require("../notification/notification.integration");
 const message_model_1 = require("./message.model");
 const ApiError_1 = __importDefault(require("../../errors/ApiError"));
 const http_status_codes_1 = require("http-status-codes");
@@ -28,15 +29,12 @@ const sendMessageToDB = async (payload) => {
         io.emit(`getMessage::${payload === null || payload === void 0 ? void 0 : payload.chatId}`, response);
         io.emit(`updateChatList::${payload === null || payload === void 0 ? void 0 : payload.sender}`);
         io.emit(`updateChatList::${payload === null || payload === void 0 ? void 0 : payload.receiver}`);
-        const data = {
-            text: `${sender === null || sender === void 0 ? void 0 : sender.name} te envió un mensaje.`,
-            title: 'Mensaje Recibido',
-            link: payload === null || payload === void 0 ? void 0 : payload.chatId,
-            direction: 'message',
-            receiver: payload.receiver,
-        };
-        // await sendNotifications(data);
     }
+    // Trigger in-app notification for receiver
+    const senderName = (sender === null || sender === void 0 ? void 0 : sender.name) ? `${sender.name}: ` : '';
+    notification_integration_1.NotificationIntegration.onNewMessage(payload.sender, payload.receiver, `${senderName}${payload.text || 'Nuevo mensaje'}`).catch(err => {
+        console.error('Failed to dispatch message notification:', err);
+    });
     return response;
 };
 const getMessageFromDB = async (chatId, user) => {

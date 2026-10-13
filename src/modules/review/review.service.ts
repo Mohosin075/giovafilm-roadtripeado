@@ -10,10 +10,9 @@ import { Business } from '../business/business.model'
 import { IPaginationOptions } from '../../interfaces/pagination'
 import { paginationHelper } from '../../helpers/paginationHelper'
 import { AwardServices } from '../award/award.service'
-import { NotificationServices } from '../notification/notification.service'
-import { NotificationType, NotificationPriority } from '../notification/notification.interface'
+import { NotificationIntegration } from '../notification/notification.integration'
 import { autoTranslateField } from '../../utils/autoTranslate'
-import { calculateUserLevel } from '../../constants/userLevels.constant'
+import { calculateUserLevel, USER_LEVELS } from '../../constants/userLevels.constant'
 
 import { getAccessibleMapIds } from '../../helpers/mapAccessHelper'
 
@@ -441,11 +440,23 @@ const approveReview = async (id: string) => {
     // 2. Update user points, approved review count, and recalculate level
     const reviewerId = existingReview.reviewer.toString()
     const reviewer = await User.findById(reviewerId).session(session)
+    let levelUnlockedData: { newLevel: number; levelName: string; oldLevel: number } | null = null
+
     if (reviewer) {
+      const oldLevel = reviewer.level || 0
       const newPoints = (reviewer.points || 0) + points
       const newApprovedCount = (reviewer.totalReviewsApproved || 0) + 1
 
       const newLevel = calculateUserLevel(newPoints, newApprovedCount)
+
+      if (newLevel > oldLevel) {
+        const levelConfig = USER_LEVELS.find(l => l.level === newLevel)
+        levelUnlockedData = {
+          newLevel,
+          levelName: levelConfig?.name || `Nivel ${newLevel}`,
+          oldLevel,
+        }
+      }
 
       await User.findByIdAndUpdate(
         reviewerId,
@@ -474,25 +485,37 @@ const approveReview = async (id: string) => {
 
     await session.commitTransaction()
 
-    // Send in-app notification to reviewer
+    // Send notifications to reviewer
     try {
       const targetName = existingReview.placeId
         ? (await Place.findById(existingReview.placeId).select('name').lean())?.name
         : (await Business.findById(existingReview.businessId).select('name').lean())?.name
 
-      await NotificationServices.createNotification({
-        userId: reviewerId,
-        title: '¡Reseña aprobada! 🎉',
-        content: `¡Tu reseña sobre "${targetName || 'lugar'}" fue aprobada! Ganaste +${points} puntos de explorador.`,
-        type: NotificationType.SYSTEM_ALERT,
-        priority: NotificationPriority.HIGH,
-        actionUrl: existingReview.placeId
-          ? `/places/${existingReview.placeId}`
-          : `/places/${existingReview.businessId}?type=business`,
-        actionText: 'Ver Reseña',
+      const resolvedTargetName =
+        typeof targetName === 'object' && targetName !== null
+          ? (targetName as any).es || (targetName as any).en || 'lugar'
+          : targetName || 'lugar'
+
+      // Send review approval notification
+      await NotificationIntegration.onReviewApproved({
+        reviewerId,
+        targetName: resolvedTargetName,
+        points,
+        placeId: existingReview.placeId,
+        businessId: existingReview.businessId,
       })
+
+      // Send level unlock notification if user leveled up
+      if (levelUnlockedData) {
+        await NotificationIntegration.onLevelUnlocked({
+          userId: reviewerId,
+          newLevel: levelUnlockedData.newLevel,
+          levelName: levelUnlockedData.levelName,
+          oldLevel: levelUnlockedData.oldLevel,
+        })
+      }
     } catch (notifErr) {
-      console.error('Failed to send review approval notification:', notifErr)
+      console.error('Failed to send review approval/level notifications:', notifErr)
     }
 
     return updatedReview
@@ -525,14 +548,16 @@ const rejectReview = async (id: string) => {
       ? (await Place.findById(existingReview.placeId).select('name').lean())?.name
       : (await Business.findById(existingReview.businessId).select('name').lean())?.name
 
-    await NotificationServices.createNotification({
-      userId: existingReview.reviewer.toString(),
-      title: 'Actualización del estado de la reseña',
-      content: `Tu reseña sobre "${targetName || 'lugar'}" no fue aprobada por nuestro equipo de moderación.`,
-      type: NotificationType.SYSTEM_ALERT,
-      priority: NotificationPriority.MEDIUM,
-      actionUrl: '/profile/contributions-reviews',
-      actionText: 'Mis Reseñas',
+    const resolvedTargetName =
+      typeof targetName === 'object' && targetName !== null
+        ? (targetName as any).es || (targetName as any).en || 'lugar'
+        : targetName || 'lugar'
+
+    await NotificationIntegration.onReviewRejected({
+      reviewerId: existingReview.reviewer.toString(),
+      targetName: resolvedTargetName,
+      placeId: existingReview.placeId,
+      businessId: existingReview.businessId,
     })
   } catch (notifErr) {
     console.error('Failed to send review rejection notification:', notifErr)

@@ -11,6 +11,7 @@ import { mapSearchableFields } from './map.constants'
 import { placeSearchableFields } from '../place/place.constants'
 import { businessSearchableFields } from '../business/business.constants'
 import { autoTranslateField } from '../../utils/autoTranslate'
+import { NotificationIntegration } from '../notification/notification.integration'
 
 const processMapTranslations = async (payload: Partial<IMap>) => {
   if (payload.name) {
@@ -30,6 +31,13 @@ const processMapTranslations = async (payload: Partial<IMap>) => {
 const createMap = async (payload: IMap): Promise<IMap> => {
   await processMapTranslations(payload)
   const result = await Map.create(payload)
+
+  if (result.status === 'Published' || result.isActive) {
+    NotificationIntegration.onNewMap(result).catch(err =>
+      console.error('Failed to notify new map:', err),
+    )
+  }
+
   return result
 }
 
@@ -122,7 +130,6 @@ const incrementViewCount = async (id: string) => {
 }
 
 const updateMap = async (id: string, payload: Partial<IMap>): Promise<IMap | null> => {
-  console.log(payload, id)
   const isExist = await Map.findById(id)
   if (!isExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')
@@ -132,6 +139,17 @@ const updateMap = async (id: string, payload: Partial<IMap>): Promise<IMap | nul
     new: true,
     runValidators: true,
   })
+
+  if (
+    isExist.status !== 'Published' &&
+    result &&
+    (result.status === 'Published' || (payload.isActive === true && !isExist.isActive))
+  ) {
+    NotificationIntegration.onNewMap(result).catch(err =>
+      console.error('Failed to notify new map:', err),
+    )
+  }
+
   return result
 }
 

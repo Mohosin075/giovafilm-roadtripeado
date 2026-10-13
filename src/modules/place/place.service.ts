@@ -8,6 +8,7 @@ import mongoose from 'mongoose'
 import { getCountryFromCoordinates } from '../../utils/reverseGeocoding'
 import { Business } from '../business/business.model'
 import { autoTranslateField } from '../../utils/autoTranslate'
+import { NotificationIntegration } from '../notification/notification.integration'
 
 const resolveTranslatableField = async (
   newVal: any,
@@ -221,6 +222,13 @@ const createPlace = async (payload: IPlace): Promise<IPlace> => {
     )
 
     await session.commitTransaction()
+
+    if (createdPlace.status === 'Published') {
+      NotificationIntegration.onNewLocation(createdPlace).catch(err =>
+        console.error('Failed to notify new location:', err),
+      )
+    }
+
     return createdPlace
   } catch (error) {
     await session.abortTransaction()
@@ -807,6 +815,13 @@ const updatePlace = async (
       .populate('map')
 
     await session.commitTransaction()
+
+    if (isExist.status !== 'Published' && result && result.status === 'Published') {
+      NotificationIntegration.onNewLocation(result).catch(err =>
+        console.error('Failed to notify new location:', err),
+      )
+    }
+
     return result
   } catch (error) {
     await session.abortTransaction()

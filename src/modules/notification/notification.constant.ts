@@ -8,12 +8,14 @@ export const notificationSearchableFields = [
   'title',
   'content',
   'targetAudience',
+  'country',
 ]
 
 export const notificationFilterableFields = [
   'searchTerm',
   'userId',
   'targetAudience',
+  'category',
   'type',
   'channel',
   'status',
@@ -22,6 +24,7 @@ export const notificationFilterableFields = [
   'isArchived',
   'startDate',
   'endDate',
+  'country',
 ]
 
 export const NOTIFICATION_TEMPLATES = {
@@ -71,8 +74,17 @@ export const NOTIFICATION_CONFIG = {
 }
 
 export const EMAIL_SUBJECTS = {
-  [NotificationType.WELCOME]: 'Welcome to EventHub!',
+  [NotificationType.WELCOME]: 'Welcome to Roadtripeado!',
   [NotificationType.PASSWORD_RESET]: 'Password Reset Request',
   [NotificationType.ACCOUNT_VERIFICATION]: 'Verify Your Account',
-  [NotificationType.SYSTEM_ALERT]: 'System Alert',
+  [NotificationType.SYSTEM_ALERT]: 'Roadtripeado System Alert',
+  [NotificationType.NEW_OFFER]: 'Nueva Oferta Exclusiva en Roadtripeado',
+  [NotificationType.APPROVED_REVIEW]: '¡Tu reseña ha sido aprobada! 🎉',
+  [NotificationType.REJECTED_REVIEW]: 'Actualización sobre tu reseña',
+  [NotificationType.NEW_LOCATION]: 'Nuevo Destino en Roadtripeado 📍',
+  [NotificationType.EARNED_REWARD]: '¡Has ganado una nueva recompensa! 🏆',
+  [NotificationType.UNLOCKED_LEVEL]: '¡Has desbloqueado un nuevo nivel! 🌟',
+  [NotificationType.NEW_MAP]: 'Nuevo Mapa Disponible en Roadtripeado 🗺️',
+  [NotificationType.IMPORTANT_UPDATE]: 'Actualización importante de Roadtripeado',
+  [NotificationType.NEW_MESSAGE]: 'Tienes un nuevo mensaje en Roadtripeado',
 }

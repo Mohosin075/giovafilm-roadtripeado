@@ -7,6 +7,7 @@ import { StatusCodes } from 'http-status-codes'
 
 import { AwardConfig } from './awardConfig.model'
 import { AwardConfigServices } from './awardConfig.service'
+import { NotificationIntegration } from '../notification/notification.integration'
 
 const getMyAwards = async (userId: string) => {
   const user = await User.findById(userId)
@@ -56,12 +57,23 @@ const getMyAwards = async (userId: string) => {
         progress,
         isUnlocked,
       })
+
+      if (isUnlocked) {
+        NotificationIntegration.onRewardEarned({
+          userId,
+          rewardTitle: config.type,
+          rewardType: config.type,
+          awardId: newAward._id,
+        }).catch(err => console.error('Failed to notify award earned:', err))
+      }
+
       // Attach config properties for frontend
       const awardObj = newAward.toObject()
       ;(awardObj as any).config = config
       awards.push(awardObj)
     } else {
       // Update target, progress, isUnlocked if they differ
+      const wasUnlocked = Boolean(found.isUnlocked)
       const updates: any = { configId: config._id, target: config.target }
       if (
         config.type === 'PDF Itinerary' ||
@@ -74,6 +86,15 @@ const getMyAwards = async (userId: string) => {
         updates.isUnlocked = isUnlocked
       } else {
         updates.isUnlocked = found.progress >= config.target
+      }
+
+      if (!wasUnlocked && updates.isUnlocked) {
+        NotificationIntegration.onRewardEarned({
+          userId,
+          rewardTitle: config.type,
+          rewardType: config.type,
+          awardId: found._id,
+        }).catch(err => console.error('Failed to notify award earned:', err))
       }
 
       const updatedAward = await Award.findByIdAndUpdate(
@@ -97,12 +118,22 @@ const updateAwardProgress = async (
 ) => {
   const award = await Award.findOne({ userId, type })
   if (award) {
+    const wasUnlocked = Boolean(award.isUnlocked)
     const newProgress = Math.min(award.progress + progressIncrement, award.target)
     const isUnlocked = newProgress >= award.target
     await Award.updateOne(
       { userId, type },
       { $set: { progress: newProgress, isUnlocked } },
     )
+
+    if (!wasUnlocked && isUnlocked) {
+      NotificationIntegration.onRewardEarned({
+        userId,
+        rewardTitle: type,
+        rewardType: type,
+        awardId: award._id,
+      }).catch(err => console.error('Failed to notify award earned:', err))
+    }
   }
 }
 

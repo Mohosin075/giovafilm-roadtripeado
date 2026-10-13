@@ -64,7 +64,7 @@ EmailTemplates.templates = {
     // Welcome Email
     [notification_constant_1.NOTIFICATION_TEMPLATES.WELCOME]: {
         getTitle: (data) => `¡Bienvenido a Nuestra Plataforma, ${data.userName}!`,
-        getSubject: (data) => `¡Bienvenido a Nuestra Plataforma!`,
+        getSubject: (_data) => `¡Bienvenido a Nuestra Plataforma!`,
         getBody: (data) => `
         <h2>¡Bienvenido a bordo, ${data.userName}!</h2>
         <p>Estamos muy contentos de que te unas a nuestra comunidad. Esto es lo que puedes hacer:</p>
@@ -78,8 +78,8 @@ EmailTemplates.templates = {
     },
     // Password Reset
     [notification_constant_1.NOTIFICATION_TEMPLATES.PASSWORD_RESET]: {
-        getTitle: (data) => `Restablecer Contraseña`,
-        getSubject: (data) => `Solicitud de Restablecimiento de Contraseña`,
+        getTitle: (_data) => `Restablecer Contraseña`,
+        getSubject: (_data) => `Solicitud de Restablecimiento de Contraseña`,
         getBody: (data) => `
         <h2>Restablece tu Contraseña</h2>
         <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta.</p>
@@ -108,8 +108,8 @@ EmailTemplates.templates = {
     },
     // Account Verification
     [notification_constant_1.NOTIFICATION_TEMPLATES.ACCOUNT_VERIFICATION]: {
-        getTitle: (data) => `Verifica Tu Cuenta`,
-        getSubject: (data) => `Verifica Tu Cuenta`,
+        getTitle: (_data) => `Verifica Tu Cuenta`,
+        getSubject: (_data) => `Verifica Tu Cuenta`,
         getBody: (data) => `
         <h2>Verifica tu Dirección de Correo</h2>
         <p>¡Gracias por registrarte! Por favor verifica tu dirección de correo electrónico para completar tu registro.</p>

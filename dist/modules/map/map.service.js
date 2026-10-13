@@ -16,6 +16,7 @@ const map_constants_1 = require("./map.constants");
 const place_constants_1 = require("../place/place.constants");
 const business_constants_1 = require("../business/business.constants");
 const autoTranslate_1 = require("../../utils/autoTranslate");
+const notification_integration_1 = require("../notification/notification.integration");
 const processMapTranslations = async (payload) => {
     if (payload.name) {
         if (typeof payload.name === 'string') {
@@ -35,6 +36,9 @@ const processMapTranslations = async (payload) => {
 const createMap = async (payload) => {
     await processMapTranslations(payload);
     const result = await map_model_1.Map.create(payload);
+    if (result.status === 'Published' || result.isActive) {
+        notification_integration_1.NotificationIntegration.onNewMap(result).catch(err => console.error('Failed to notify new map:', err));
+    }
     return result;
 };
 const getAllMaps = async (query) => {
@@ -106,7 +110,6 @@ const incrementViewCount = async (id) => {
     return result;
 };
 const updateMap = async (id, payload) => {
-    console.log(payload, id);
     const isExist = await map_model_1.Map.findById(id);
     if (!isExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Map not found');
@@ -116,6 +119,11 @@ const updateMap = async (id, payload) => {
         new: true,
         runValidators: true,
     });
+    if (isExist.status !== 'Published' &&
+        result &&
+        (result.status === 'Published' || (payload.isActive === true && !isExist.isActive))) {
+        notification_integration_1.NotificationIntegration.onNewMap(result).catch(err => console.error('Failed to notify new map:', err));
+    }
     return result;
 };
 const deleteMap = async (id) => {

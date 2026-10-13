@@ -37,14 +37,25 @@ const getAllNotifications = (0, catchAsync_1.default)(async (req, res) => {
 });
 const getMyNotifications = (0, catchAsync_1.default)(async (req, res) => {
     const user = req.user;
+    const filters = (0, pick_1.default)(req.query, notification_constant_1.notificationFilterableFields);
     const paginationOptions = (0, pick_1.default)(req.query, pagination_1.paginationFields);
-    const result = await notification_service_1.NotificationServices.getMyNotifications(user, paginationOptions);
+    const result = await notification_service_1.NotificationServices.getMyNotifications(user, filters, paginationOptions);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'My notifications retrieved successfully',
         meta: result.meta,
         data: (0, localize_1.localizeDocument)(result.data, req.lang, notificationFields),
+    });
+});
+const getUnreadCount = (0, catchAsync_1.default)(async (req, res) => {
+    const user = req.user;
+    const result = await notification_service_1.NotificationServices.getUnreadCount(user.authId);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Unread notification count retrieved successfully',
+        data: result,
     });
 });
 const getNotificationById = (0, catchAsync_1.default)(async (req, res) => {
@@ -81,12 +92,21 @@ const markAsRead = (0, catchAsync_1.default)(async (req, res) => {
 });
 const markAllAsRead = (0, catchAsync_1.default)(async (req, res) => {
     const user = req.user;
-    console.log({ user });
-    const result = await notification_service_1.NotificationServices.markAllAsRead(user.authId);
+    const result = await notification_service_1.NotificationServices.markAllAsRead(user.authId, req.body);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'All notifications marked as read',
+        data: result,
+    });
+});
+const clearMyNotifications = (0, catchAsync_1.default)(async (req, res) => {
+    const user = req.user;
+    const result = await notification_service_1.NotificationServices.clearMyNotifications(user.authId, req.body);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Notifications cleared successfully',
         data: result,
     });
 });
@@ -144,6 +164,8 @@ exports.NotificationController = {
     createNotification,
     getAllNotifications,
     getMyNotifications,
+    getUnreadCount,
+    clearMyNotifications,
     getNotificationById,
     updateNotification,
     markAsRead,

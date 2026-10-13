@@ -6,11 +6,13 @@ exports.notificationSearchableFields = [
     'title',
     'content',
     'targetAudience',
+    'country',
 ];
 exports.notificationFilterableFields = [
     'searchTerm',
     'userId',
     'targetAudience',
+    'category',
     'type',
     'channel',
     'status',
@@ -19,6 +21,7 @@ exports.notificationFilterableFields = [
     'isArchived',
     'startDate',
     'endDate',
+    'country',
 ];
 exports.NOTIFICATION_TEMPLATES = {
     // User Templates
@@ -62,8 +65,17 @@ exports.NOTIFICATION_CONFIG = {
     CLEANUP_ARCHIVED_AFTER_DAYS: 30,
 };
 exports.EMAIL_SUBJECTS = {
-    [notification_interface_1.NotificationType.WELCOME]: 'Welcome to EventHub!',
+    [notification_interface_1.NotificationType.WELCOME]: 'Welcome to Roadtripeado!',
     [notification_interface_1.NotificationType.PASSWORD_RESET]: 'Password Reset Request',
     [notification_interface_1.NotificationType.ACCOUNT_VERIFICATION]: 'Verify Your Account',
-    [notification_interface_1.NotificationType.SYSTEM_ALERT]: 'System Alert',
+    [notification_interface_1.NotificationType.SYSTEM_ALERT]: 'Roadtripeado System Alert',
+    [notification_interface_1.NotificationType.NEW_OFFER]: 'Nueva Oferta Exclusiva en Roadtripeado',
+    [notification_interface_1.NotificationType.APPROVED_REVIEW]: '¡Tu reseña ha sido aprobada! 🎉',
+    [notification_interface_1.NotificationType.REJECTED_REVIEW]: 'Actualización sobre tu reseña',
+    [notification_interface_1.NotificationType.NEW_LOCATION]: 'Nuevo Destino en Roadtripeado 📍',
+    [notification_interface_1.NotificationType.EARNED_REWARD]: '¡Has ganado una nueva recompensa! 🏆',
+    [notification_interface_1.NotificationType.UNLOCKED_LEVEL]: '¡Has desbloqueado un nuevo nivel! 🌟',
+    [notification_interface_1.NotificationType.NEW_MAP]: 'Nuevo Mapa Disponible en Roadtripeado 🗺️',
+    [notification_interface_1.NotificationType.IMPORTANT_UPDATE]: 'Actualización importante de Roadtripeado',
+    [notification_interface_1.NotificationType.NEW_MESSAGE]: 'Tienes un nuevo mensaje en Roadtripeado',
 };

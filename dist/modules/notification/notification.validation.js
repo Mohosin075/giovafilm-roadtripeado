@@ -13,6 +13,9 @@ exports.NotificationValidations = {
                 .nativeEnum(notification_interface_1.NotificationType)
                 .optional()
                 .default(notification_interface_1.NotificationType.SYSTEM_ALERT),
+            category: zod_1.z.nativeEnum(notification_interface_1.NotificationCategory).optional(),
+            interests: zod_1.z.array(zod_1.z.string()).optional(),
+            country: zod_1.z.string().optional(),
             channel: zod_1.z
                 .nativeEnum(notification_interface_1.NotificationChannel)
                 .optional()
@@ -28,6 +31,10 @@ exports.NotificationValidations = {
     create: zod_1.z.object({
         body: zod_1.z.object({
             userId: zod_1.z.string().optional(),
+            targetAudience: zod_1.z.nativeEnum(notification_interface_1.TARGET_AUDIENCE).optional(),
+            category: zod_1.z.nativeEnum(notification_interface_1.NotificationCategory).optional(),
+            interests: zod_1.z.array(zod_1.z.string()).optional(),
+            country: zod_1.z.string().optional(),
             title: zod_1.z.string().min(1, 'Title is required').max(200, 'Title too long'),
             content: zod_1.z.string().min(1, 'Content is required'),
             type: zod_1.z.nativeEnum(notification_interface_1.NotificationType),
@@ -59,6 +66,19 @@ exports.NotificationValidations = {
             isArchived: zod_1.z.boolean().optional(),
         }),
     }),
+    markAllAsRead: zod_1.z.object({
+        body: zod_1.z.object({
+            category: zod_1.z.string().optional(),
+            type: zod_1.z.nativeEnum(notification_interface_1.NotificationType).optional(),
+        }).optional(),
+    }),
+    clearMyNotifications: zod_1.z.object({
+        body: zod_1.z.object({
+            category: zod_1.z.string().optional(),
+            type: zod_1.z.nativeEnum(notification_interface_1.NotificationType).optional(),
+            onlyRead: zod_1.z.boolean().optional(),
+        }).optional(),
+    }),
     sendEmail: zod_1.z.object({
         body: zod_1.z.object({
             to: zod_1.z.union([zod_1.z.string().email(), zod_1.z.array(zod_1.z.string().email())]),
@@ -79,12 +99,14 @@ exports.NotificationValidations = {
         query: zod_1.z.object({
             searchTerm: zod_1.z.string().optional(),
             userId: zod_1.z.string().optional(),
+            category: zod_1.z.string().optional(),
             type: zod_1.z.nativeEnum(notification_interface_1.NotificationType).optional(),
             channel: zod_1.z.nativeEnum(notification_interface_1.NotificationChannel).optional(),
             status: zod_1.z.string().optional(),
             priority: zod_1.z.nativeEnum(notification_interface_1.NotificationPriority).optional(),
             isRead: zod_1.z.string().optional(),
             isArchived: zod_1.z.string().optional(),
+            country: zod_1.z.string().optional(),
             startDate: zod_1.z.string().optional(),
             endDate: zod_1.z.string().optional(),
             page: zod_1.z.string().optional(),

@@ -13,8 +13,7 @@ const place_model_1 = require("../place/place.model");
 const business_model_1 = require("../business/business.model");
 const paginationHelper_1 = require("../../helpers/paginationHelper");
 const award_service_1 = require("../award/award.service");
-const notification_service_1 = require("../notification/notification.service");
-const notification_interface_1 = require("../notification/notification.interface");
+const notification_integration_1 = require("../notification/notification.integration");
 const autoTranslate_1 = require("../../utils/autoTranslate");
 const userLevels_constant_1 = require("../../constants/userLevels.constant");
 const mapAccessHelper_1 = require("../../helpers/mapAccessHelper");
@@ -338,10 +337,20 @@ const approveReview = async (id) => {
         // 2. Update user points, approved review count, and recalculate level
         const reviewerId = existingReview.reviewer.toString();
         const reviewer = await user_model_1.User.findById(reviewerId).session(session);
+        let levelUnlockedData = null;
         if (reviewer) {
+            const oldLevel = reviewer.level || 0;
             const newPoints = (reviewer.points || 0) + points;
             const newApprovedCount = (reviewer.totalReviewsApproved || 0) + 1;
             const newLevel = (0, userLevels_constant_1.calculateUserLevel)(newPoints, newApprovedCount);
+            if (newLevel > oldLevel) {
+                const levelConfig = userLevels_constant_1.USER_LEVELS.find(l => l.level === newLevel);
+                levelUnlockedData = {
+                    newLevel,
+                    levelName: (levelConfig === null || levelConfig === void 0 ? void 0 : levelConfig.name) || `Nivel ${newLevel}`,
+                    oldLevel,
+                };
+            }
             await user_model_1.User.findByIdAndUpdate(reviewerId, { $set: { points: newPoints, totalReviewsApproved: newApprovedCount, level: newLevel } }, { session });
             // Award update
             await award_service_1.AwardServices.updateAwardProgress(reviewerId, 'Top Reviewer', 1);
@@ -354,25 +363,34 @@ const approveReview = async (id) => {
             await business_model_1.Business.findByIdAndUpdate(existingReview.businessId, ratingIncPipeline(existingReview.rating), { session, new: true });
         }
         await session.commitTransaction();
-        // Send in-app notification to reviewer
+        // Send notifications to reviewer
         try {
             const targetName = existingReview.placeId
                 ? (_a = (await place_model_1.Place.findById(existingReview.placeId).select('name').lean())) === null || _a === void 0 ? void 0 : _a.name
                 : (_b = (await business_model_1.Business.findById(existingReview.businessId).select('name').lean())) === null || _b === void 0 ? void 0 : _b.name;
-            await notification_service_1.NotificationServices.createNotification({
-                userId: reviewerId,
-                title: '¡Reseña aprobada! 🎉',
-                content: `¡Tu reseña sobre "${targetName || 'lugar'}" fue aprobada! Ganaste +${points} puntos de explorador.`,
-                type: notification_interface_1.NotificationType.SYSTEM_ALERT,
-                priority: notification_interface_1.NotificationPriority.HIGH,
-                actionUrl: existingReview.placeId
-                    ? `/places/${existingReview.placeId}`
-                    : `/places/${existingReview.businessId}?type=business`,
-                actionText: 'Ver Reseña',
+            const resolvedTargetName = typeof targetName === 'object' && targetName !== null
+                ? targetName.es || targetName.en || 'lugar'
+                : targetName || 'lugar';
+            // Send review approval notification
+            await notification_integration_1.NotificationIntegration.onReviewApproved({
+                reviewerId,
+                targetName: resolvedTargetName,
+                points,
+                placeId: existingReview.placeId,
+                businessId: existingReview.businessId,
             });
+            // Send level unlock notification if user leveled up
+            if (levelUnlockedData) {
+                await notification_integration_1.NotificationIntegration.onLevelUnlocked({
+                    userId: reviewerId,
+                    newLevel: levelUnlockedData.newLevel,
+                    levelName: levelUnlockedData.levelName,
+                    oldLevel: levelUnlockedData.oldLevel,
+                });
+            }
         }
         catch (notifErr) {
-            console.error('Failed to send review approval notification:', notifErr);
+            console.error('Failed to send review approval/level notifications:', notifErr);
         }
         return updatedReview;
     }
@@ -399,14 +417,14 @@ const rejectReview = async (id) => {
         const targetName = existingReview.placeId
             ? (_a = (await place_model_1.Place.findById(existingReview.placeId).select('name').lean())) === null || _a === void 0 ? void 0 : _a.name
             : (_b = (await business_model_1.Business.findById(existingReview.businessId).select('name').lean())) === null || _b === void 0 ? void 0 : _b.name;
-        await notification_service_1.NotificationServices.createNotification({
-            userId: existingReview.reviewer.toString(),
-            title: 'Actualización del estado de la reseña',
-            content: `Tu reseña sobre "${targetName || 'lugar'}" no fue aprobada por nuestro equipo de moderación.`,
-            type: notification_interface_1.NotificationType.SYSTEM_ALERT,
-            priority: notification_interface_1.NotificationPriority.MEDIUM,
-            actionUrl: '/profile/contributions-reviews',
-            actionText: 'Mis Reseñas',
+        const resolvedTargetName = typeof targetName === 'object' && targetName !== null
+            ? targetName.es || targetName.en || 'lugar'
+            : targetName || 'lugar';
+        await notification_integration_1.NotificationIntegration.onReviewRejected({
+            reviewerId: existingReview.reviewer.toString(),
+            targetName: resolvedTargetName,
+            placeId: existingReview.placeId,
+            businessId: existingReview.businessId,
         });
     }
     catch (notifErr) {

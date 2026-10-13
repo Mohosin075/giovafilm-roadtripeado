@@ -11,6 +11,7 @@ const ApiError_1 = __importDefault(require("../../errors/ApiError"));
 const http_status_codes_1 = require("http-status-codes");
 const awardConfig_model_1 = require("./awardConfig.model");
 const awardConfig_service_1 = require("./awardConfig.service");
+const notification_integration_1 = require("../notification/notification.integration");
 const getMyAwards = async (userId) => {
     const user = await user_model_1.User.findById(userId);
     if (!user) {
@@ -48,6 +49,14 @@ const getMyAwards = async (userId) => {
                 progress,
                 isUnlocked,
             });
+            if (isUnlocked) {
+                notification_integration_1.NotificationIntegration.onRewardEarned({
+                    userId,
+                    rewardTitle: config.type,
+                    rewardType: config.type,
+                    awardId: newAward._id,
+                }).catch(err => console.error('Failed to notify award earned:', err));
+            }
             // Attach config properties for frontend
             const awardObj = newAward.toObject();
             awardObj.config = config;
@@ -55,6 +64,7 @@ const getMyAwards = async (userId) => {
         }
         else {
             // Update target, progress, isUnlocked if they differ
+            const wasUnlocked = Boolean(found.isUnlocked);
             const updates = { configId: config._id, target: config.target };
             if (config.type === 'PDF Itinerary' ||
                 config.type === 'Free Map' ||
@@ -67,6 +77,14 @@ const getMyAwards = async (userId) => {
             else {
                 updates.isUnlocked = found.progress >= config.target;
             }
+            if (!wasUnlocked && updates.isUnlocked) {
+                notification_integration_1.NotificationIntegration.onRewardEarned({
+                    userId,
+                    rewardTitle: config.type,
+                    rewardType: config.type,
+                    awardId: found._id,
+                }).catch(err => console.error('Failed to notify award earned:', err));
+            }
             const updatedAward = await award_model_1.Award.findByIdAndUpdate(found._id, { $set: updates }, { new: true });
             const awardObj = updatedAward.toObject();
             awardObj.config = config;
@@ -78,9 +96,18 @@ const getMyAwards = async (userId) => {
 const updateAwardProgress = async (userId, type, progressIncrement) => {
     const award = await award_model_1.Award.findOne({ userId, type });
     if (award) {
+        const wasUnlocked = Boolean(award.isUnlocked);
         const newProgress = Math.min(award.progress + progressIncrement, award.target);
         const isUnlocked = newProgress >= award.target;
         await award_model_1.Award.updateOne({ userId, type }, { $set: { progress: newProgress, isUnlocked } });
+        if (!wasUnlocked && isUnlocked) {
+            notification_integration_1.NotificationIntegration.onRewardEarned({
+                userId,
+                rewardTitle: type,
+                rewardType: type,
+                awardId: award._id,
+            }).catch(err => console.error('Failed to notify award earned:', err));
+        }
     }
 };
 const redeemFreeMap = async (userId, mapId) => {

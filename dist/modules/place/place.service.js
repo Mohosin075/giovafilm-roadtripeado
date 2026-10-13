@@ -12,6 +12,7 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const reverseGeocoding_1 = require("../../utils/reverseGeocoding");
 const business_model_1 = require("../business/business.model");
 const autoTranslate_1 = require("../../utils/autoTranslate");
+const notification_integration_1 = require("../notification/notification.integration");
 const resolveTranslatableField = async (newVal, existingVal) => {
     if (newVal === undefined || newVal === null)
         return newVal;
@@ -165,6 +166,9 @@ const createPlace = async (payload) => {
             $set: { country: createdPlace.country }
         }, { session });
         await session.commitTransaction();
+        if (createdPlace.status === 'Published') {
+            notification_integration_1.NotificationIntegration.onNewLocation(createdPlace).catch(err => console.error('Failed to notify new location:', err));
+        }
         return createdPlace;
     }
     catch (error) {
@@ -703,6 +707,9 @@ const updatePlace = async (id, payload) => {
             .populate('category')
             .populate('map');
         await session.commitTransaction();
+        if (isExist.status !== 'Published' && result && result.status === 'Published') {
+            notification_integration_1.NotificationIntegration.onNewLocation(result).catch(err => console.error('Failed to notify new location:', err));
+        }
         return result;
     }
     catch (error) {

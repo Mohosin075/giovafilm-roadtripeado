@@ -48,10 +48,15 @@ const getAllNotifications = catchAsync(async (req: Request, res: Response) => {
 
 const getMyNotifications = catchAsync(async (req: Request, res: Response) => {
   const user = (req as any).user
+  const filters = pick(
+    req.query,
+    notificationFilterableFields,
+  ) as INotificationFilterables
   const paginationOptions = pick(req.query, paginationFields)
 
   const result = await NotificationServices.getMyNotifications(
     user,
+    filters,
     paginationOptions,
   )
 
@@ -61,6 +66,18 @@ const getMyNotifications = catchAsync(async (req: Request, res: Response) => {
     message: 'My notifications retrieved successfully',
     meta: result.meta,
     data: localizeDocument(result.data, req.lang, notificationFields),
+  })
+})
+
+const getUnreadCount = catchAsync(async (req: Request, res: Response) => {
+  const user = (req as any).user
+  const result = await NotificationServices.getUnreadCount(user.authId)
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Unread notification count retrieved successfully',
+    data: result,
   })
 })
 
@@ -111,14 +128,28 @@ const markAsRead = catchAsync(async (req: Request, res: Response) => {
 const markAllAsRead = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
 
-  console.log({ user })
-
-  const result = await NotificationServices.markAllAsRead(user.authId)
+  const result = await NotificationServices.markAllAsRead(user.authId, req.body)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'All notifications marked as read',
+    data: result,
+  })
+})
+
+const clearMyNotifications = catchAsync(async (req: Request, res: Response) => {
+  const user = (req as any).user
+
+  const result = await NotificationServices.clearMyNotifications(
+    user.authId,
+    req.body,
+  )
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Notifications cleared successfully',
     data: result,
   })
 })
@@ -193,6 +224,8 @@ export const NotificationController = {
   createNotification,
   getAllNotifications,
   getMyNotifications,
+  getUnreadCount,
+  clearMyNotifications,
   getNotificationById,
   updateNotification,
   markAsRead,

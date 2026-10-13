@@ -5,11 +5,12 @@ import {
   INotificationFilterables,
   CreateNotificationDto,
   NotificationType,
+  NotificationCategory,
   NotificationChannel,
   NotificationStatus,
   NotificationPriority,
   INotificationStats,
-  INotificationAnalytics,
+  IUnreadCountResponse,
   TARGET_AUDIENCE,
 } from './notification.interface'
 import { Notification } from './notification.model'
@@ -21,8 +22,26 @@ import { Types } from 'mongoose'
 import { emailProvider } from './notification.providers'
 import { User } from '../user/user.model'
 import config from '../../config'
-import { io } from '../../server'
 import { autoTranslateField } from '../../utils/autoTranslate'
+
+const getSocketIO = () => (global as any).io
+
+const emitSocketToUser = (userId: string, event: string, payload: any) => {
+  const io = getSocketIO()
+  if (!io) return
+  io.to(userId).emit(event, payload)
+  io.to(`room:${userId}`).emit(event, payload)
+}
+
+const emitBroadcastSocket = (event: string, payload: any, room?: string) => {
+  const io = getSocketIO()
+  if (!io) return
+  if (room) {
+    io.to(room).emit(event, payload)
+  } else {
+    io.emit(event, payload)
+  }
+}
 
 const processNotificationTranslations = async (payload: any) => {
   if (payload.title) payload.title = await autoTranslateField(payload.title)
@@ -36,16 +55,36 @@ const createNotification = async (
 ): Promise<INotification> => {
   try {
     await processNotificationTranslations(payload)
+
+    const roadtripeadoTypes = [
+      NotificationType.NEW_OFFER,
+      NotificationType.NEW_LOCATION,
+      NotificationType.NEW_MAP,
+      NotificationType.IMPORTANT_UPDATE,
+      NotificationType.SYSTEM_ALERT,
+    ]
+    const category =
+      payload.category ||
+      (roadtripeadoTypes.includes(payload.type)
+        ? NotificationCategory.ROADTRIPEADO
+        : NotificationCategory.ACCOUNT)
+
     const notificationData: any = {
       userId: payload.userId,
+      targetAudience: payload.targetAudience,
+      category,
+      interests: payload.interests || [],
+      country: payload.country,
       title: payload.title,
       content: payload.content,
       type: payload.type,
       channel: payload.channel || NotificationChannel.IN_APP,
-      priority: payload.priority,
+      priority: payload.priority || NotificationPriority.MEDIUM,
       metadata: payload.metadata || {},
       actionUrl: payload.actionUrl,
       actionText: payload.actionText,
+      readBy: [],
+      archivedBy: [],
     }
 
     if (payload.scheduledAt) {
@@ -60,13 +99,21 @@ const createNotification = async (
       notification.channel !== NotificationChannel.EMAIL &&
       notification.userId
     ) {
-      // Emit socket event for real-time notification
-      if (io) {
-        io.to(notification.userId.toString()).emit('notification', {
-          type: 'NEW_NOTIFICATION',
-          data: notification,
+      emitSocketToUser(notification.userId.toString(), 'notification', {
+        type: 'NEW_NOTIFICATION',
+        data: notification,
+      })
+
+      // Asynchronously update unread count on user socket
+      getUnreadCount(notification.userId.toString())
+        .then(unreadData => {
+          emitSocketToUser(
+            notification.userId!.toString(),
+            'unread_count_update',
+            unreadData,
+          )
         })
-      }
+        .catch(() => {})
     }
 
     // Send email if requested
@@ -229,30 +276,22 @@ const getAllNotifications = async (
     })
   }
 
-  // User-specific filtering (unless admin)
-  // User-specific filtering (unless admin)
-  if ((user as any).role === 'user') {
+  // User-specific filtering: user and map_editor see only their own + broadcast notifications
+  // super_admin and admin see all notifications
+  const restrictedRoles = ['user', 'map_editor']
+  if (restrictedRoles.includes((user as any).role)) {
     andConditions.push({
       $or: [
         { userId: new Types.ObjectId((user as any).authId as string) },
         { targetAudience: TARGET_AUDIENCE.ALL_USER },
         { targetAudience: TARGET_AUDIENCE.ACTIVE_USER },
-      ],
-    })
-  } else if ((user as any).role === 'organizer') {
-    andConditions.push({
-      $or: [
-        { userId: new Types.ObjectId((user as any).authId as string) },
-        { targetAudience: TARGET_AUDIENCE.ALL_USER },
-        { targetAudience: TARGET_AUDIENCE.ACTIVE_USER },
-        { targetAudience: TARGET_AUDIENCE.ORGANIZER },
       ],
     })
   }
 
   const whereConditions = andConditions.length ? { $and: andConditions } : {}
 
-  const [result, total, analyticsData] = await Promise.all([
+  const [result, total] = await Promise.all([
     Notification.find(whereConditions)
       .skip(skip)
       .limit(limit)
@@ -260,52 +299,7 @@ const getAllNotifications = async (
       .populate('userId', 'name email')
       .lean(),
     Notification.countDocuments(whereConditions as any),
-    // Get overall analytics for the filtered notifications
-    Notification.aggregate([
-      { $match: whereConditions },
-      {
-        $group: {
-          _id: null,
-          totalNotifications: { $sum: 1 },
-          readNotifications: {
-            $sum: { $cond: [{ $eq: ['$isRead', true] }, 1, 0] },
-          },
-          clickedNotifications: {
-            $sum: { $cond: [{ $ne: ['$actionClickedAt', null] }, 1, 0] },
-          },
-        },
-      },
-    ]) as any,
   ])
-
-  // Calculate overall analytics
-  const stats = analyticsData[0] || {
-    totalNotifications: 0,
-    readNotifications: 0,
-    clickedNotifications: 0,
-  }
-
-  const overallAnalytics: INotificationAnalytics = {
-    openRate:
-      stats.totalNotifications > 0
-        ? Math.round((stats.readNotifications / stats.totalNotifications) * 100)
-        : 0,
-    engagement:
-      stats.totalNotifications > 0
-        ? Math.round(
-            (stats.clickedNotifications / stats.totalNotifications) * 100,
-          )
-        : 0,
-  }
-
-  // Add individual analytics to each notification
-  const notificationsWithAnalytics = result.map(notification => ({
-    ...notification,
-    analytics: {
-      openRate: notification.isRead ? 100 : 0, // Individual notification is either open (100%) or not (0%)
-      engagement: notification.actionClickedAt ? 100 : 0, // Individual notification action is either clicked (100%) or not (0%)
-    } as INotificationAnalytics,
-  }))
 
   return {
     meta: {
@@ -314,8 +308,7 @@ const getAllNotifications = async (
       total,
       totalPages: Math.ceil(total / limit),
     },
-    analytics: overallAnalytics, // Overall analytics for all notifications matching the query
-    data: notificationsWithAnalytics,
+    data: result,
   }
 }
 
@@ -370,57 +363,276 @@ const markAsRead = async (
   id: string,
   userId: string,
 ): Promise<INotification> => {
-  const result = await Notification.findOneAndUpdate(
-    { _id: id, userId },
-    {
-      isRead: true,
-      readAt: new Date(),
-      status: NotificationStatus.READ,
-    },
-    { new: true },
-  )
-    .populate('userId', 'name email')
-    .lean()
+  if (!Types.ObjectId.isValid(id)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid notification ID')
+  }
 
-  if (!result) {
+  const notif = await Notification.findById(id)
+  if (!notif) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Notification not found')
   }
 
-  return result
+  const userObjectId = new Types.ObjectId(userId)
+
+  let updated: INotification | null
+  if (notif.userId && notif.userId.toString() === userId) {
+    updated = await Notification.findByIdAndUpdate(
+      id,
+      {
+        isRead: true,
+        readAt: new Date(),
+        status: NotificationStatus.READ,
+      },
+      { new: true },
+    )
+      .populate('userId', 'name email')
+      .lean()
+  } else {
+    updated = await Notification.findByIdAndUpdate(
+      id,
+      {
+        $addToSet: { readBy: userObjectId },
+      },
+      { new: true },
+    )
+      .populate('userId', 'name email')
+      .lean()
+  }
+
+  // Real-time unread count update emit
+  getUnreadCount(userId)
+    .then(unreadData => {
+      emitSocketToUser(userId, 'unread_count_update', unreadData)
+    })
+    .catch(() => {})
+
+  return {
+    ...updated!,
+    isRead: true,
+  }
 }
 
 const markAllAsRead = async (
   userId: string,
+  options?: { category?: string; type?: NotificationType },
 ): Promise<{ modifiedCount: number }> => {
-  const result = await Notification.updateMany(
-    { userId, isRead: false },
-    {
-      isRead: true,
-      readAt: new Date(),
-      status: NotificationStatus.READ,
-    },
-  )
+  const userObjectId = new Types.ObjectId(userId)
+  const userDoc = await User.findById(userId).select('interest').lean()
+  const userInterests = userDoc?.interest || []
 
-  return { modifiedCount: result.modifiedCount }
+  const personalQuery: any = {
+    userId: userObjectId,
+    isRead: false,
+    isArchived: false,
+  }
+
+  const broadcastQuery: any = {
+    userId: { $exists: false },
+    readBy: { $ne: userObjectId },
+    archivedBy: { $ne: userObjectId },
+    $or: [
+      {
+        targetAudience: {
+          $in: [TARGET_AUDIENCE.ALL_USER, TARGET_AUDIENCE.ACTIVE_USER],
+        },
+      },
+      ...(userInterests.length > 0
+        ? [{ interests: { $in: userInterests } }]
+        : []),
+    ],
+  }
+
+  if (options?.category && options.category !== 'all') {
+    personalQuery.category = options.category
+    broadcastQuery.category = options.category
+  }
+  if (options?.type) {
+    personalQuery.type = options.type
+    broadcastQuery.type = options.type
+  }
+
+  const [personalRes, broadcastRes] = await Promise.all([
+    Notification.updateMany(personalQuery, {
+      $set: {
+        isRead: true,
+        readAt: new Date(),
+        status: NotificationStatus.READ,
+      },
+    }),
+    Notification.updateMany(broadcastQuery, {
+      $addToSet: { readBy: userObjectId },
+    }),
+  ])
+
+  const modifiedCount =
+    (personalRes.modifiedCount || 0) + (broadcastRes.modifiedCount || 0)
+
+  // Real-time unread count update emit
+  getUnreadCount(userId)
+    .then(unreadData => {
+      emitSocketToUser(userId, 'unread_count_update', unreadData)
+    })
+    .catch(() => {})
+
+  return { modifiedCount }
 }
 
 const archiveNotification = async (
   id: string,
   userId: string,
 ): Promise<INotification> => {
-  const result = await Notification.findOneAndUpdate(
-    { _id: id, userId },
-    { isArchived: true },
-    { new: true },
-  )
-    .populate('userId', 'name email')
-    .lean()
+  if (!Types.ObjectId.isValid(id)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid notification ID')
+  }
 
-  if (!result) {
+  const notif = await Notification.findById(id)
+  if (!notif) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Notification not found')
   }
 
-  return result
+  const userObjectId = new Types.ObjectId(userId)
+
+  let updated: INotification | null
+  if (notif.userId && notif.userId.toString() === userId) {
+    updated = await Notification.findByIdAndUpdate(
+      id,
+      { isArchived: true, status: NotificationStatus.ARCHIVED },
+      { new: true },
+    )
+      .populate('userId', 'name email')
+      .lean()
+  } else {
+    updated = await Notification.findByIdAndUpdate(
+      id,
+      { $addToSet: { archivedBy: userObjectId } },
+      { new: true },
+    )
+      .populate('userId', 'name email')
+      .lean()
+  }
+
+  // Real-time unread count update emit
+  getUnreadCount(userId)
+    .then(unreadData => {
+      emitSocketToUser(userId, 'unread_count_update', unreadData)
+    })
+    .catch(() => {})
+
+  return {
+    ...updated!,
+    isArchived: true,
+  }
+}
+
+const clearMyNotifications = async (
+  userId: string,
+  options?: { category?: string; type?: NotificationType; onlyRead?: boolean },
+): Promise<{ clearedCount: number }> => {
+  const userObjectId = new Types.ObjectId(userId)
+
+  const personalQuery: any = {
+    userId: userObjectId,
+    isArchived: false,
+  }
+  const broadcastQuery: any = {
+    userId: { $exists: false },
+    archivedBy: { $ne: userObjectId },
+  }
+
+  if (options?.onlyRead) {
+    personalQuery.isRead = true
+    broadcastQuery.readBy = userObjectId
+  }
+  if (options?.category && options.category !== 'all') {
+    personalQuery.category = options.category
+    broadcastQuery.category = options.category
+  }
+  if (options?.type) {
+    personalQuery.type = options.type
+    broadcastQuery.type = options.type
+  }
+
+  const [personalRes, broadcastRes] = await Promise.all([
+    Notification.updateMany(personalQuery, {
+      $set: { isArchived: true, status: NotificationStatus.ARCHIVED },
+    }),
+    Notification.updateMany(broadcastQuery, {
+      $addToSet: { archivedBy: userObjectId },
+    }),
+  ])
+
+  const clearedCount =
+    (personalRes.modifiedCount || 0) + (broadcastRes.modifiedCount || 0)
+
+  // Real-time unread count update emit
+  getUnreadCount(userId)
+    .then(unreadData => {
+      emitSocketToUser(userId, 'unread_count_update', unreadData)
+    })
+    .catch(() => {})
+
+  return { clearedCount }
+}
+
+const getUnreadCount = async (userId: string): Promise<IUnreadCountResponse> => {
+  const userObjectId = new Types.ObjectId(userId)
+  const userDoc = await User.findById(userId).select('interest').lean()
+  const userInterests = userDoc?.interest || []
+
+  const unreadBaseQuery = {
+    $or: [
+      {
+        userId: userObjectId,
+        isRead: false,
+        isArchived: false,
+      },
+      {
+        userId: { $exists: false },
+        readBy: { $ne: userObjectId },
+        archivedBy: { $ne: userObjectId },
+        $or: [
+          {
+            targetAudience: {
+              $in: [TARGET_AUDIENCE.ALL_USER, TARGET_AUDIENCE.ACTIVE_USER],
+            },
+          },
+          ...(userInterests.length > 0
+            ? [{ interests: { $in: userInterests } }]
+            : []),
+        ],
+      },
+    ],
+  }
+
+  const [totalUnread, unreadAccount, unreadRoadtripeado, byTypeDocs] =
+    await Promise.all([
+      Notification.countDocuments(unreadBaseQuery),
+      Notification.countDocuments({
+        $and: [unreadBaseQuery, { category: NotificationCategory.ACCOUNT }],
+      }),
+      Notification.countDocuments({
+        $and: [
+          unreadBaseQuery,
+          { category: NotificationCategory.ROADTRIPEADO },
+        ],
+      }),
+      Notification.aggregate([
+        { $match: unreadBaseQuery },
+        { $group: { _id: '$type', count: { $sum: 1 } } },
+      ]),
+    ])
+
+  const byType: Record<string, number> = {}
+  byTypeDocs.forEach(item => {
+    byType[item._id] = item.count
+  })
+
+  return {
+    totalUnread,
+    unreadAccount,
+    unreadRoadtripeado,
+    byType,
+  }
 }
 
 const deleteNotification = async (id: string): Promise<INotification> => {
@@ -440,20 +652,74 @@ const deleteNotification = async (id: string): Promise<INotification> => {
 const getNotificationStats = async (
   user: JwtPayload & { authId?: string; role?: string },
 ): Promise<INotificationStats> => {
-  const query: any = {}
+  const restrictedRoles = ['user', 'map_editor']
+  if (restrictedRoles.includes(user.role as string) && user.authId) {
+    const unreadData = await getUnreadCount(user.authId)
+    const userObjectId = new Types.ObjectId(user.authId)
+    const userDoc = await User.findById(user.authId).select('interest').lean()
+    const userInterests = userDoc?.interest || []
 
-  if (user.role === 'user') {
-    query.$or = [
-      { userId: user.authId },
-      { targetAudience: TARGET_AUDIENCE.ALL_USER },
-    ]
-  } else if (user.role === 'organizer') {
-    query.$or = [
-      { userId: user.authId },
-      { targetAudience: TARGET_AUDIENCE.ALL_USER },
-      { targetAudience: TARGET_AUDIENCE.ORGANIZER },
-    ]
+    const baseQuery = {
+      $or: [
+        { userId: userObjectId, isArchived: false },
+        {
+          userId: { $exists: false },
+          archivedBy: { $ne: userObjectId },
+          $or: [
+            {
+              targetAudience: {
+                $in: [TARGET_AUDIENCE.ALL_USER, TARGET_AUDIENCE.ACTIVE_USER],
+              },
+            },
+            ...(userInterests.length > 0
+              ? [{ interests: { $in: userInterests } }]
+              : []),
+          ],
+        },
+      ],
+    }
+
+    const [total, byTypeDocs, byChannelDocs, byStatusDocs] =
+      await Promise.all([
+        Notification.countDocuments(baseQuery),
+        Notification.aggregate([
+          { $match: baseQuery },
+          { $group: { _id: '$type', count: { $sum: 1 } } },
+        ]),
+        Notification.aggregate([
+          { $match: baseQuery },
+          { $group: { _id: '$channel', count: { $sum: 1 } } },
+        ]),
+        Notification.aggregate([
+          { $match: baseQuery },
+          { $group: { _id: '$status', count: { $sum: 1 } } },
+        ]),
+      ])
+
+    const stats: INotificationStats = {
+      total,
+      unread: unreadData.totalUnread,
+      byType: {},
+      byChannel: {},
+      byStatus: {},
+    }
+
+    byTypeDocs.forEach(item => {
+      stats.byType[item._id] = item.count
+    })
+
+    byChannelDocs.forEach(item => {
+      stats.byChannel[item._id] = item.count
+    })
+
+    byStatusDocs.forEach(item => {
+      stats.byStatus[item._id] = item.count
+    })
+
+    return stats
   }
+
+  const query: any = {}
 
   const [total, unread, byType, byChannel, byStatus] = await Promise.all([
     Notification.countDocuments(query),
@@ -497,36 +763,122 @@ const getNotificationStats = async (
 
 const getMyNotifications = async (
   user: JwtPayload & { authId: string; role?: string },
+  filterables: INotificationFilterables = {},
   pagination: IPaginationOptions,
 ) => {
   const { page, skip, limit, sortBy, sortOrder } =
     paginationHelper.calculatePagination(pagination)
 
-  const query: any = {
+  const userObjectId = new Types.ObjectId(user.authId)
+  const userDoc = await User.findById(user.authId).select('interest').lean()
+  const userInterests = userDoc?.interest || []
+
+  const isReadFilter =
+    filterables.isRead !== undefined && filterables.isRead !== ''
+      ? filterables.isRead === true || filterables.isRead === 'true'
+      : undefined
+
+  const isArchivedFilter =
+    filterables.isArchived !== undefined && filterables.isArchived !== ''
+      ? filterables.isArchived === true || filterables.isArchived === 'true'
+      : false
+
+  // Base audience queries: personal vs audience/tailored
+  const personalAudienceQuery: any = {
+    userId: userObjectId,
+    isArchived: isArchivedFilter,
+  }
+  if (isReadFilter !== undefined) {
+    personalAudienceQuery.isRead = isReadFilter
+  }
+
+  const broadcastAudienceQuery: any = {
+    userId: { $exists: false },
+    archivedBy: isArchivedFilter ? userObjectId : { $ne: userObjectId },
     $or: [
-      { userId: new Types.ObjectId(user.authId) },
-      { targetAudience: TARGET_AUDIENCE.ALL_USER },
+      {
+        targetAudience: {
+          $in: [TARGET_AUDIENCE.ALL_USER, TARGET_AUDIENCE.ACTIVE_USER],
+        },
+      },
+      ...(userInterests.length > 0
+        ? [{ interests: { $in: userInterests } }]
+        : []),
     ],
-    isArchived: false,
+  }
+  if (isReadFilter !== undefined) {
+    if (isReadFilter) {
+      broadcastAudienceQuery.readBy = userObjectId
+    } else {
+      broadcastAudienceQuery.readBy = { $ne: userObjectId }
+    }
   }
 
-  // Add role-specific broadcast logic
-  if (user.role === 'organizer') {
-    query.$or.push({ targetAudience: TARGET_AUDIENCE.ORGANIZER })
+  const andConditions: any[] = [
+    {
+      $or: [personalAudienceQuery, broadcastAudienceQuery],
+    },
+  ]
+
+  // Category filter: 'account' | 'roadtripeado'
+  if (filterables.category && filterables.category !== 'all') {
+    andConditions.push({ category: filterables.category })
   }
 
-  // Active status logic (assuming active users have specific status in JWT or we fetch it)
-  // For now, including active user broadcasts for everyone since they are 'active' if logged in
-  query.$or.push({ targetAudience: TARGET_AUDIENCE.ACTIVE_USER })
+  // Type filter
+  if (filterables.type) {
+    andConditions.push({ type: filterables.type })
+  }
+
+  // Priority filter
+  if (filterables.priority) {
+    andConditions.push({ priority: filterables.priority })
+  }
+
+  // Search term
+  if (filterables.searchTerm && filterables.searchTerm.trim() !== '') {
+    const term = filterables.searchTerm.trim()
+    andConditions.push({
+      $or: [
+        { 'title.es': { $regex: term, $options: 'i' } },
+        { 'title.en': { $regex: term, $options: 'i' } },
+        { title: { $regex: term, $options: 'i' } },
+        { 'content.es': { $regex: term, $options: 'i' } },
+        { 'content.en': { $regex: term, $options: 'i' } },
+        { content: { $regex: term, $options: 'i' } },
+      ],
+    })
+  }
+
+  const finalQuery = andConditions.length > 1 ? { $and: andConditions } : andConditions[0]
 
   const [result, total] = await Promise.all([
-    Notification.find(query)
+    Notification.find(finalQuery)
       .skip(skip)
       .limit(limit)
       .sort({ [sortBy]: sortOrder })
       .lean(),
-    Notification.countDocuments(query),
+    Notification.countDocuments(finalQuery),
   ])
+
+  // Map individual read and archive state for frontend
+  const formattedData = result.map(doc => {
+    const isPersonal = Boolean(
+      doc.userId && doc.userId.toString() === user.authId,
+    )
+    const isRead = isPersonal
+      ? Boolean(doc.isRead)
+      : Boolean(doc.readBy?.some(id => id.toString() === user.authId))
+    const isArchived = isPersonal
+      ? Boolean(doc.isArchived)
+      : Boolean(doc.archivedBy?.some(id => id.toString() === user.authId))
+
+    return {
+      ...doc,
+      isRead,
+      isArchived,
+    }
+  })
 
   return {
     meta: {
@@ -535,7 +887,7 @@ const getMyNotifications = async (
       total,
       totalPages: Math.ceil(total / limit),
     },
-    data: result,
+    data: formattedData,
   }
 }
 
@@ -551,21 +903,13 @@ const sendTestEmail = async (
 
     const testData = {
       userName: user.name,
-      eventTitle: 'Test Event - Annual Tech Conference 2024',
-      eventDate: new Date().toLocaleDateString(),
-      eventTime: new Date().toLocaleTimeString(),
-      eventLocation: 'Convention Center, New York',
-      ticketType: 'VIP Pass',
-      quantity: 1,
-      orderId: 'TEST123456',
-      amount: '99.99',
-      currency: 'USD',
-      qrCodeUrl:
-        'https://via.placeholder.com/200x200/667eea/ffffff?text=QR+CODE',
-      resetCode: 'ABC123',
+      notificationTitle: 'Notificación de Prueba - Roadtripeado',
+      notificationContent: 'Este es un correo de prueba de Roadtripeado.',
+      resetCode: '123456',
+      expiryMinutes: 30,
       verificationUrl: `${config.clientUrl}/verify-email?token=test-token-123`,
       actionUrl: `${config.clientUrl}/dashboard`,
-      actionText: 'Go to Dashboard',
+      actionText: 'Ir al Panel de Control',
     }
 
     await emailProvider.sendTemplateEmail(to, template, testData)
@@ -583,72 +927,123 @@ const sendManualNotification = async (
 ): Promise<{ success: boolean }> => {
   try {
     await processNotificationTranslations(payload)
-    // Create a single broadcast notification record
+
+    const roadtripeadoTypes = [
+      NotificationType.NEW_OFFER,
+      NotificationType.NEW_LOCATION,
+      NotificationType.NEW_MAP,
+      NotificationType.IMPORTANT_UPDATE,
+      NotificationType.SYSTEM_ALERT,
+    ]
+    const category =
+      payload.category ||
+      (roadtripeadoTypes.includes(payload.type)
+        ? NotificationCategory.ROADTRIPEADO
+        : NotificationCategory.ACCOUNT)
+
     const notificationData = {
       title: payload.title,
       content: payload.content,
       type: payload.type || NotificationType.SYSTEM_ALERT,
+      category,
+      interests: payload.interests || [],
+      country: payload.country,
       channel: payload.channel || NotificationChannel.IN_APP,
       priority: payload.priority || NotificationPriority.MEDIUM,
       targetAudience: payload.targetAudience || TARGET_AUDIENCE.ACTIVE_USER,
       actionUrl: payload.actionUrl,
       actionText: payload.actionText,
-      status: NotificationStatus.SENT, // Broadcasts are usually sent immediately
+      status: NotificationStatus.SENT,
       sentAt: new Date(),
+      readBy: [],
+      archivedBy: [],
     }
 
     const notification = await Notification.create(notificationData)
 
     // Emit broadcast socket event based on target audience
     if (payload.channel !== NotificationChannel.EMAIL) {
-      if (io) {
-        // We can emit to specific rooms based on role if needed,
-        // but for now, we'll use a generic broadcast or specific room logic.
-
-        const eventName = 'notification'
-        const roomName: string | null = null
-
-        switch (payload.targetAudience) {
-          case TARGET_AUDIENCE.ALL_USER:
-            // Broadcast to everyone
-            io.emit(eventName, {
-              type: 'BROADCAST_NOTIFICATION',
-              data: notification,
-            })
-            break
-          case TARGET_AUDIENCE.ACTIVE_USER:
-            // This would require users to join an 'active' room on connection
-            io.to('active_users').emit(eventName, {
-              type: 'BROADCAST_NOTIFICATION',
-              data: notification,
-            })
-            break
-          case TARGET_AUDIENCE.ORGANIZER:
-            io.to('organizers').emit(eventName, {
-              type: 'BROADCAST_NOTIFICATION',
-              data: notification,
-            })
-            break
-          default:
-            io.emit(eventName, {
-              type: 'BROADCAST_NOTIFICATION',
-              data: notification,
-            })
-        }
-      }
+      const room =
+        payload.targetAudience === TARGET_AUDIENCE.ACTIVE_USER
+          ? 'active_users'
+          : undefined
+      emitBroadcastSocket(
+        'notification',
+        {
+          type: 'BROADCAST_NOTIFICATION',
+          data: notification,
+        },
+        room,
+      )
     }
 
-    // Note: Email delivery for 10k users would still need batching in the background scheduler
-    // For now, we set the status to SENT for the broadcast record.
-
-    console.log(
-      `Broadcast notification created for audience: ${payload.targetAudience}`,
-    )
     return { success: true }
   } catch (error: any) {
     throw new ApiError(
       StatusCodes.INTERNAL_SERVER_ERROR,
       `Failed to send manual notification: ${error.message}`,
+    )
+  }
+}
+
+const dispatchTailoredNotification = async (payload: {
+  title: string | { en: string; es: string }
+  content: string | { en: string; es: string }
+  type: NotificationType
+  category?: NotificationCategory
+  interests?: string[]
+  country?: string
+  priority?: NotificationPriority
+  actionUrl?: string
+  actionText?: string | { en: string; es: string }
+  metadata?: Record<string, any>
+}): Promise<INotification> => {
+  try {
+    await processNotificationTranslations(payload)
+
+    const roadtripeadoTypes = [
+      NotificationType.NEW_OFFER,
+      NotificationType.NEW_LOCATION,
+      NotificationType.NEW_MAP,
+      NotificationType.IMPORTANT_UPDATE,
+      NotificationType.SYSTEM_ALERT,
+    ]
+    const category =
+      payload.category ||
+      (roadtripeadoTypes.includes(payload.type)
+        ? NotificationCategory.ROADTRIPEADO
+        : NotificationCategory.ACCOUNT)
+
+    const notification = await Notification.create({
+      title: payload.title,
+      content: payload.content,
+      type: payload.type,
+      category,
+      interests: payload.interests || [],
+      country: payload.country,
+      priority: payload.priority || NotificationPriority.MEDIUM,
+      channel: NotificationChannel.IN_APP,
+      targetAudience: TARGET_AUDIENCE.ALL_USER,
+      status: NotificationStatus.SENT,
+      sentAt: new Date(),
+      actionUrl: payload.actionUrl,
+      actionText: payload.actionText,
+      metadata: payload.metadata || {},
+      readBy: [],
+      archivedBy: [],
+    })
+
+    emitBroadcastSocket('notification', {
+      type: 'BROADCAST_NOTIFICATION',
+      data: notification,
+    })
+
+    return notification
+  } catch (error: any) {
+    console.error('Failed to dispatch tailored notification:', error)
+    throw new ApiError(
+      StatusCodes.INTERNAL_SERVER_ERROR,
+      `Failed to dispatch tailored notification: ${error.message}`,
     )
   }
 }
@@ -662,9 +1057,12 @@ export const NotificationServices = {
   markAsRead,
   markAllAsRead,
   archiveNotification,
+  clearMyNotifications,
+  getUnreadCount,
   deleteNotification,
   getNotificationStats,
   getMyNotifications,
   sendTestEmail,
   sendManualNotification,
+  dispatchTailoredNotification,
 }

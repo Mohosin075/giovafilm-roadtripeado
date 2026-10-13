@@ -106,7 +106,7 @@ export class EmailProvider {
         await this.sendEmail(emailData)
         results.success++
       } catch (error) {
-        console.error(`Failed to send email to: ${emailData.to}`)
+        console.error(`Failed to send email to: ${emailData.to}:`, error)
         results.failed++
       }
     }

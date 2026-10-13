@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import {
   NotificationType,
+  NotificationCategory,
   NotificationChannel,
   NotificationPriority,
   NotificationStatus,
@@ -17,6 +18,9 @@ export const NotificationValidations = {
         .nativeEnum(NotificationType)
         .optional()
         .default(NotificationType.SYSTEM_ALERT),
+      category: z.nativeEnum(NotificationCategory).optional(),
+      interests: z.array(z.string()).optional(),
+      country: z.string().optional(),
       channel: z
         .nativeEnum(NotificationChannel)
         .optional()
@@ -33,6 +37,10 @@ export const NotificationValidations = {
   create: z.object({
     body: z.object({
       userId: z.string().optional(),
+      targetAudience: z.nativeEnum(TARGET_AUDIENCE).optional(),
+      category: z.nativeEnum(NotificationCategory).optional(),
+      interests: z.array(z.string()).optional(),
+      country: z.string().optional(),
       title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
       content: z.string().min(1, 'Content is required'),
       type: z.nativeEnum(NotificationType),
@@ -67,6 +75,21 @@ export const NotificationValidations = {
     }),
   }),
 
+  markAllAsRead: z.object({
+    body: z.object({
+      category: z.string().optional(),
+      type: z.nativeEnum(NotificationType).optional(),
+    }).optional(),
+  }),
+
+  clearMyNotifications: z.object({
+    body: z.object({
+      category: z.string().optional(),
+      type: z.nativeEnum(NotificationType).optional(),
+      onlyRead: z.boolean().optional(),
+    }).optional(),
+  }),
+
   sendEmail: z.object({
     body: z.object({
       to: z.union([z.string().email(), z.array(z.string().email())]),
@@ -90,12 +113,14 @@ export const NotificationValidations = {
     query: z.object({
       searchTerm: z.string().optional(),
       userId: z.string().optional(),
+      category: z.string().optional(),
       type: z.nativeEnum(NotificationType).optional(),
       channel: z.nativeEnum(NotificationChannel).optional(),
       status: z.string().optional(),
       priority: z.nativeEnum(NotificationPriority).optional(),
       isRead: z.string().optional(),
       isArchived: z.string().optional(),
+      country: z.string().optional(),
       startDate: z.string().optional(),
       endDate: z.string().optional(),
       page: z.string().optional(),
@@ -105,3 +130,4 @@ export const NotificationValidations = {
     }),
   }),
 }
+

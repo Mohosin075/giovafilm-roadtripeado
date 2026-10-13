@@ -21,6 +21,7 @@ import {
   resolveOfferMapIdAsync,
 } from '../../helpers/mapAccessHelper'
 import { USER_ROLES } from '../../enum/user'
+import { NotificationIntegration } from '../notification/notification.integration'
 
 const processOfferTranslations = async (payload: Partial<IOffer>) => {
   if (payload.title) payload.title = await autoTranslateField(payload.title)
@@ -123,6 +124,13 @@ const createOffer = async (payload: any, authHeader?: string): Promise<IOffer> =
   }
 
   const result = await Offer.create(offerData)
+
+  if (result.status === OFFER_STATUS.ACTIVE) {
+    NotificationIntegration.onNewOffer(result).catch(err =>
+      console.error('Failed to dispatch new offer notification:', err),
+    )
+  }
+
   return result
 }
 
@@ -470,6 +478,17 @@ const updateOffer = async (
     new: true,
     runValidators: true,
   }).populate('place')
+
+  if (
+    existingOffer.status !== OFFER_STATUS.ACTIVE &&
+    result &&
+    result.status === OFFER_STATUS.ACTIVE
+  ) {
+    NotificationIntegration.onNewOffer(result).catch(err =>
+      console.error('Failed to dispatch new offer notification:', err),
+    )
+  }
+
   return result
 }
 

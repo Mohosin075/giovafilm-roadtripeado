@@ -1,8 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.NotificationPriority = exports.NotificationStatus = exports.NotificationChannel = exports.NotificationType = exports.TARGET_AUDIENCE = void 0;
+exports.NotificationPriority = exports.NotificationStatus = exports.NotificationChannel = exports.NotificationType = exports.NotificationCategory = exports.TARGET_AUDIENCE = void 0;
 const notification_1 = require("../../enum/notification");
 Object.defineProperty(exports, "TARGET_AUDIENCE", { enumerable: true, get: function () { return notification_1.TARGET_AUDIENCE; } });
+var NotificationCategory;
+(function (NotificationCategory) {
+    NotificationCategory["ACCOUNT"] = "account";
+    NotificationCategory["ROADTRIPEADO"] = "roadtripeado";
+})(NotificationCategory || (exports.NotificationCategory = NotificationCategory = {}));
 var NotificationType;
 (function (NotificationType) {
     NotificationType["NEW_MESSAGE"] = "NEW_MESSAGE";
@@ -10,6 +15,14 @@ var NotificationType;
     NotificationType["WELCOME"] = "WELCOME";
     NotificationType["PASSWORD_RESET"] = "PASSWORD_RESET";
     NotificationType["ACCOUNT_VERIFICATION"] = "ACCOUNT_VERIFICATION";
+    NotificationType["NEW_OFFER"] = "NEW_OFFER";
+    NotificationType["APPROVED_REVIEW"] = "APPROVED_REVIEW";
+    NotificationType["REJECTED_REVIEW"] = "REJECTED_REVIEW";
+    NotificationType["NEW_LOCATION"] = "NEW_LOCATION";
+    NotificationType["EARNED_REWARD"] = "EARNED_REWARD";
+    NotificationType["UNLOCKED_LEVEL"] = "UNLOCKED_LEVEL";
+    NotificationType["NEW_MAP"] = "NEW_MAP";
+    NotificationType["IMPORTANT_UPDATE"] = "IMPORTANT_UPDATE";
 })(NotificationType || (exports.NotificationType = NotificationType = {}));
 var NotificationChannel;
 (function (NotificationChannel) {

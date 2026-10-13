@@ -1,5 +1,5 @@
 import mongoose from 'mongoose'
-// import { sendNotifications } from '../../helpers/notificationsHelper';
+import { NotificationIntegration } from '../notification/notification.integration'
 import { IMessage } from './message.interface'
 import { Message } from './message.model'
 import ApiError from '../../errors/ApiError'
@@ -30,16 +30,17 @@ const sendMessageToDB = async (payload: any): Promise<IMessage> => {
     io.emit(`getMessage::${payload?.chatId}`, response)
     io.emit(`updateChatList::${payload?.sender}`)
     io.emit(`updateChatList::${payload?.receiver}`)
-
-    const data = {
-      text: `${sender?.name} te envió un mensaje.`,
-      title: 'Mensaje Recibido',
-      link: payload?.chatId,
-      direction: 'message',
-      receiver: payload.receiver,
-    }
-    // await sendNotifications(data);
   }
+
+  // Trigger in-app notification for receiver
+  const senderName = sender?.name ? `${sender.name}: ` : ''
+  NotificationIntegration.onNewMessage(
+    payload.sender,
+    payload.receiver,
+    `${senderName}${payload.text || 'Nuevo mensaje'}`,
+  ).catch(err => {
+    console.error('Failed to dispatch message notification:', err)
+  })
 
   return response
 }

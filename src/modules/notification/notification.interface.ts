@@ -2,10 +2,18 @@ import { Model, Types } from 'mongoose'
 import { TARGET_AUDIENCE } from '../../enum/notification'
 export { TARGET_AUDIENCE }
 
+export enum NotificationCategory {
+  ACCOUNT = 'account',
+  ROADTRIPEADO = 'roadtripeado',
+}
+
 export interface INotification {
   _id: Types.ObjectId
   userId?: Types.ObjectId
   targetAudience?: TARGET_AUDIENCE
+  category?: NotificationCategory
+  interests?: string[]
+  country?: string
   title: string | { en: string; es: string }
   content: string | { en: string; es: string }
   type: NotificationType
@@ -21,6 +29,8 @@ export interface INotification {
   actionClickedAt?: Date
   isRead: boolean
   isArchived: boolean
+  readBy?: Types.ObjectId[]
+  archivedBy?: Types.ObjectId[]
   createdAt: Date
   updatedAt: Date
 }
@@ -31,6 +41,14 @@ export enum NotificationType {
   WELCOME = 'WELCOME',
   PASSWORD_RESET = 'PASSWORD_RESET',
   ACCOUNT_VERIFICATION = 'ACCOUNT_VERIFICATION',
+  NEW_OFFER = 'NEW_OFFER',
+  APPROVED_REVIEW = 'APPROVED_REVIEW',
+  REJECTED_REVIEW = 'REJECTED_REVIEW',
+  NEW_LOCATION = 'NEW_LOCATION',
+  EARNED_REWARD = 'EARNED_REWARD',
+  UNLOCKED_LEVEL = 'UNLOCKED_LEVEL',
+  NEW_MAP = 'NEW_MAP',
+  IMPORTANT_UPDATE = 'IMPORTANT_UPDATE',
 }
 
 export enum NotificationChannel {
@@ -57,12 +75,13 @@ export enum NotificationPriority {
 export interface INotificationFilterables {
   searchTerm?: string
   userId?: string
+  category?: NotificationCategory | string
   type?: NotificationType
   channel?: NotificationChannel
   status?: NotificationStatus
   priority?: NotificationPriority
-  isRead?: boolean
-  isArchived?: boolean
+  isRead?: boolean | string
+  isArchived?: boolean | string
   startDate?: string
   endDate?: string
 }
@@ -83,6 +102,9 @@ export interface EmailNotificationData {
 export interface CreateNotificationDto {
   userId?: string | Types.ObjectId
   targetAudience?: TARGET_AUDIENCE
+  category?: NotificationCategory
+  interests?: string[]
+  country?: string
   title: string | { en: string; es: string }
   content: string | { en: string; es: string }
   type: NotificationType
@@ -96,6 +118,13 @@ export interface CreateNotificationDto {
 
 export type NotificationModel = Model<INotification, {}, {}>
 
+export interface IUnreadCountResponse {
+  totalUnread: number
+  unreadAccount: number
+  unreadRoadtripeado: number
+  byType: Record<string, number>
+}
+
 export interface INotificationStats {
   total: number
   unread: number
@@ -104,11 +133,4 @@ export interface INotificationStats {
   byStatus: Record<string, number>
 }
 
-export interface INotificationAnalytics {
-  openRate: number // Percentage of notifications that were opened/read
-  engagement: number // Percentage of notifications that had user interaction (clicked action URL)
-}
 
-export interface INotificationWithAnalytics extends INotification {
-  analytics?: INotificationAnalytics
-}

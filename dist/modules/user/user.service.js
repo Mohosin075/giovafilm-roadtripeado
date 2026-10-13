@@ -17,6 +17,7 @@ const review_model_1 = require("../review/review.model");
 const emailTemplate_1 = require("../../shared/emailTemplate");
 const emailHelper_1 = require("../../helpers/emailHelper");
 const userLevels_constant_1 = require("../../constants/userLevels.constant");
+const notification_integration_1 = require("../notification/notification.integration");
 const offerRedemption_model_1 = require("../offer/offerRedemption.model");
 const award_model_1 = require("../award/award.model");
 const updateProfile = async (user, payload) => {
@@ -524,6 +525,7 @@ const updatePointsAndLevel = async (userId, pointsToAdd) => {
     const user = await user_model_1.User.findById(userId);
     if (!user)
         return;
+    const oldLevel = user.level || 0;
     const newPoints = (user.points || 0) + pointsToAdd;
     const newApprovedCount = user.totalReviewsApproved || 0;
     const newLevel = (0, userLevels_constant_1.calculateUserLevel)(newPoints, newApprovedCount);
@@ -533,6 +535,15 @@ const updatePointsAndLevel = async (userId, pointsToAdd) => {
             level: newLevel,
         },
     });
+    if (newLevel > oldLevel) {
+        const levelConfig = userLevels_constant_1.USER_LEVELS.find(l => l.level === newLevel);
+        notification_integration_1.NotificationIntegration.onLevelUnlocked({
+            userId,
+            newLevel,
+            levelName: (levelConfig === null || levelConfig === void 0 ? void 0 : levelConfig.name) || `Nivel ${newLevel}`,
+            oldLevel,
+        }).catch(err => console.error('Failed to notify level unlock:', err));
+    }
 };
 const assignEditorAccess = async (userId, assignedMaps, assignedCountries) => {
     var _a, _b, _c;

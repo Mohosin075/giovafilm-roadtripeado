@@ -16,7 +16,8 @@ import { generateOtp } from '../../utils/crypto'
 import { Review } from '../review/review.model'
 import { emailTemplate } from '../../shared/emailTemplate'
 import { emailHelper } from '../../helpers/emailHelper'
-import { calculateUserLevel } from '../../constants/userLevels.constant'
+import { calculateUserLevel, USER_LEVELS } from '../../constants/userLevels.constant'
+import { NotificationIntegration } from '../notification/notification.integration'
 import { OfferRedemption } from '../offer/offerRedemption.model'
 import { Award } from '../award/award.model'
 
@@ -730,6 +731,7 @@ const updatePointsAndLevel = async (userId: string, pointsToAdd: number) => {
   const user = await User.findById(userId)
   if (!user) return
 
+  const oldLevel = user.level || 0
   const newPoints = (user.points || 0) + pointsToAdd
   const newApprovedCount = user.totalReviewsApproved || 0
   const newLevel = calculateUserLevel(newPoints, newApprovedCount)
@@ -740,6 +742,16 @@ const updatePointsAndLevel = async (userId: string, pointsToAdd: number) => {
       level: newLevel,
     },
   })
+
+  if (newLevel > oldLevel) {
+    const levelConfig = USER_LEVELS.find(l => l.level === newLevel)
+    NotificationIntegration.onLevelUnlocked({
+      userId,
+      newLevel,
+      levelName: levelConfig?.name || `Nivel ${newLevel}`,
+      oldLevel,
+    }).catch(err => console.error('Failed to notify level unlock:', err))
+  }
 }
 
 const assignEditorAccess = async (

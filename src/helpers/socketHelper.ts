@@ -3,6 +3,10 @@ import { Server } from 'socket.io'
 import { recordUniqueUsage } from '../modules/stats/usage.service'
 import { UsageView } from '../modules/stats/usageView.model'
 
+import { jwtHelper } from './jwtHelper'
+import config from '../config'
+import { Secret } from 'jsonwebtoken'
+
 const socket = (io: Server) => {
   UsageView.syncIndexes().catch(error => {
     console.error('Failed to sync usage view indexes:', error)
@@ -11,10 +15,43 @@ const socket = (io: Server) => {
   io.on('connection', socket => {
     console.log(colors.blue('A user connected'), socket.id)
 
+    // Auto-join user room if authentication token is provided in handshake
+    const rawToken =
+      socket.handshake.auth?.token ||
+      socket.handshake.query?.token ||
+      socket.handshake.headers?.authorization
+
+    if (rawToken) {
+      try {
+        const token =
+          typeof rawToken === 'string' && rawToken.startsWith('Bearer ')
+            ? rawToken.split(' ')[1]
+            : rawToken
+        const verifiedUser: any = jwtHelper.verifyToken(
+          token,
+          config.jwt.jwt_secret as Secret,
+        )
+        if (verifiedUser?.authId) {
+          const authIdStr = verifiedUser.authId.toString()
+          socket.join(authIdStr)
+          socket.join(`room:${authIdStr}`)
+          console.log(
+            colors.green(
+              `User socket ${socket.id} auto-joined room:${authIdStr}`,
+            ),
+          )
+        }
+      } catch {
+        // Token invalid or expired, continue as guest
+      }
+    }
+
     socket.on('join-room', (roomId: string) => {
       if (roomId) {
-        socket.join(`room:${roomId}`)
-        console.log(colors.green(`User ${socket.id} joined room:${roomId}`))
+        const idStr = roomId.toString()
+        socket.join(idStr)
+        socket.join(`room:${idStr}`)
+        console.log(colors.green(`User ${socket.id} joined room:${idStr}`))
       }
     })
 

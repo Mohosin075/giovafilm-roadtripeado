@@ -99,6 +99,9 @@ class NotificationIntegration {
      */
     static async onReviewApproved(payload) {
         try {
+            const name = typeof payload.targetName === 'object' && payload.targetName
+                ? (payload.targetName.en || payload.targetName.es || 'place')
+                : String(payload.targetName || 'place');
             await notification_service_1.NotificationServices.createNotification({
                 userId: payload.reviewerId,
                 title: {
@@ -106,8 +109,8 @@ class NotificationIntegration {
                     en: 'Review Approved! 🎉',
                 },
                 content: {
-                    es: `¡Tu reseña sobre "${payload.targetName}" fue aprobada! Ganaste +${payload.points} puntos de explorador.`,
-                    en: `Your review for "${payload.targetName}" was approved! You earned +${payload.points} explorer points.`,
+                    es: `¡Tu reseña sobre "${name}" fue aprobada! Ganaste +${payload.points} puntos de explorador.`,
+                    en: `Your review for "${name}" was approved! You earned +${payload.points} explorer points.`,
                 },
                 type: notification_interface_1.NotificationType.APPROVED_REVIEW,
                 category: notification_interface_1.NotificationCategory.ACCOUNT,
@@ -135,6 +138,9 @@ class NotificationIntegration {
      */
     static async onReviewRejected(payload) {
         try {
+            const name = typeof payload.targetName === 'object' && payload.targetName
+                ? (payload.targetName.en || payload.targetName.es || 'place')
+                : String(payload.targetName || 'place');
             await notification_service_1.NotificationServices.createNotification({
                 userId: payload.reviewerId,
                 title: {
@@ -142,8 +148,8 @@ class NotificationIntegration {
                     en: 'Update on Your Review',
                 },
                 content: {
-                    es: `Tu reseña sobre "${payload.targetName}" no fue aprobada por nuestro equipo de moderación.`,
-                    en: `Your review for "${payload.targetName}" was not approved by our moderation team.`,
+                    es: `Tu reseña sobre "${name}" no fue aprobada por nuestro equipo de moderación.`,
+                    en: `Your review for "${name}" was not approved by our moderation team.`,
                 },
                 type: notification_interface_1.NotificationType.REJECTED_REVIEW,
                 category: notification_interface_1.NotificationCategory.ACCOUNT,

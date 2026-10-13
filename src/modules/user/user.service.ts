@@ -300,7 +300,7 @@ const getPublicProfile = async (userId: string) => {
     status: USER_STATUS.ACTIVE,
     verified: true,
   }).select(
-    'name profile level points role createdAt website instagram description specialty settings.profileStatus',
+    'name profile level points role createdAt website instagram description specialty settings.profileStatus visitedPlacesCount',
   )
 
   if (!user) {

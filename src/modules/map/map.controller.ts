@@ -166,13 +166,24 @@ const getDiscoveryData = catchAsync(async (req: Request, res: Response) => {
   const isAdminOrEditor = !!(user && (user.role === 'super_admin' || user.role === 'admin' || user.role === 'map_editor'))
   const result = await MapService.getDiscoveryData(req.query, lockedMapIds, isAdminOrEditor, targetMap)
 
+  const visitedSet = new Set(
+    (user?.visitedPlaces || []).map((id: any) => id.toString())
+  )
+
+  const itemsWithVisited = Array.isArray(result)
+    ? result.map((item: any) => ({
+        ...item,
+        isVisited: visitedSet.has(item._id?.toString()),
+      }))
+    : result
+
   const discoveryFields = ['name', 'description', 'access', 'entryCost', 'hikeTime', 'atmosphere', 'accessibility.notes', 'recommendations.tips', 'category.name']
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'Discovery data retrieved successfully',
-    data: localizeDocument(result, req.lang, discoveryFields),
+    data: localizeDocument(itemsWithVisited, req.lang, discoveryFields),
   })
 })
 

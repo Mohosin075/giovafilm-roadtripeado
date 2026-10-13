@@ -101,6 +101,13 @@ const UserSchema = new Schema<IUser, UserModel>(
         ref: 'Business',
       },
     ],
+    visitedPlaces: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Place',
+      },
+    ],
+    visitedPlacesCount: { type: Number, default: 0 },
     purchasedMaps: [
       {
         type: Schema.Types.ObjectId,

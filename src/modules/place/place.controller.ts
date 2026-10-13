@@ -61,9 +61,14 @@ const getAllPlaces = catchAsync(async (req: Request, res: Response) => {
 
   const result = await PlaceService.getAllPlaces(req.query, isPremium)
 
+  const visitedSet = new Set(
+    (user?.visitedPlaces || []).map((id: any) => id.toString())
+  )
+
   const updatedData = result.data.map((place: any) => {
     const mapId = place.map?._id || place.map
     const isLocked = !isPremium && mapId && lockedMapIds.includes(mapId.toString()) && place.type !== 'Business'
+    const isVisited = visitedSet.has(place._id.toString())
     if (isLocked) {
       // Keep teaser fields (name/media/category/location) for locked cards
       const { description, hours, privateInfo, ...teaser } = place
@@ -73,11 +78,13 @@ const getAllPlaces = catchAsync(async (req: Request, res: Response) => {
         hours: undefined,
         privateInfo: undefined,
         isLocked: true,
+        isVisited,
       }
     }
     return {
       ...place,
       isLocked: false,
+      isVisited,
     }
   })
 
@@ -124,6 +131,7 @@ const getPlaceById = catchAsync(async (req: Request, res: Response) => {
   const placeObj = typeof (result as any).toObject === 'function' ? (result as any).toObject() : result
   const isLocked = mapId && !accessibleMapIds.includes(mapId.toString()) && result.type !== 'Business'
   placeObj.isLocked = !isPremium && !!isLocked
+  placeObj.isVisited = !!(user && (user.visitedPlaces || []).some((vId: any) => vId.toString() === result._id.toString()))
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,

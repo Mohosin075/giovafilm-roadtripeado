@@ -19,6 +19,7 @@ import { MapRoutes } from '../modules/map/map.route'
 import { ContactRoutes } from '../modules/contact/contact.route'
 import { StatsRoutes } from '../modules/stats/stats.route'
 import { FavouriteRoutes } from '../modules/favourite/favourite.route'
+import { VisitedRoutes } from '../modules/visited/visited.route'
 import { StatusCodes } from 'http-status-codes'
 import { PaymentRoutes } from '../modules/payment/payment.route'
 import { PromoLinkRoutes } from '../modules/promo/promo.route'
@@ -46,6 +47,7 @@ const apiRoutes: { path: string; route: Router }[] = [
   { path: '/contact', route: ContactRoutes },
   { path: '/stats', route: StatsRoutes },
   { path: '/favourite', route: FavouriteRoutes },
+  { path: '/visited', route: VisitedRoutes },
   { path: '/payment', route: PaymentRoutes },
   { path: '/promo-links', route: PromoLinkRoutes },
 ]

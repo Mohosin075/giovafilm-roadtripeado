@@ -9,6 +9,8 @@ import { getCountryFromCoordinates } from '../../utils/reverseGeocoding'
 import { Business } from '../business/business.model'
 import { autoTranslateField } from '../../utils/autoTranslate'
 import { NotificationIntegration } from '../notification/notification.integration'
+import { Visited } from '../visited/visited.model'
+import { User } from '../user/user.model'
 
 const resolveTranslatableField = async (
   newVal: any,
@@ -855,6 +857,14 @@ const deletePlace = async (id: string): Promise<any | null> => {
         { session }
       )
     }
+
+    // Clean up visited references
+    await Visited.deleteMany({ $or: [{ place: id }, { business: id }] }).session(session)
+    await User.updateMany(
+      { visitedPlaces: id },
+      { $pull: { visitedPlaces: id }, $inc: { visitedPlacesCount: -1 } },
+      { session }
+    )
 
     await session.commitTransaction()
     return result

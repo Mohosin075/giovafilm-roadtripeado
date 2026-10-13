@@ -11,6 +11,16 @@ import { autoTranslateField } from '../../utils/autoTranslate'
 import { NotificationIntegration } from '../notification/notification.integration'
 import { Visited } from '../visited/visited.model'
 import { User } from '../user/user.model'
+import { USER_ROLES } from '../../enum/user'
+import { USER_LEVELS, calculateUserLevel } from '../../constants/userLevels.constant'
+import { NotificationServices } from '../notification/notification.service'
+import {
+  NotificationType,
+  NotificationCategory,
+  NotificationPriority,
+} from '../notification/notification.interface'
+import { IPaginationOptions } from '../../interfaces/pagination'
+import { paginationHelper } from '../../helpers/paginationHelper'
 
 const resolveTranslatableField = async (
   newVal: any,
@@ -382,6 +392,7 @@ const getAllPlaces = async (
     )
       .populate('category', 'name color icon status')
       .populate('map', 'name country status isPaid')
+      .populate('discoveredBy', 'name profile level')
       .lean()
 
     if (!hasGeo) {
@@ -603,7 +614,11 @@ const getAllPlaces = async (
 }
 
 const getPlaceById = async (id: string): Promise<any | null> => {
-  const result = await Place.findById(id).populate('category').populate('map').lean()
+  const result = await Place.findById(id)
+    .populate('category')
+    .populate('map')
+    .populate('discoveredBy', 'name profile level')
+    .lean()
   if (result) return result
 
   // Fallback to checking Business collection
@@ -876,6 +891,246 @@ const deletePlace = async (id: string): Promise<any | null> => {
   }
 }
 
+const recommendPlace = async (user: any, payload: any): Promise<IPlace> => {
+  const privilegedRoles = [USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.MAP_EDITOR]
+  const isPrivileged = privilegedRoles.includes(user.role)
+
+  const userId = user.authId || user._id || user.id
+  const dbUser = await User.findById(userId)
+  if (!dbUser) {
+    throw new ApiError(StatusCodes.UNAUTHORIZED, 'User not found')
+  }
+
+  // Users must reach Level 1 (Aventurero) to recommend spots (unless admin/editor)
+  if (!isPrivileged && (dbUser.level || 0) < 1) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      'You must reach Level 1 (Aventurero) to recommend new tourist spots. Continue exploring and reviewing places to level up!'
+    )
+  }
+
+  // Ensure spot is submitted as Pending
+  payload.status = 'Pending'
+  payload.discoveredBy = dbUser._id
+  payload.discoveredByName = dbUser.name || 'Anonymous Explorer'
+  payload.pointsAwarded = 0
+  payload.adminFeedback = ''
+
+  await processPlaceTranslations(payload)
+
+  // Auto-populate country if not provided
+  if (!payload.country && payload.location?.coordinates) {
+    const [lng, lat] = payload.location.coordinates
+    const country = await getCountryFromCoordinates(lat, lng)
+    if (country) {
+      payload.country = country
+    } else {
+      payload.country = 'Unknown'
+    }
+  }
+
+  const map = await Map.findById(payload.map)
+  if (!map) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')
+  }
+
+  const createdPlace = await Place.create(payload)
+  return createdPlace
+}
+
+const reviewRecommendedPlace = async (
+  id: string,
+  payload: {
+    status: 'Published' | 'Rejected'
+    adminFeedback?: string
+    pointsAwarded?: number
+  }
+): Promise<any> => {
+  const place = await Place.findById(id)
+  if (!place) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
+  }
+
+  if (place.status === 'Published' && payload.status === 'Published') {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Place is already published')
+  }
+
+  const session = await mongoose.startSession()
+  try {
+    session.startTransaction()
+
+    const points = payload.pointsAwarded !== undefined ? payload.pointsAwarded : 50
+
+    const updateData: any = {
+      status: payload.status,
+      adminFeedback: payload.adminFeedback || '',
+    }
+
+    if (payload.status === 'Published') {
+      updateData.pointsAwarded = points
+    }
+
+    const updatedPlace = await Place.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true, session }
+    )
+      .populate('category')
+      .populate('map')
+
+    if (!updatedPlace) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
+    }
+
+    let levelUnlockedData: { newLevel: number; levelName: string; oldLevel: number } | null = null
+
+    // If published, link to map and award points to discoveredBy
+    if (payload.status === 'Published') {
+      await Map.findByIdAndUpdate(
+        place.map,
+        {
+          $addToSet: { places: updatedPlace._id },
+          ...(updatedPlace.country ? { $set: { country: updatedPlace.country } } : {}),
+        },
+        { session }
+      )
+
+      if (place.discoveredBy) {
+        const contributor = await User.findById(place.discoveredBy).session(session)
+        if (contributor) {
+          const oldLevel = contributor.level || 0
+          const newPoints = (contributor.points || 0) + points
+          const newLevel = calculateUserLevel(newPoints, contributor.totalReviewsApproved || 0)
+
+          if (newLevel > oldLevel) {
+            const levelConfig = USER_LEVELS.find(l => l.level === newLevel)
+            levelUnlockedData = {
+              newLevel,
+              levelName: levelConfig?.name || `Nivel ${newLevel}`,
+              oldLevel,
+            }
+          }
+
+          await User.findByIdAndUpdate(
+            place.discoveredBy,
+            { $set: { points: newPoints, level: newLevel } },
+            { session }
+          )
+        }
+      }
+    }
+
+    await session.commitTransaction()
+
+    const placeName =
+      typeof updatedPlace.name === 'object' && updatedPlace.name !== null
+        ? (updatedPlace.name as any).es || (updatedPlace.name as any).en || 'Lugar'
+        : updatedPlace.name || 'Lugar'
+
+    if (payload.status === 'Published') {
+      if (place.discoveredBy) {
+        NotificationServices.createNotification({
+          userId: place.discoveredBy,
+          title: {
+            es: '¡Tu recomendación de lugar ha sido aprobada! 🌟',
+            en: 'Your recommended tourist spot has been approved! 🌟',
+          },
+          content: {
+            es: `¡Felicidades! Tu lugar "${placeName}" ha sido aprobado y publicado en el mapa. Has ganado ${points} puntos.`,
+            en: `Congratulations! Your spot "${placeName}" has been approved and published to the map. You earned ${points} points.`,
+          },
+          type: NotificationType.EARNED_REWARD,
+          category: NotificationCategory.ROADTRIPEADO,
+          priority: NotificationPriority.HIGH,
+          actionUrl: `/map?placeId=${updatedPlace._id}`,
+          actionText: {
+            es: 'Ver Lugar',
+            en: 'View Spot',
+          },
+          metadata: {
+            placeId: updatedPlace._id,
+            pointsAwarded: points,
+          },
+        }).catch(err => console.error('Error sending spot approval notification:', err))
+
+        if (levelUnlockedData) {
+          NotificationIntegration.onLevelUnlocked({
+            userId: place.discoveredBy,
+            newLevel: levelUnlockedData.newLevel,
+            levelName: levelUnlockedData.levelName,
+            oldLevel: levelUnlockedData.oldLevel,
+          }).catch(err => console.error('Error sending level unlocked notification:', err))
+        }
+      }
+
+      NotificationIntegration.onNewLocation(updatedPlace).catch(err =>
+        console.error('Failed to notify new location:', err),
+      )
+    } else if (payload.status === 'Rejected' && place.discoveredBy) {
+      NotificationServices.createNotification({
+        userId: place.discoveredBy,
+        title: {
+          es: 'Actualización sobre tu sugerencia de lugar',
+          en: 'Update on your suggested spot',
+        },
+        content: {
+          es: `Tu sugerencia para "${placeName}" no pudo ser aprobada en este momento.${payload.adminFeedback ? ` Motivo: ${payload.adminFeedback}` : ''}`,
+          en: `Your suggestion for "${placeName}" could not be approved at this time.${payload.adminFeedback ? ` Reason: ${payload.adminFeedback}` : ''}`,
+        },
+        type: NotificationType.SYSTEM_ALERT,
+        category: NotificationCategory.ROADTRIPEADO,
+        priority: NotificationPriority.MEDIUM,
+        metadata: {
+          placeId: updatedPlace._id,
+          adminFeedback: payload.adminFeedback,
+        },
+      }).catch(err => console.error('Error sending spot rejection notification:', err))
+    }
+
+    return updatedPlace
+  } catch (error) {
+    await session.abortTransaction()
+    throw error
+  } finally {
+    session.endSession()
+  }
+}
+
+const getMyRecommendations = async (
+  userId: string,
+  paginationOptions: IPaginationOptions,
+  statusFilter?: string
+) => {
+  const { page, limit, skip, sortBy, sortOrder } =
+    paginationHelper.calculatePagination(paginationOptions)
+
+  const filter: any = { discoveredBy: userId }
+  if (statusFilter && statusFilter !== 'all') {
+    filter.status = statusFilter
+  }
+
+  const [data, total] = await Promise.all([
+    Place.find(filter)
+      .populate('category')
+      .populate('map', 'name country')
+      .sort({ [sortBy || 'createdAt']: sortOrder || -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Place.countDocuments(filter),
+  ])
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+    data,
+  }
+}
+
 export const PlaceService = {
   createPlace,
   getAllPlaces,
@@ -883,4 +1138,7 @@ export const PlaceService = {
   incrementOpenCount,
   updatePlace,
   deletePlace,
+  recommendPlace,
+  reviewRecommendedPlace,
+  getMyRecommendations,
 }

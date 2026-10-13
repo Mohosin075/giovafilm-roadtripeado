@@ -34,7 +34,11 @@ export interface IPlace {
   difficulty?: TranslatableString
   hikeTime?: TranslatableString
   atmosphere?: TranslatableString
-  status: 'Draft' | 'Published'
+  status: 'Draft' | 'Published' | 'Pending' | 'Rejected'
+  discoveredBy?: Types.ObjectId
+  discoveredByName?: string
+  adminFeedback?: string
+  pointsAwarded?: number
   rating?: number
   totalReview?: number
   openCount: number

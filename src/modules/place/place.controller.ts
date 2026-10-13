@@ -10,6 +10,8 @@ import { getCoordinatesFromUrl } from '../../utils/mapHelper'
 import { USER_ROLES } from '../../enum/user'
 import { toStringArray } from '../../utils/media'
 import { localizeDocument } from '../../helpers/localize'
+import pick from '../../shared/pick'
+import { JwtPayload } from 'jsonwebtoken'
 
 const placeFields = ['name', 'description', 'access', 'entryCost', 'hikeTime', 'atmosphere', 'accessibility.notes', 'recommendations.tips', 'category.name']
 
@@ -227,6 +229,72 @@ const extractCoordinates = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const recommendPlace = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user as JwtPayload
+  if (!user) {
+    throw new ApiError(StatusCodes.UNAUTHORIZED, 'Authentication required')
+  }
+
+  const uploadedImages = toStringArray(req.body.images)
+  const uploadedDocs = toStringArray(req.body.documents)
+  if (uploadedImages.length || req.body.media) {
+    req.body.media = [
+      ...toStringArray(req.body.media),
+      ...uploadedImages,
+    ]
+  }
+  if (uploadedDocs.length || req.body.menuImages) {
+    req.body.menuImages = [
+      ...toStringArray(req.body.menuImages),
+      ...uploadedDocs,
+    ]
+  }
+
+  const result = await PlaceService.recommendPlace(user, req.body)
+  sendResponse(res, {
+    statusCode: StatusCodes.CREATED,
+    success: true,
+    message: 'Tourist spot recommended successfully. It will be reviewed by our team.',
+    data: localizeDocument(result, req.lang, placeFields),
+  })
+})
+
+const reviewRecommendedPlace = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params
+  const result = await PlaceService.reviewRecommendedPlace(id, req.body)
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: `Tourist spot recommendation ${req.body.status.toLowerCase()} successfully`,
+    data: localizeDocument(result, req.lang, placeFields),
+  })
+})
+
+const getMyRecommendations = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user as JwtPayload
+  if (!user) {
+    throw new ApiError(StatusCodes.UNAUTHORIZED, 'Authentication required')
+  }
+
+  const paginationOptions = pick(req.query, ['page', 'limit', 'sortBy', 'sortOrder'])
+  const status = typeof req.query.status === 'string' ? req.query.status : undefined
+
+  const userId = user.authId || (user as any)._id || (user as any).id
+  const result = await PlaceService.getMyRecommendations(
+    userId,
+    paginationOptions,
+    status
+  )
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'User recommendations retrieved successfully',
+    meta: result.meta,
+    data: localizeDocument(result.data, req.lang, placeFields),
+  })
+})
+
 export const PlaceController = {
   createPlace,
   getAllPlaces,
@@ -235,4 +303,7 @@ export const PlaceController = {
   deletePlace,
   incrementOpenCount,
   extractCoordinates,
+  recommendPlace,
+  reviewRecommendedPlace,
+  getMyRecommendations,
 }

@@ -1,0 +1,6 @@
+
+2. Notification Center: Users will have a dedicated section to view updates related to their account and Roadtripeado. This includes new offers, approved reviews, new locations, earned rewards, unlocked levels, new maps, and other important updates tailored to the user's interests, ensuring notifications remain relevant to each individual.
+
+3. Add Tourist Spots: Users can recommend new tourist spots to add to Roadtripeado and earn extra points. Each submitted location (including descriptions, photos, addresses, and standard details) will undergo a review and approval process by the team before appearing publicly on the map. This feature may be restricted to users who have reached a certain level. Additionally, the location's details page will display "Discovered by Giovanni D." to credit the original contributor, and the user's profile will list the places they have recommended or added.
+
+4. Visited Places: Users can mark any location as "Visited." Doing so changes the location icon's white border to gold, allowing for quick visual identification of places already visited: the user's profile will also display a "Visited 39 places" counter.

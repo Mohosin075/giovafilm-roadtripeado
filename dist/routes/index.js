@@ -23,6 +23,7 @@ const map_route_1 = require("../modules/map/map.route");
 const contact_route_1 = require("../modules/contact/contact.route");
 const stats_route_1 = require("../modules/stats/stats.route");
 const favourite_route_1 = require("../modules/favourite/favourite.route");
+const visited_route_1 = require("../modules/visited/visited.route");
 const http_status_codes_1 = require("http-status-codes");
 const payment_route_1 = require("../modules/payment/payment.route");
 const promo_route_1 = require("../modules/promo/promo.route");
@@ -47,6 +48,7 @@ const apiRoutes = [
     { path: '/contact', route: contact_route_1.ContactRoutes },
     { path: '/stats', route: stats_route_1.StatsRoutes },
     { path: '/favourite', route: favourite_route_1.FavouriteRoutes },
+    { path: '/visited', route: visited_route_1.VisitedRoutes },
     { path: '/payment', route: payment_route_1.PaymentRoutes },
     { path: '/promo-links', route: promo_route_1.PromoLinkRoutes },
 ];

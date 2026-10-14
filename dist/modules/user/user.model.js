@@ -97,6 +97,13 @@ const UserSchema = new mongoose_1.Schema({
             ref: 'Business',
         },
     ],
+    visitedPlaces: [
+        {
+            type: mongoose_1.Schema.Types.ObjectId,
+            ref: 'Place',
+        },
+    ],
+    visitedPlacesCount: { type: Number, default: 0 },
     purchasedMaps: [
         {
             type: mongoose_1.Schema.Types.ObjectId,

@@ -48,8 +48,25 @@ const PlaceSchema = new mongoose_1.Schema({
     atmosphere: { type: mongoose_1.Schema.Types.Mixed },
     status: {
         type: String,
-        enum: ['Draft', 'Published'],
+        enum: ['Draft', 'Published', 'Pending', 'Rejected'],
         default: 'Draft',
+    },
+    discoveredBy: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null,
+    },
+    discoveredByName: {
+        type: String,
+        default: null,
+    },
+    adminFeedback: {
+        type: String,
+        default: '',
+    },
+    pointsAwarded: {
+        type: Number,
+        default: 0,
     },
     rating: { type: Number, default: 0 },
     totalReview: { type: Number, default: 0 },
@@ -67,6 +84,7 @@ PlaceSchema.index({ country: 1 }); // country filter
 PlaceSchema.index({ createdAt: -1 }); // default sort
 PlaceSchema.index({ status: 1, createdAt: -1 });
 PlaceSchema.index({ type: 1, status: 1 });
+PlaceSchema.index({ discoveredBy: 1 });
 PlaceSchema.index(// text search on searchable fields
 { name: 'text', description: 'text', address: 'text', country: 'text' }, { weights: { name: 10, address: 5, description: 2, country: 1 } });
 exports.Place = (0, mongoose_1.model)('Place', PlaceSchema);

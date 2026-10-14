@@ -13,6 +13,13 @@ const reverseGeocoding_1 = require("../../utils/reverseGeocoding");
 const business_model_1 = require("../business/business.model");
 const autoTranslate_1 = require("../../utils/autoTranslate");
 const notification_integration_1 = require("../notification/notification.integration");
+const visited_model_1 = require("../visited/visited.model");
+const user_model_1 = require("../user/user.model");
+const user_1 = require("../../enum/user");
+const userLevels_constant_1 = require("../../constants/userLevels.constant");
+const notification_service_1 = require("../notification/notification.service");
+const notification_interface_1 = require("../notification/notification.interface");
+const paginationHelper_1 = require("../../helpers/paginationHelper");
 const resolveTranslatableField = async (newVal, existingVal) => {
     if (newVal === undefined || newVal === null)
         return newVal;
@@ -305,6 +312,7 @@ const getAllPlaces = async (query, isAdminOrEditor = false) => {
             : match)
             .populate('category', 'name color icon status')
             .populate('map', 'name country status isPaid')
+            .populate('discoveredBy', 'name profile level')
             .lean();
         if (!hasGeo) {
             placeQuery = placeQuery.sort(sort);
@@ -517,7 +525,11 @@ const getAllPlaces = async (query, isAdminOrEditor = false) => {
 };
 const getPlaceById = async (id) => {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
-    const result = await place_model_1.Place.findById(id).populate('category').populate('map').lean();
+    const result = await place_model_1.Place.findById(id)
+        .populate('category')
+        .populate('map')
+        .populate('discoveredBy', 'name profile level')
+        .lean();
     if (result)
         return result;
     // Fallback to checking Business collection
@@ -737,6 +749,9 @@ const deletePlace = async (id) => {
         if (result && result.map) {
             await map_model_1.Map.findByIdAndUpdate(result.map, { $pull: { places: result._id } }, { session });
         }
+        // Clean up visited references
+        await visited_model_1.Visited.deleteMany({ $or: [{ place: id }, { business: id }] }).session(session);
+        await user_model_1.User.updateMany({ visitedPlaces: id }, { $pull: { visitedPlaces: id }, $inc: { visitedPlacesCount: -1 } }, { session });
         await session.commitTransaction();
         return result;
     }
@@ -748,6 +763,193 @@ const deletePlace = async (id) => {
         session.endSession();
     }
 };
+const recommendPlace = async (user, payload) => {
+    var _a;
+    const privilegedRoles = [user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.MAP_EDITOR];
+    const isPrivileged = privilegedRoles.includes(user.role);
+    const userId = user.authId || user._id || user.id;
+    const dbUser = await user_model_1.User.findById(userId);
+    if (!dbUser) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, 'User not found');
+    }
+    // Users must reach Level 1 (Aventurero) to recommend spots (unless admin/editor)
+    if (!isPrivileged && (dbUser.level || 0) < 1) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'You must reach Level 1 (Aventurero) to recommend new tourist spots. Continue exploring and reviewing places to level up!');
+    }
+    // Ensure spot is submitted as Pending
+    payload.status = 'Pending';
+    payload.discoveredBy = dbUser._id;
+    payload.discoveredByName = dbUser.name || 'Anonymous Explorer';
+    payload.pointsAwarded = 0;
+    payload.adminFeedback = '';
+    if (!payload.description) {
+        payload.description = payload.name || 'Lugar recomendado';
+    }
+    await processPlaceTranslations(payload);
+    // Auto-populate country if not provided
+    if (!payload.country && ((_a = payload.location) === null || _a === void 0 ? void 0 : _a.coordinates)) {
+        const [lng, lat] = payload.location.coordinates;
+        const country = await (0, reverseGeocoding_1.getCountryFromCoordinates)(lat, lng);
+        if (country) {
+            payload.country = country;
+        }
+        else {
+            payload.country = 'Unknown';
+        }
+    }
+    const map = await map_model_1.Map.findById(payload.map);
+    if (!map) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Map not found');
+    }
+    const createdPlace = await place_model_1.Place.create(payload);
+    return createdPlace;
+};
+const reviewRecommendedPlace = async (id, payload) => {
+    const place = await place_model_1.Place.findById(id);
+    if (!place) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Place not found');
+    }
+    if (place.status === 'Published' && payload.status === 'Published') {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Place is already published');
+    }
+    const session = await mongoose_1.default.startSession();
+    try {
+        session.startTransaction();
+        const points = payload.pointsAwarded !== undefined ? payload.pointsAwarded : 50;
+        const updateData = {
+            status: payload.status,
+            adminFeedback: payload.adminFeedback || '',
+        };
+        if (payload.status === 'Published') {
+            updateData.pointsAwarded = points;
+        }
+        const updatedPlace = await place_model_1.Place.findByIdAndUpdate(id, { $set: updateData }, { new: true, session })
+            .populate('category')
+            .populate('map');
+        if (!updatedPlace) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Place not found');
+        }
+        let levelUnlockedData = null;
+        // If published, link to map and award points to discoveredBy
+        if (payload.status === 'Published') {
+            await map_model_1.Map.findByIdAndUpdate(place.map, {
+                $addToSet: { places: updatedPlace._id },
+                ...(updatedPlace.country ? { $set: { country: updatedPlace.country } } : {}),
+            }, { session });
+            if (place.discoveredBy) {
+                const contributor = await user_model_1.User.findById(place.discoveredBy).session(session);
+                if (contributor) {
+                    const oldLevel = contributor.level || 0;
+                    const newPoints = (contributor.points || 0) + points;
+                    const newLevel = (0, userLevels_constant_1.calculateUserLevel)(newPoints, contributor.totalReviewsApproved || 0);
+                    if (newLevel > oldLevel) {
+                        const levelConfig = userLevels_constant_1.USER_LEVELS.find(l => l.level === newLevel);
+                        levelUnlockedData = {
+                            newLevel,
+                            levelName: (levelConfig === null || levelConfig === void 0 ? void 0 : levelConfig.name) || `Nivel ${newLevel}`,
+                            oldLevel,
+                        };
+                    }
+                    await user_model_1.User.findByIdAndUpdate(place.discoveredBy, { $set: { points: newPoints, level: newLevel } }, { session });
+                }
+            }
+        }
+        await session.commitTransaction();
+        const placeName = typeof updatedPlace.name === 'object' && updatedPlace.name !== null
+            ? updatedPlace.name.es || updatedPlace.name.en || 'Lugar'
+            : updatedPlace.name || 'Lugar';
+        if (payload.status === 'Published') {
+            if (place.discoveredBy) {
+                notification_service_1.NotificationServices.createNotification({
+                    userId: place.discoveredBy,
+                    title: {
+                        es: '¡Tu recomendación de lugar ha sido aprobada! 🌟',
+                        en: 'Your recommended tourist spot has been approved! 🌟',
+                    },
+                    content: {
+                        es: `¡Felicidades! Tu lugar "${placeName}" ha sido aprobado y publicado en el mapa. Has ganado ${points} puntos.`,
+                        en: `Congratulations! Your spot "${placeName}" has been approved and published to the map. You earned ${points} points.`,
+                    },
+                    type: notification_interface_1.NotificationType.EARNED_REWARD,
+                    category: notification_interface_1.NotificationCategory.ROADTRIPEADO,
+                    priority: notification_interface_1.NotificationPriority.HIGH,
+                    actionUrl: `/map?placeId=${updatedPlace._id}`,
+                    actionText: {
+                        es: 'Ver Lugar',
+                        en: 'View Spot',
+                    },
+                    metadata: {
+                        placeId: updatedPlace._id,
+                        pointsAwarded: points,
+                    },
+                }).catch(err => console.error('Error sending spot approval notification:', err));
+                if (levelUnlockedData) {
+                    notification_integration_1.NotificationIntegration.onLevelUnlocked({
+                        userId: place.discoveredBy,
+                        newLevel: levelUnlockedData.newLevel,
+                        levelName: levelUnlockedData.levelName,
+                        oldLevel: levelUnlockedData.oldLevel,
+                    }).catch(err => console.error('Error sending level unlocked notification:', err));
+                }
+            }
+            notification_integration_1.NotificationIntegration.onNewLocation(updatedPlace).catch(err => console.error('Failed to notify new location:', err));
+        }
+        else if (payload.status === 'Rejected' && place.discoveredBy) {
+            notification_service_1.NotificationServices.createNotification({
+                userId: place.discoveredBy,
+                title: {
+                    es: 'Actualización sobre tu sugerencia de lugar',
+                    en: 'Update on your suggested spot',
+                },
+                content: {
+                    es: `Tu sugerencia para "${placeName}" no pudo ser aprobada en este momento.${payload.adminFeedback ? ` Motivo: ${payload.adminFeedback}` : ''}`,
+                    en: `Your suggestion for "${placeName}" could not be approved at this time.${payload.adminFeedback ? ` Reason: ${payload.adminFeedback}` : ''}`,
+                },
+                type: notification_interface_1.NotificationType.SYSTEM_ALERT,
+                category: notification_interface_1.NotificationCategory.ROADTRIPEADO,
+                priority: notification_interface_1.NotificationPriority.MEDIUM,
+                metadata: {
+                    placeId: updatedPlace._id,
+                    adminFeedback: payload.adminFeedback,
+                },
+            }).catch(err => console.error('Error sending spot rejection notification:', err));
+        }
+        return updatedPlace;
+    }
+    catch (error) {
+        await session.abortTransaction();
+        throw error;
+    }
+    finally {
+        session.endSession();
+    }
+};
+const getMyRecommendations = async (userId, paginationOptions, statusFilter) => {
+    const { page, limit, skip, sortBy, sortOrder } = paginationHelper_1.paginationHelper.calculatePagination(paginationOptions);
+    const filter = { discoveredBy: userId };
+    if (statusFilter && statusFilter !== 'all') {
+        filter.status = statusFilter;
+    }
+    const [data, total] = await Promise.all([
+        place_model_1.Place.find(filter)
+            .populate('category')
+            .populate('map', 'name country')
+            .sort({ [sortBy || 'createdAt']: sortOrder || -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+        place_model_1.Place.countDocuments(filter),
+    ]);
+    return {
+        meta: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+        },
+        data,
+    };
+};
 exports.PlaceService = {
     createPlace,
     getAllPlaces,
@@ -755,4 +957,7 @@ exports.PlaceService = {
     incrementOpenCount,
     updatePlace,
     deletePlace,
+    recommendPlace,
+    reviewRecommendedPlace,
+    getMyRecommendations,
 };

@@ -15,6 +15,7 @@ const mapHelper_1 = require("../../utils/mapHelper");
 const user_1 = require("../../enum/user");
 const media_1 = require("../../utils/media");
 const localize_1 = require("../../helpers/localize");
+const pick_1 = __importDefault(require("../../shared/pick"));
 const placeFields = ['name', 'description', 'access', 'entryCost', 'hikeTime', 'atmosphere', 'accessibility.notes', 'recommendations.tips', 'category.name'];
 const createPlace = (0, catchAsync_1.default)(async (req, res) => {
     const user = await (0, mapAccessHelper_1.getUserFromToken)(req.headers.authorization);
@@ -56,10 +57,12 @@ const getAllPlaces = (0, catchAsync_1.default)(async (req, res) => {
     const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id));
     const isPremium = !!(user && [user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.MAP_EDITOR].includes(user.role));
     const result = await place_service_1.PlaceService.getAllPlaces(req.query, isPremium);
+    const visitedSet = new Set(((user === null || user === void 0 ? void 0 : user.visitedPlaces) || []).map((id) => id.toString()));
     const updatedData = result.data.map((place) => {
         var _a;
         const mapId = ((_a = place.map) === null || _a === void 0 ? void 0 : _a._id) || place.map;
         const isLocked = !isPremium && mapId && lockedMapIds.includes(mapId.toString()) && place.type !== 'Business';
+        const isVisited = visitedSet.has(place._id.toString());
         if (isLocked) {
             // Keep teaser fields (name/media/category/location) for locked cards
             const { description, hours, privateInfo, ...teaser } = place;
@@ -69,11 +72,13 @@ const getAllPlaces = (0, catchAsync_1.default)(async (req, res) => {
                 hours: undefined,
                 privateInfo: undefined,
                 isLocked: true,
+                isVisited,
             };
         }
         return {
             ...place,
             isLocked: false,
+            isVisited,
         };
     });
     (0, sendResponse_1.default)(res, {
@@ -110,6 +115,7 @@ const getPlaceById = (0, catchAsync_1.default)(async (req, res) => {
     const placeObj = typeof result.toObject === 'function' ? result.toObject() : result;
     const isLocked = mapId && !accessibleMapIds.includes(mapId.toString()) && result.type !== 'Business';
     placeObj.isLocked = !isPremium && !!isLocked;
+    placeObj.isVisited = !!(user && (user.visitedPlaces || []).some((vId) => vId.toString() === result._id.toString()));
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -191,6 +197,60 @@ const extractCoordinates = (0, catchAsync_1.default)(async (req, res) => {
         data: coordinates,
     });
 });
+const recommendPlace = (0, catchAsync_1.default)(async (req, res) => {
+    const user = req.user;
+    if (!user) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, 'Authentication required');
+    }
+    const uploadedImages = (0, media_1.toStringArray)(req.body.images);
+    const uploadedDocs = (0, media_1.toStringArray)(req.body.documents);
+    if (uploadedImages.length || req.body.media) {
+        req.body.media = [
+            ...(0, media_1.toStringArray)(req.body.media),
+            ...uploadedImages,
+        ];
+    }
+    if (uploadedDocs.length || req.body.menuImages) {
+        req.body.menuImages = [
+            ...(0, media_1.toStringArray)(req.body.menuImages),
+            ...uploadedDocs,
+        ];
+    }
+    const result = await place_service_1.PlaceService.recommendPlace(user, req.body);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.CREATED,
+        success: true,
+        message: 'Tourist spot recommended successfully. It will be reviewed by our team.',
+        data: (0, localize_1.localizeDocument)(result, req.lang, placeFields),
+    });
+});
+const reviewRecommendedPlace = (0, catchAsync_1.default)(async (req, res) => {
+    const { id } = req.params;
+    const result = await place_service_1.PlaceService.reviewRecommendedPlace(id, req.body);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: `Tourist spot recommendation ${req.body.status.toLowerCase()} successfully`,
+        data: (0, localize_1.localizeDocument)(result, req.lang, placeFields),
+    });
+});
+const getMyRecommendations = (0, catchAsync_1.default)(async (req, res) => {
+    const user = req.user;
+    if (!user) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, 'Authentication required');
+    }
+    const paginationOptions = (0, pick_1.default)(req.query, ['page', 'limit', 'sortBy', 'sortOrder']);
+    const status = typeof req.query.status === 'string' ? req.query.status : undefined;
+    const userId = user.authId || user._id || user.id;
+    const result = await place_service_1.PlaceService.getMyRecommendations(userId, paginationOptions, status);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'User recommendations retrieved successfully',
+        meta: result.meta,
+        data: (0, localize_1.localizeDocument)(result.data, req.lang, placeFields),
+    });
+});
 exports.PlaceController = {
     createPlace,
     getAllPlaces,
@@ -199,4 +259,7 @@ exports.PlaceController = {
     deletePlace,
     incrementOpenCount,
     extractCoordinates,
+    recommendPlace,
+    reviewRecommendedPlace,
+    getMyRecommendations,
 };

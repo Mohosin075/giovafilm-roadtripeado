@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updatePlaceZodSchema = exports.createPlaceZodSchema = void 0;
+exports.reviewPlaceZodSchema = exports.recommendPlaceZodSchema = exports.updatePlaceZodSchema = exports.createPlaceZodSchema = void 0;
 const zod_1 = require("zod");
 const translatableSchema = zod_1.z.union([
     zod_1.z.string(),
@@ -53,9 +53,9 @@ exports.createPlaceZodSchema = zod_1.z.object({
         difficulty: translatableSchema.optional(),
         hikeTime: translatableSchema.optional(),
         atmosphere: translatableSchema.optional(),
-        status: zod_1.z.enum(['Draft', 'Published']).default('Draft'),
-        images: zod_1.z.array(zod_1.z.string()).optional(),
-        documents: zod_1.z.array(zod_1.z.string()).optional(),
+        status: zod_1.z.enum(['Draft', 'Published', 'Pending', 'Rejected']).default('Draft'),
+        images: zod_1.z.union([zod_1.z.string(), zod_1.z.array(zod_1.z.string())]).optional(),
+        documents: zod_1.z.union([zod_1.z.string(), zod_1.z.array(zod_1.z.string())]).optional(),
     }),
 });
 exports.updatePlaceZodSchema = zod_1.z.object({
@@ -104,8 +104,64 @@ exports.updatePlaceZodSchema = zod_1.z.object({
         difficulty: translatableSchema.optional(),
         hikeTime: translatableSchema.optional(),
         atmosphere: translatableSchema.optional(),
-        status: zod_1.z.enum(['Draft', 'Published']).optional(),
-        images: zod_1.z.array(zod_1.z.string()).optional(),
-        documents: zod_1.z.array(zod_1.z.string()).optional(),
+        status: zod_1.z.enum(['Draft', 'Published', 'Pending', 'Rejected']).optional(),
+        adminFeedback: zod_1.z.string().optional(),
+        images: zod_1.z.union([zod_1.z.string(), zod_1.z.array(zod_1.z.string())]).optional(),
+        documents: zod_1.z.union([zod_1.z.string(), zod_1.z.array(zod_1.z.string())]).optional(),
+    }),
+});
+exports.recommendPlaceZodSchema = zod_1.z.object({
+    body: zod_1.z.object({
+        name: translatableSchema,
+        map: zod_1.z.string({ required_error: 'Map ID is required' }),
+        category: zod_1.z.string({ required_error: 'Category ID is required' }),
+        type: zod_1.z.enum(['Business', 'Regular']).optional(),
+        country: zod_1.z.string().optional(),
+        description: translatableSchema.optional(),
+        media: zod_1.z.array(zod_1.z.string()).optional(),
+        menuImages: zod_1.z.array(zod_1.z.string()).optional(),
+        address: zod_1.z.string({ required_error: 'Address is required' }),
+        location: zod_1.z.object({
+            type: zod_1.z.literal('Point').default('Point'),
+            coordinates: zod_1.z
+                .array(zod_1.z.number())
+                .length(2, 'Coordinates must have [longitude, latitude]')
+                .nonempty(),
+        }),
+        access: translatableSchema.optional(),
+        accessibility: zod_1.z
+            .object({
+            features: zod_1.z.array(zod_1.z.string()).optional(),
+            notes: translatableSchema.optional(),
+        })
+            .optional(),
+        recommendations: zod_1.z
+            .object({
+            tips: translatableSchema.optional(),
+        })
+            .optional(),
+        services: zod_1.z.array(zod_1.z.string()).optional(),
+        schedules: zod_1.z.string().optional(),
+        phone: zod_1.z.string().optional(),
+        website: zod_1.z.string().optional(),
+        instagram: zod_1.z.string().optional(),
+        entryCost: translatableSchema.optional(),
+        difficulty: translatableSchema.optional(),
+        hikeTime: translatableSchema.optional(),
+        atmosphere: translatableSchema.optional(),
+        images: zod_1.z.union([zod_1.z.string(), zod_1.z.array(zod_1.z.string())]).optional(),
+        documents: zod_1.z.union([zod_1.z.string(), zod_1.z.array(zod_1.z.string())]).optional(),
+    }),
+});
+exports.reviewPlaceZodSchema = zod_1.z.object({
+    params: zod_1.z.object({
+        id: zod_1.z.string({ required_error: 'Place ID is required' }),
+    }),
+    body: zod_1.z.object({
+        status: zod_1.z.enum(['Published', 'Rejected'], {
+            required_error: 'Status must be Published or Rejected',
+        }),
+        adminFeedback: zod_1.z.string().optional(),
+        pointsAwarded: zod_1.z.number().min(0).optional(),
     }),
 });

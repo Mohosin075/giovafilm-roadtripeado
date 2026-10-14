@@ -141,12 +141,22 @@ const getDiscoveryData = (0, catchAsync_1.default)(async (req, res) => {
     const lockedMapIds = paidMapIds.filter(id => !accessibleMapIds.includes(id));
     const isAdminOrEditor = !!(user && (user.role === 'super_admin' || user.role === 'admin' || user.role === 'map_editor'));
     const result = await map_service_1.MapService.getDiscoveryData(req.query, lockedMapIds, isAdminOrEditor, targetMap);
+    const visitedSet = new Set(((user === null || user === void 0 ? void 0 : user.visitedPlaces) || []).map((id) => id.toString()));
+    const itemsWithVisited = Array.isArray(result)
+        ? result.map((item) => {
+            var _a;
+            return ({
+                ...item,
+                isVisited: visitedSet.has((_a = item._id) === null || _a === void 0 ? void 0 : _a.toString()),
+            });
+        })
+        : result;
     const discoveryFields = ['name', 'description', 'access', 'entryCost', 'hikeTime', 'atmosphere', 'accessibility.notes', 'recommendations.tips', 'category.name'];
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
         message: 'Discovery data retrieved successfully',
-        data: (0, localize_1.localizeDocument)(result, req.lang, discoveryFields),
+        data: (0, localize_1.localizeDocument)(itemsWithVisited, req.lang, discoveryFields),
     });
 });
 exports.MapController = {

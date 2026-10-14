@@ -916,6 +916,10 @@ const recommendPlace = async (user: any, payload: any): Promise<IPlace> => {
   payload.pointsAwarded = 0
   payload.adminFeedback = ''
 
+  if (!payload.description) {
+    payload.description = payload.name || 'Lugar recomendado'
+  }
+
   await processPlaceTranslations(payload)
 
   // Auto-populate country if not provided

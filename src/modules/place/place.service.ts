@@ -972,6 +972,7 @@ const reviewRecommendedPlace = async (
 
     if (payload.status === 'Published') {
       updateData.pointsAwarded = points
+      updateData.isApproved = true
     }
 
     const updatedPlace = await Place.findByIdAndUpdate(
@@ -1110,7 +1111,19 @@ const getMyRecommendations = async (
 
   const filter: any = { discoveredBy: userId }
   if (statusFilter && statusFilter !== 'all') {
-    filter.status = statusFilter
+    if (statusFilter === 'Published' || statusFilter === 'Approved') {
+      filter.$or = [
+        { status: 'Published' },
+        { isApproved: true },
+        { pointsAwarded: { $gt: 0 } },
+      ]
+    } else if (statusFilter === 'Pending') {
+      filter.status = 'Pending'
+      filter.isApproved = { $ne: true }
+      filter.pointsAwarded = { $lte: 0 }
+    } else {
+      filter.status = statusFilter
+    }
   }
 
   const [data, total] = await Promise.all([

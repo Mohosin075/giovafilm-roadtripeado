@@ -822,6 +822,7 @@ const reviewRecommendedPlace = async (id, payload) => {
         };
         if (payload.status === 'Published') {
             updateData.pointsAwarded = points;
+            updateData.isApproved = true;
         }
         const updatedPlace = await place_model_1.Place.findByIdAndUpdate(id, { $set: updateData }, { new: true, session })
             .populate('category')
@@ -928,7 +929,21 @@ const getMyRecommendations = async (userId, paginationOptions, statusFilter) => 
     const { page, limit, skip, sortBy, sortOrder } = paginationHelper_1.paginationHelper.calculatePagination(paginationOptions);
     const filter = { discoveredBy: userId };
     if (statusFilter && statusFilter !== 'all') {
-        filter.status = statusFilter;
+        if (statusFilter === 'Published' || statusFilter === 'Approved') {
+            filter.$or = [
+                { status: 'Published' },
+                { isApproved: true },
+                { pointsAwarded: { $gt: 0 } },
+            ];
+        }
+        else if (statusFilter === 'Pending') {
+            filter.status = 'Pending';
+            filter.isApproved = { $ne: true };
+            filter.pointsAwarded = { $lte: 0 };
+        }
+        else {
+            filter.status = statusFilter;
+        }
     }
     const [data, total] = await Promise.all([
         place_model_1.Place.find(filter)

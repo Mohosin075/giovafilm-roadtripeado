@@ -39,6 +39,7 @@ export interface IPlace {
   discoveredByName?: string
   adminFeedback?: string
   pointsAwarded?: number
+  isApproved?: boolean
   rating?: number
   totalReview?: number
   openCount: number

@@ -353,6 +353,12 @@ const getAllPlaces = async (
     match.status = query.status.includes(',')
       ? { $in: query.status.split(',') }
       : query.status
+  } else if (
+    typeof query.excludeStatus === 'string' &&
+    query.excludeStatus.trim()
+  ) {
+    const excluded = query.excludeStatus.trim().split(',').map(s => s.trim())
+    match.status = excluded.length > 1 ? { $nin: excluded } : { $ne: excluded[0] }
   }
 
   if (searchTerm) {

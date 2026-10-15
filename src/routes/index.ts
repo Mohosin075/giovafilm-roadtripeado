@@ -23,6 +23,8 @@ import { VisitedRoutes } from '../modules/visited/visited.route'
 import { StatusCodes } from 'http-status-codes'
 import { PaymentRoutes } from '../modules/payment/payment.route'
 import { PromoLinkRoutes } from '../modules/promo/promo.route'
+import { RoutePlanRoutes } from '../modules/route-plan/route-plan.route'
+
 
 const router = express.Router()
 
@@ -50,6 +52,8 @@ const apiRoutes: { path: string; route: Router }[] = [
   { path: '/visited', route: VisitedRoutes },
   { path: '/payment', route: PaymentRoutes },
   { path: '/promo-links', route: PromoLinkRoutes },
+  { path: '/route-plan', route: RoutePlanRoutes },
+  { path: '/route-planner', route: RoutePlanRoutes },
 ]
 
 apiRoutes.forEach(route => {

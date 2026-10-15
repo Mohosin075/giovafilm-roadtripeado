@@ -60,7 +60,33 @@ export interface ISearchMatchItem {
   location?: string;
 }
 
+export interface IUserActivityItem {
+  id: string;
+  type: 'visit' | 'review' | 'redemption' | 'registration';
+  userId?: string;
+  userName: string;
+  userEmail?: string;
+  userProfile?: string;
+  title: string;
+  subtitle?: string;
+  targetId?: string;
+  targetType?: 'place' | 'business' | 'offer' | 'map';
+  timestamp: Date;
+}
+
+export interface IUserActivityStats {
+  activeUsersToday: number;
+  activeUsersThisWeek: number;
+  activeUsersThisMonth: number;
+  totalRegisteredUsers: number;
+  totalPlacesVisited: number;
+  totalOffersRedeemed: number;
+  totalReviews: number;
+  recentActivities: IUserActivityItem[];
+}
+
 export interface IReportsData {
   salesAndTaxes: ISalesAndTaxesStats;
   usage: IUsageStats;
+  userActivity?: IUserActivityStats;
 }

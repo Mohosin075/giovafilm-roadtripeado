@@ -10,6 +10,7 @@ const business_model_1 = require("./business.model");
 const offer_model_1 = require("../offer/offer.model");
 const offerRedemption_model_1 = require("../offer/offerRedemption.model");
 const usageView_model_1 = require("../stats/usageView.model");
+const visited_model_1 = require("../visited/visited.model");
 const dateHelper_1 = require("../../helpers/dateHelper");
 const QueryBuilder_1 = __importDefault(require("../../builder/QueryBuilder"));
 const business_constants_1 = require("./business.constants");
@@ -176,27 +177,46 @@ const getMyBusinesses = async (userId, query) => {
                 offersByBusiness.set(bId, []);
             offersByBusiness.get(bId).push(off);
         }
-        // Get views for each business
+        // Get views and visits for each business
         const viewsByBusiness = new Map();
-        if (dateRange) {
-            const viewAgg = await usageView_model_1.UsageView.aggregate([
-                {
-                    $match: {
-                        type: 'business',
-                        entityId: { $in: businessIds.map(String) },
-                        lastSeenAt: dateRange,
-                    },
-                },
+        const visitedByBusiness = new Map();
+        const viewMatch = {
+            type: 'business',
+            entityId: { $in: businessIds.map(String) },
+        };
+        if (dateRange)
+            viewMatch.lastSeenAt = dateRange;
+        const [viewAgg, visitedAgg] = await Promise.all([
+            usageView_model_1.UsageView.aggregate([
+                { $match: viewMatch },
                 {
                     $group: {
                         _id: '$entityId',
                         count: { $sum: 1 },
                     },
                 },
-            ]);
-            for (const item of viewAgg) {
-                viewsByBusiness.set(String(item._id), item.count);
-            }
+            ]),
+            visited_model_1.Visited.aggregate([
+                {
+                    $match: {
+                        type: 'Business',
+                        business: { $in: businessIds },
+                        ...(dateRange ? { visitedAt: dateRange } : {}),
+                    },
+                },
+                {
+                    $group: {
+                        _id: '$business',
+                        count: { $sum: 1 },
+                    },
+                },
+            ]),
+        ]);
+        for (const item of viewAgg) {
+            viewsByBusiness.set(String(item._id), item.count);
+        }
+        for (const item of visitedAgg) {
+            visitedByBusiness.set(String(item._id), item.count);
         }
         // Get redemptions for all offers
         const offerIds = offers.map((o) => o._id);
@@ -233,17 +253,22 @@ const getMyBusinesses = async (userId, query) => {
             }
             business.discountsRedeemed = bRedemptions;
             overallTotalRedemptions += bRedemptions;
-            if (dateRange) {
-                business.viewCount = viewsByBusiness.get(String(business._id)) || 0;
-            }
-            overallTotalViews += business.viewCount || 0;
+            const uViews = viewsByBusiness.get(String(business._id)) || 0;
+            const vCount = visitedByBusiness.get(String(business._id)) || 0;
+            const effectiveVisits = dateRange
+                ? Math.max(uViews, vCount)
+                : Math.max(business.viewCount || 0, uViews, vCount);
+            business.viewCount = effectiveVisits;
+            business.visitsCount = effectiveVisits;
+            overallTotalViews += effectiveVisits;
         }
     }
     meta.stats = {
         totalBusinesses: result.length,
         totalViews: overallTotalViews,
+        totalVisits: overallTotalViews,
         totalDiscountsRedeemed: overallTotalRedemptions,
-        activeBusinesses: result.filter((b) => b.hasActiveSubscription && b.status === 'Approved').length,
+        activeBusinesses: result.filter((b) => b.hasActiveSubscription && (b.status === 'Approved' || b.status === 'approved')).length,
         timeFilter: timeFilter || 'all_time',
     };
     return {
@@ -271,14 +296,15 @@ const getBusinessById = async (id, authHeader) => {
  * Updates an existing business listing with permission and status enforcement.
  */
 const updateBusiness = async (id, payload, authUser) => {
-    var _a;
+    var _a, _b, _c;
     const existing = await business_model_1.Business.findById(id);
     if (!existing) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Business not found');
     }
     const ownerId = getBusinessOwnerId(existing);
     const admin = isAdminRole(resolveUserRole(authUser));
-    if (!admin && ownerId !== ((_a = authUser === null || authUser === void 0 ? void 0 : authUser.authId) === null || _a === void 0 ? void 0 : _a.toString())) {
+    const currentUserId = (_a = ((authUser === null || authUser === void 0 ? void 0 : authUser.authId) || (authUser === null || authUser === void 0 ? void 0 : authUser._id) || (authUser === null || authUser === void 0 ? void 0 : authUser.id) || '')) === null || _a === void 0 ? void 0 : _a.toString();
+    if (!admin && ownerId !== currentUserId) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'You are not authorized to update this business');
     }
     const businessData = { ...payload };
@@ -314,9 +340,15 @@ const updateBusiness = async (id, payload, authUser) => {
     if (payload.images) {
         if (!businessData.media)
             businessData.media = {};
-        businessData.media.photos = Array.isArray(payload.images)
+        const newPhotos = Array.isArray(payload.images)
             ? payload.images
             : [payload.images];
+        const existingPhotos = Array.isArray(businessData.media.photos)
+            ? businessData.media.photos
+            : Array.isArray((_b = existing.media) === null || _b === void 0 ? void 0 : _b.photos)
+                ? existing.media.photos
+                : [];
+        businessData.media.photos = [...existingPhotos, ...newPhotos];
     }
     // Handle menu/document upload from disk storage
     if (payload.documents) {
@@ -325,6 +357,9 @@ const updateBusiness = async (id, payload, authUser) => {
         businessData.media.menu = Array.isArray(payload.documents)
             ? payload.documents[0]
             : payload.documents;
+    }
+    if (businessData.media && ((_c = existing.media) === null || _c === void 0 ? void 0 : _c.menu) && !businessData.media.menu) {
+        businessData.media.menu = existing.media.menu;
     }
     await processBusinessTranslations(businessData);
     const result = await business_model_1.Business.findByIdAndUpdate(id, businessData, {
@@ -390,19 +425,29 @@ const getBusinessStats = async (businessId, timeFilter) => {
             totalOfferRedemptions = redemptionsCount;
         }
     }
-    // Views from UsageView
+    // Views and visits from UsageView and Visited
     let viewCount = 0;
     const viewQuery = { type: 'business', entityId: businessId };
+    const visitedQuery = { type: 'Business', business: businessId };
     if (dateRange) {
         viewQuery.lastSeenAt = dateRange;
-        viewCount = await usageView_model_1.UsageView.countDocuments(viewQuery);
+        visitedQuery.visitedAt = dateRange;
+        const [trackedViews, visitedCount] = await Promise.all([
+            usageView_model_1.UsageView.countDocuments(viewQuery),
+            visited_model_1.Visited.countDocuments(visitedQuery),
+        ]);
+        viewCount = Math.max(trackedViews, visitedCount);
     }
     else {
-        const trackedViews = await usageView_model_1.UsageView.countDocuments(viewQuery);
-        viewCount = Math.max(trackedViews, business.viewCount || 0);
+        const [trackedViews, visitedCount] = await Promise.all([
+            usageView_model_1.UsageView.countDocuments(viewQuery),
+            visited_model_1.Visited.countDocuments(visitedQuery),
+        ]);
+        viewCount = Math.max(trackedViews, visitedCount, business.viewCount || 0);
     }
     return {
         viewCount,
+        visitsCount: viewCount,
         totalOfferRedemptions,
         activeOffersCount: offers.filter((o) => o.status === offer_1.OFFER_STATUS.ACTIVE).length,
         timeFilter: timeFilter || 'all_time',

@@ -22,9 +22,12 @@ Users:
 3. For both personal and other users' contributions, clicking on the name of a place where a review was left should redirect the user to that place's information page.
 -solved
 4. The "My Business" page does not allow users to edit general business information; it only allows editing the offer itself.
+-solved
 5. The "My Business" page counts redeemed offers but does not appear to count visits.
+-solved
 6. On the landing page, the official images for each business or offer are not visible in the offers section.
 7. On the landing page, in the "Promote Your Business" section, the dark mode version displays an orange color that doesn't match Roadtripeado's branding. Please change it to the yellow used elsewhere on the page.
+-solved
 
 Users who haven't purchased a map:
 1. On the "Places" page, locked locations should appear with a slightly blurred image to prevent users from taking screenshots and identifying the location via Al; however, the blur should still allow users to distinguish whether it is a beach, river, cave, etc.

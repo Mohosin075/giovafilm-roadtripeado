@@ -5,6 +5,7 @@ import { Business } from './business.model'
 import { Offer } from '../offer/offer.model'
 import { OfferRedemption } from '../offer/offerRedemption.model'
 import { UsageView } from '../stats/usageView.model'
+import { Visited } from '../visited/visited.model'
 import { getTimeFilterQuery } from '../../helpers/dateHelper'
 import QueryBuilder from '../../builder/QueryBuilder'
 import { businessSearchableFields } from './business.constants'
@@ -207,27 +208,48 @@ const getMyBusinesses = async (userId: string, query: Record<string, unknown>) =
       offersByBusiness.get(bId)!.push(off)
     }
 
-    // Get views for each business
+    // Get views and visits for each business
     const viewsByBusiness = new Map<string, number>()
-    if (dateRange) {
-      const viewAgg = await UsageView.aggregate([
-        {
-          $match: {
-            type: 'business',
-            entityId: { $in: businessIds.map(String) },
-            lastSeenAt: dateRange,
-          },
-        },
+    const visitedByBusiness = new Map<string, number>()
+
+    const viewMatch: any = {
+      type: 'business',
+      entityId: { $in: businessIds.map(String) },
+    }
+    if (dateRange) viewMatch.lastSeenAt = dateRange
+
+    const [viewAgg, visitedAgg] = await Promise.all([
+      UsageView.aggregate([
+        { $match: viewMatch },
         {
           $group: {
             _id: '$entityId',
             count: { $sum: 1 },
           },
         },
-      ])
-      for (const item of viewAgg) {
-        viewsByBusiness.set(String(item._id), item.count)
-      }
+      ]),
+      Visited.aggregate([
+        {
+          $match: {
+            type: 'Business',
+            business: { $in: businessIds },
+            ...(dateRange ? { visitedAt: dateRange } : {}),
+          },
+        },
+        {
+          $group: {
+            _id: '$business',
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+    ])
+
+    for (const item of viewAgg) {
+      viewsByBusiness.set(String(item._id), item.count)
+    }
+    for (const item of visitedAgg) {
+      visitedByBusiness.set(String(item._id), item.count)
     }
 
     // Get redemptions for all offers
@@ -266,19 +288,25 @@ const getMyBusinesses = async (userId: string, query: Record<string, unknown>) =
       business.discountsRedeemed = bRedemptions
       overallTotalRedemptions += bRedemptions
 
-      if (dateRange) {
-        business.viewCount = viewsByBusiness.get(String(business._id)) || 0
-      }
-      overallTotalViews += business.viewCount || 0
+      const uViews = viewsByBusiness.get(String(business._id)) || 0
+      const vCount = visitedByBusiness.get(String(business._id)) || 0
+      const effectiveVisits = dateRange
+        ? Math.max(uViews, vCount)
+        : Math.max(business.viewCount || 0, uViews, vCount)
+
+      business.viewCount = effectiveVisits
+      business.visitsCount = effectiveVisits
+      overallTotalViews += effectiveVisits
     }
   }
 
   (meta as any).stats = {
     totalBusinesses: (result as any[]).length,
     totalViews: overallTotalViews,
+    totalVisits: overallTotalViews,
     totalDiscountsRedeemed: overallTotalRedemptions,
     activeBusinesses: (result as any[]).filter(
-      (b) => b.hasActiveSubscription && b.status === 'Approved'
+      (b) => b.hasActiveSubscription && (b.status === 'Approved' || b.status === 'approved')
     ).length,
     timeFilter: timeFilter || 'all_time',
   }
@@ -328,7 +356,8 @@ const updateBusiness = async (
 
   const ownerId = getBusinessOwnerId(existing)
   const admin = isAdminRole(resolveUserRole(authUser))
-  if (!admin && ownerId !== authUser?.authId?.toString()) {
+  const currentUserId = (authUser?.authId || authUser?._id || authUser?.id || '')?.toString()
+  if (!admin && ownerId !== currentUserId) {
     throw new ApiError(
       StatusCodes.FORBIDDEN,
       'You are not authorized to update this business',
@@ -373,9 +402,15 @@ const updateBusiness = async (
   // Handle image upload from disk storage
   if (payload.images) {
     if (!businessData.media) businessData.media = {}
-    businessData.media.photos = Array.isArray(payload.images)
+    const newPhotos = Array.isArray(payload.images)
       ? payload.images
       : [payload.images]
+    const existingPhotos = Array.isArray(businessData.media.photos)
+      ? businessData.media.photos
+      : Array.isArray(existing.media?.photos)
+      ? existing.media.photos
+      : []
+    businessData.media.photos = [...existingPhotos, ...newPhotos]
   }
 
   // Handle menu/document upload from disk storage
@@ -384,6 +419,10 @@ const updateBusiness = async (
     businessData.media.menu = Array.isArray(payload.documents)
       ? payload.documents[0]
       : payload.documents
+  }
+
+  if (businessData.media && existing.media?.menu && !businessData.media.menu) {
+    businessData.media.menu = existing.media.menu
   }
 
   await processBusinessTranslations(businessData)
@@ -477,19 +516,29 @@ const getBusinessStats = async (businessId: string, timeFilter?: string) => {
     }
   }
 
-  // Views from UsageView
+  // Views and visits from UsageView and Visited
   let viewCount = 0
   const viewQuery: any = { type: 'business', entityId: businessId }
+  const visitedQuery: any = { type: 'Business', business: businessId }
   if (dateRange) {
     viewQuery.lastSeenAt = dateRange
-    viewCount = await UsageView.countDocuments(viewQuery)
+    visitedQuery.visitedAt = dateRange
+    const [trackedViews, visitedCount] = await Promise.all([
+      UsageView.countDocuments(viewQuery),
+      Visited.countDocuments(visitedQuery),
+    ])
+    viewCount = Math.max(trackedViews, visitedCount)
   } else {
-    const trackedViews = await UsageView.countDocuments(viewQuery)
-    viewCount = Math.max(trackedViews, business.viewCount || 0)
+    const [trackedViews, visitedCount] = await Promise.all([
+      UsageView.countDocuments(viewQuery),
+      Visited.countDocuments(visitedQuery),
+    ])
+    viewCount = Math.max(trackedViews, visitedCount, business.viewCount || 0)
   }
 
   return {
     viewCount,
+    visitsCount: viewCount,
     totalOfferRedemptions,
     activeOffersCount: offers.filter((o) => o.status === OFFER_STATUS.ACTIVE).length,
     timeFilter: timeFilter || 'all_time',

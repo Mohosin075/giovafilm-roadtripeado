@@ -354,8 +354,8 @@ const getPublicProfile = async (userId) => {
         reviewer: userId,
         status: 'Approved',
     })
-        .populate('placeId', 'name')
-        .populate('businessId', 'name')
+        .populate('placeId', 'name media address')
+        .populate('businessId', 'name media.photos location')
         .sort({ createdAt: -1 })
         .limit(20)
         .lean();

@@ -20,6 +20,7 @@ Users:
 
 
 3. For both personal and other users' contributions, clicking on the name of a place where a review was left should redirect the user to that place's information page.
+-solved
 4. The "My Business" page does not allow users to edit general business information; it only allows editing the offer itself.
 5. The "My Business" page counts redeemed offers but does not appear to count visits.
 6. On the landing page, the official images for each business or offer are not visible in the offers section.

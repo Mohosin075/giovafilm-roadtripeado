@@ -15,7 +15,7 @@ const paginationHelper_1 = require("../../helpers/paginationHelper");
 const award_service_1 = require("../award/award.service");
 const notification_integration_1 = require("../notification/notification.integration");
 const autoTranslate_1 = require("../../utils/autoTranslate");
-const userLevels_constant_1 = require("../../constants/userLevels.constant");
+const levelConfig_service_1 = require("../award/levelConfig.service");
 const mapAccessHelper_1 = require("../../helpers/mapAccessHelper");
 const ratingIncPipeline = (rating) => [
     {
@@ -232,7 +232,8 @@ const updateReview = async (user, id, payload) => {
             if (reviewer) {
                 const newPoints = Math.max(0, (reviewer.points || 0) - pointsToDeduct);
                 const newApprovedCount = Math.max(0, (reviewer.totalReviewsApproved || 0) - 1);
-                const newLevel = (0, userLevels_constant_1.calculateUserLevel)(newPoints, newApprovedCount);
+                const levelInfo = await levelConfig_service_1.LevelConfigServices.getDynamicUserLevel(newPoints, newApprovedCount);
+                const newLevel = levelInfo.levelNumber;
                 await user_model_1.User.findByIdAndUpdate(reviewerId, { $set: { points: newPoints, totalReviewsApproved: newApprovedCount, level: newLevel } }, { session });
             }
         }
@@ -280,7 +281,8 @@ const deleteReview = async (user, id) => {
             if (reviewer) {
                 const newPoints = Math.max(0, (reviewer.points || 0) - pointsToDeduct);
                 const newApprovedCount = Math.max(0, (reviewer.totalReviewsApproved || 0) - 1);
-                const newLevel = (0, userLevels_constant_1.calculateUserLevel)(newPoints, newApprovedCount);
+                const levelInfo = await levelConfig_service_1.LevelConfigServices.getDynamicUserLevel(newPoints, newApprovedCount);
+                const newLevel = levelInfo.levelNumber;
                 await user_model_1.User.findByIdAndUpdate(reviewerId, { $set: { points: newPoints, totalReviewsApproved: newApprovedCount, level: newLevel } }, { session });
             }
         }
@@ -342,12 +344,12 @@ const approveReview = async (id) => {
             const oldLevel = reviewer.level || 0;
             const newPoints = (reviewer.points || 0) + points;
             const newApprovedCount = (reviewer.totalReviewsApproved || 0) + 1;
-            const newLevel = (0, userLevels_constant_1.calculateUserLevel)(newPoints, newApprovedCount);
+            const levelInfo = await levelConfig_service_1.LevelConfigServices.getDynamicUserLevel(newPoints, newApprovedCount);
+            const newLevel = levelInfo.levelNumber;
             if (newLevel > oldLevel) {
-                const levelConfig = userLevels_constant_1.USER_LEVELS.find(l => l.level === newLevel);
                 levelUnlockedData = {
                     newLevel,
-                    levelName: (levelConfig === null || levelConfig === void 0 ? void 0 : levelConfig.name) || `Nivel ${newLevel}`,
+                    levelName: levelInfo.title || `Nivel ${newLevel}`,
                     oldLevel,
                 };
             }

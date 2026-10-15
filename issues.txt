@@ -4,13 +4,21 @@ Dashboard:
 1. On the "Reports and Statistics" page, only offer titles appear, making it difficult to distinguish which business they belong to.
 -solved
 2. Add a "View More" option to each section on the "Reports and Statistics" page.
+-solved
 3. User activity (number of active users, etc.) is not visible on the "Reports and Statistics" page.
+-solved
 4. When an administrator views a user profile, user activity is not visible (e.g., places viewed, sessions, last activity, and other useful data).
+-solved
 5. The total number of individual places per map is not visible on the "Reports and Statistics" page.
+-solved
 
 Users:
 1. The user profile display showing level and points earned is not synchronized with the settings I configured on the rewards page (l changed the points required for each level); it needs to update in real-time based on those changes.
+-solved
 2. On the "Places" page, when typing a municipality like "San Sebastian" into the search bar, results showing "San Sebastian" in the address or name appear first, followed by unrelated places. I would like the search function to be more accurate and precise regarding the input (matching the address or name exactly).
+-solved
+
+
 3. For both personal and other users' contributions, clicking on the name of a place where a review was left should redirect the user to that place's information page.
 4. The "My Business" page does not allow users to edit general business information; it only allows editing the offer itself.
 5. The "My Business" page counts redeemed offers but does not appear to count visits.

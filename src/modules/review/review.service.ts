@@ -13,6 +13,7 @@ import { AwardServices } from '../award/award.service'
 import { NotificationIntegration } from '../notification/notification.integration'
 import { autoTranslateField } from '../../utils/autoTranslate'
 import { calculateUserLevel, USER_LEVELS } from '../../constants/userLevels.constant'
+import { LevelConfigServices } from '../award/levelConfig.service'
 
 import { getAccessibleMapIds } from '../../helpers/mapAccessHelper'
 
@@ -292,7 +293,8 @@ const updateReview = async (
         const newPoints = Math.max(0, (reviewer.points || 0) - pointsToDeduct)
         const newApprovedCount = Math.max(0, (reviewer.totalReviewsApproved || 0) - 1)
         
-        const newLevel = calculateUserLevel(newPoints, newApprovedCount)
+        const levelInfo = await LevelConfigServices.getDynamicUserLevel(newPoints, newApprovedCount)
+        const newLevel = levelInfo.levelNumber
 
         await User.findByIdAndUpdate(
           reviewerId,
@@ -364,7 +366,8 @@ const deleteReview = async (user: JwtPayload, id: string) => {
         const newPoints = Math.max(0, (reviewer.points || 0) - pointsToDeduct)
         const newApprovedCount = Math.max(0, (reviewer.totalReviewsApproved || 0) - 1)
         
-        const newLevel = calculateUserLevel(newPoints, newApprovedCount)
+        const levelInfo = await LevelConfigServices.getDynamicUserLevel(newPoints, newApprovedCount)
+        const newLevel = levelInfo.levelNumber
 
         await User.findByIdAndUpdate(
           reviewerId,
@@ -447,13 +450,13 @@ const approveReview = async (id: string) => {
       const newPoints = (reviewer.points || 0) + points
       const newApprovedCount = (reviewer.totalReviewsApproved || 0) + 1
 
-      const newLevel = calculateUserLevel(newPoints, newApprovedCount)
+      const levelInfo = await LevelConfigServices.getDynamicUserLevel(newPoints, newApprovedCount)
+      const newLevel = levelInfo.levelNumber
 
       if (newLevel > oldLevel) {
-        const levelConfig = USER_LEVELS.find(l => l.level === newLevel)
         levelUnlockedData = {
           newLevel,
-          levelName: levelConfig?.name || `Nivel ${newLevel}`,
+          levelName: levelInfo.title || `Nivel ${newLevel}`,
           oldLevel,
         }
       }

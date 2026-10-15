@@ -50,6 +50,12 @@ const entityMap = {
     images: { es: 'Imágenes', gender: 'f', plural: true },
     document: { es: 'Documento', gender: 'm' },
     documents: { es: 'Documentos', gender: 'm', plural: true },
+    'route plan': { es: 'Plan de ruta', gender: 'm' },
+    'route plans': { es: 'Planes de ruta', gender: 'm', plural: true },
+    route: { es: 'Ruta', gender: 'f' },
+    routes: { es: 'Rutas', gender: 'f', plural: true },
+    stop: { es: 'Parada', gender: 'f' },
+    stops: { es: 'Paradas', gender: 'f', plural: true },
 };
 const exactMessageMap = {
     // Authentication & Authorization
@@ -174,6 +180,43 @@ const exactMessageMap = {
     'place open recorded': {
         en: 'Place open recorded',
         es: 'Apertura de lugar registrada exitosamente',
+    },
+    // Route Plans
+    'route plan created successfully': {
+        en: 'Route plan created successfully',
+        es: 'Plan de ruta creado exitosamente',
+    },
+    'route plan updated successfully': {
+        en: 'Route plan updated successfully',
+        es: 'Plan de ruta actualizado exitosamente',
+    },
+    'route plan deleted successfully': {
+        en: 'Route plan deleted successfully',
+        es: 'Plan de ruta eliminado exitosamente',
+    },
+    'route plan retrieved successfully': {
+        en: 'Route plan retrieved successfully',
+        es: 'Plan de ruta obtenido exitosamente',
+    },
+    'route plans retrieved successfully': {
+        en: 'Route plans retrieved successfully',
+        es: 'Planes de ruta obtenidos exitosamente',
+    },
+    'route plan not found': {
+        en: 'Route plan not found',
+        es: 'Plan de ruta no encontrado',
+    },
+    'route stops cleared successfully': {
+        en: 'Route stops cleared successfully',
+        es: 'Paradas de la ruta limpiadas exitosamente',
+    },
+    'stop added to route successfully': {
+        en: 'Stop added to route successfully',
+        es: 'Parada añadida a la ruta exitosamente',
+    },
+    'stop removed from route successfully': {
+        en: 'Stop removed from route successfully',
+        es: 'Parada eliminada de la ruta exitosamente',
     },
     // Maps & Discovery
     'map created successfully': {

@@ -16,10 +16,17 @@ const crypto_1 = require("../../utils/crypto");
 const review_model_1 = require("../review/review.model");
 const emailTemplate_1 = require("../../shared/emailTemplate");
 const emailHelper_1 = require("../../helpers/emailHelper");
-const userLevels_constant_1 = require("../../constants/userLevels.constant");
 const notification_integration_1 = require("../notification/notification.integration");
 const offerRedemption_model_1 = require("../offer/offerRedemption.model");
 const award_model_1 = require("../award/award.model");
+require("../award/awardConfig.model");
+const levelConfig_service_1 = require("../award/levelConfig.service");
+const visited_model_1 = require("../visited/visited.model");
+require("../map/map.model");
+require("../place/place.model");
+require("../business/business.model");
+require("../offer/offer.model");
+const localize_1 = require("../../helpers/localize");
 const updateProfile = async (user, payload) => {
     console.log({ payload });
     const isUserExist = await user_model_1.User.findOne({
@@ -126,9 +133,15 @@ const getAllUsers = async (paginationOptions, filterables = {}) => {
             .lean(),
         user_model_1.User.countDocuments(whereConditions),
     ]);
+    const levelConfigs = await levelConfig_service_1.LevelConfigServices.getAllLevelConfigs();
     const result = users.map(user => {
+        const pts = user.points || 0;
+        const revs = user.totalReviewsApproved || 0;
+        const levelInfo = levelConfig_service_1.LevelConfigServices.calculateDynamicLevelFromList(pts, revs, levelConfigs);
         return {
             ...user,
+            level: levelInfo.levelNumber,
+            levelInfo,
         };
     });
     return {
@@ -197,10 +210,18 @@ const getUserById = async (userId) => {
     if (!user) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
     }
-    // Calculate level info
+    // Calculate dynamic level info synchronized with settings on rewards page
     const points = user.points || 0;
     const approvedReviews = user.totalReviewsApproved || 0;
-    const levelInfo = (0, userLevels_constant_1.calculateUserLevel)(points, approvedReviews);
+    const levelInfo = await levelConfig_service_1.LevelConfigServices.getDynamicUserLevel(points, approvedReviews);
+    // Keep stored user.level in sync if it differed
+    if (user.level !== levelInfo.levelNumber) {
+        user_model_1.User.findByIdAndUpdate(userId, {
+            $set: { level: levelInfo.levelNumber },
+        })
+            .exec()
+            .catch(() => { });
+    }
     // Fetch claimed offer redemptions
     const offerRedemptions = await offerRedemption_model_1.OfferRedemption.find({ user: userId })
         .populate({
@@ -220,12 +241,95 @@ const getUserById = async (userId) => {
         .populate('businessId', 'name')
         .sort({ createdAt: -1 })
         .lean();
+    // Fetch user's visited places (Issue 4: places viewed/visited)
+    const visitedPlaces = await visited_model_1.Visited.find({ user: userId })
+        .populate('place', 'name address location media country category')
+        .populate('business', 'name location')
+        .sort({ visitedAt: -1 })
+        .lean();
+    // Compute last activity and activity summary
+    const activityTimestamps = [
+        user.updatedAt ? new Date(user.updatedAt).getTime() : 0,
+        user.createdAt ? new Date(user.createdAt).getTime() : 0,
+        ...visitedPlaces.map((v) => (v.visitedAt ? new Date(v.visitedAt).getTime() : 0)),
+        ...reviews.map((r) => (r.createdAt ? new Date(r.createdAt).getTime() : 0)),
+        ...offerRedemptions.map((o) => (o.redemptionTime || o.createdAt ? new Date(o.redemptionTime || o.createdAt).getTime() : 0)),
+    ].filter(t => t > 0);
+    const lastActivityAt = activityTimestamps.length > 0
+        ? new Date(Math.max(...activityTimestamps))
+        : user.updatedAt || user.createdAt;
+    // Build unified chronological activity timeline
+    const activityTimeline = [];
+    visitedPlaces.slice(0, 20).forEach((v) => {
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
+        activityTimeline.push({
+            type: 'place_visit',
+            title: 'Visited Place',
+            name: ((_a = v.place) === null || _a === void 0 ? void 0 : _a.name)
+                ? ((0, localize_1.localizeField)(v.place.name, 'en') || (0, localize_1.localizeField)(v.place.name, 'es') || (typeof v.place.name === 'string' ? v.place.name : ''))
+                : ((_b = v.business) === null || _b === void 0 ? void 0 : _b.name)
+                    ? ((0, localize_1.localizeField)(v.business.name, 'en') || (0, localize_1.localizeField)(v.business.name, 'es') || (typeof v.business.name === 'string' ? v.business.name : ''))
+                    : 'Place',
+            location: ((_c = v.place) === null || _c === void 0 ? void 0 : _c.address) || ((_d = v.place) === null || _d === void 0 ? void 0 : _d.country) || ((_f = (_e = v.business) === null || _e === void 0 ? void 0 : _e.location) === null || _f === void 0 ? void 0 : _f.city),
+            media: (_h = (_g = v.place) === null || _g === void 0 ? void 0 : _g.media) === null || _h === void 0 ? void 0 : _h[0],
+            targetId: ((_j = v.place) === null || _j === void 0 ? void 0 : _j._id) ? String(v.place._id) : ((_k = v.business) === null || _k === void 0 ? void 0 : _k._id) ? String(v.business._id) : undefined,
+            targetType: ((_l = v.place) === null || _l === void 0 ? void 0 : _l._id) ? 'place' : 'business',
+            timestamp: v.visitedAt || v.createdAt,
+        });
+    });
+    reviews.slice(0, 15).forEach((r) => {
+        var _a, _b, _c, _d, _e, _f, _g, _h;
+        activityTimeline.push({
+            type: 'review_submitted',
+            title: `Submitted a ${r.rating || 5}★ Review`,
+            name: ((_a = r.placeId) === null || _a === void 0 ? void 0 : _a.name)
+                ? ((0, localize_1.localizeField)(r.placeId.name, 'en') || (0, localize_1.localizeField)(r.placeId.name, 'es') || (typeof r.placeId.name === 'string' ? r.placeId.name : ''))
+                : ((_b = r.businessId) === null || _b === void 0 ? void 0 : _b.name)
+                    ? ((0, localize_1.localizeField)(r.businessId.name, 'en') || (0, localize_1.localizeField)(r.businessId.name, 'es') || (typeof r.businessId.name === 'string' ? r.businessId.name : ''))
+                    : 'Place/Business',
+            rating: r.rating,
+            comment: typeof r.review === 'string' ? r.review : ((_c = r.review) === null || _c === void 0 ? void 0 : _c.en) || ((_d = r.review) === null || _d === void 0 ? void 0 : _d.es) || ((_e = r.review) === null || _e === void 0 ? void 0 : _e.comment) || '',
+            targetId: ((_f = r.placeId) === null || _f === void 0 ? void 0 : _f._id) ? String(r.placeId._id) : ((_g = r.businessId) === null || _g === void 0 ? void 0 : _g._id) ? String(r.businessId._id) : undefined,
+            targetType: ((_h = r.placeId) === null || _h === void 0 ? void 0 : _h._id) ? 'place' : 'business',
+            timestamp: r.createdAt,
+        });
+    });
+    offerRedemptions.slice(0, 15).forEach((o) => {
+        var _a, _b, _c, _d, _e, _f;
+        activityTimeline.push({
+            type: 'offer_claimed',
+            title: 'Claimed Special Offer',
+            name: ((_a = o.offer) === null || _a === void 0 ? void 0 : _a.title)
+                ? ((0, localize_1.localizeField)(o.offer.title, 'en') || (0, localize_1.localizeField)(o.offer.title, 'es') || (typeof o.offer.title === 'string' ? o.offer.title : ''))
+                : 'Special Offer',
+            businessName: ((_c = (_b = o.offer) === null || _b === void 0 ? void 0 : _b.business) === null || _c === void 0 ? void 0 : _c.name)
+                ? ((0, localize_1.localizeField)(o.offer.business.name, 'en') || (0, localize_1.localizeField)(o.offer.business.name, 'es') || (typeof o.offer.business.name === 'string' ? o.offer.business.name : ''))
+                : ((_e = (_d = o.offer) === null || _d === void 0 ? void 0 : _d.place) === null || _e === void 0 ? void 0 : _e.name)
+                    ? ((0, localize_1.localizeField)(o.offer.place.name, 'en') || (0, localize_1.localizeField)(o.offer.place.name, 'es') || (typeof o.offer.place.name === 'string' ? o.offer.place.name : ''))
+                    : undefined,
+            targetId: ((_f = o.offer) === null || _f === void 0 ? void 0 : _f._id) ? String(o.offer._id) : undefined,
+            targetType: 'offer',
+            timestamp: o.redemptionTime || o.createdAt,
+        });
+    });
+    activityTimeline.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const activitySummary = {
+        totalPlacesVisited: visitedPlaces.length,
+        totalReviewsSubmitted: reviews.length,
+        totalOffersClaimed: offerRedemptions.length,
+        totalMapsActivated: (user.purchasedMaps || []).length,
+        lastActivityAt,
+    };
     return {
         ...user,
+        level: levelInfo.levelNumber,
         levelInfo,
         offerRedemptions,
         awards,
         reviews,
+        visitedPlaces,
+        activitySummary,
+        activityTimeline,
     };
 };
 /** Public, shareable profile — safe fields only */
@@ -255,8 +359,13 @@ const getPublicProfile = async (userId) => {
         .sort({ createdAt: -1 })
         .limit(20)
         .lean();
+    const points = user.points || 0;
+    const approvedReviews = user.totalReviewsApproved || 0;
+    const levelInfo = await levelConfig_service_1.LevelConfigServices.getDynamicUserLevel(points, approvedReviews);
     return {
         ...user.toObject(),
+        level: levelInfo.levelNumber,
+        levelInfo,
         reviews,
     };
 };
@@ -424,7 +533,21 @@ const getProfile = async (user) => {
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
     }
-    return isUserExist;
+    const points = isUserExist.points || 0;
+    const approvedReviews = isUserExist.totalReviewsApproved || 0;
+    const levelInfo = await levelConfig_service_1.LevelConfigServices.getDynamicUserLevel(points, approvedReviews);
+    if (isUserExist.level !== levelInfo.levelNumber) {
+        user_model_1.User.findByIdAndUpdate(user.authId, {
+            $set: { level: levelInfo.levelNumber },
+        })
+            .exec()
+            .catch(() => { });
+    }
+    return {
+        ...isUserExist.toObject(),
+        level: levelInfo.levelNumber,
+        levelInfo,
+    };
 };
 exports.getProfile = getProfile;
 const addUserInterest = async (userId, interest) => {
@@ -528,7 +651,8 @@ const updatePointsAndLevel = async (userId, pointsToAdd) => {
     const oldLevel = user.level || 0;
     const newPoints = (user.points || 0) + pointsToAdd;
     const newApprovedCount = user.totalReviewsApproved || 0;
-    const newLevel = (0, userLevels_constant_1.calculateUserLevel)(newPoints, newApprovedCount);
+    const levelInfo = await levelConfig_service_1.LevelConfigServices.getDynamicUserLevel(newPoints, newApprovedCount);
+    const newLevel = levelInfo.levelNumber;
     await user_model_1.User.findByIdAndUpdate(userId, {
         $set: {
             points: newPoints,
@@ -536,11 +660,10 @@ const updatePointsAndLevel = async (userId, pointsToAdd) => {
         },
     });
     if (newLevel > oldLevel) {
-        const levelConfig = userLevels_constant_1.USER_LEVELS.find(l => l.level === newLevel);
         notification_integration_1.NotificationIntegration.onLevelUnlocked({
             userId,
             newLevel,
-            levelName: (levelConfig === null || levelConfig === void 0 ? void 0 : levelConfig.name) || `Nivel ${newLevel}`,
+            levelName: levelInfo.title || `Nivel ${newLevel}`,
             oldLevel,
         }).catch(err => console.error('Failed to notify level unlock:', err));
     }

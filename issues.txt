@@ -2,6 +2,7 @@ GENERAL VERSION:
 
 Dashboard:
 1. On the "Reports and Statistics" page, only offer titles appear, making it difficult to distinguish which business they belong to.
+-solved
 2. Add a "View More" option to each section on the "Reports and Statistics" page.
 3. User activity (number of active users, etc.) is not visible on the "Reports and Statistics" page.
 4. When an administrator views a user profile, user activity is not visible (e.g., places viewed, sessions, last activity, and other useful data).

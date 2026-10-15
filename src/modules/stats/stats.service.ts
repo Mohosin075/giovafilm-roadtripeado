@@ -221,7 +221,9 @@ const searchReportEntities = async (
           { 'title.es': searchRegex },
         ],
       })
-        .select('title')
+        .select('title business place')
+        .populate('business', 'name')
+        .populate('place', 'name')
         .limit(5)
         .lean(),
     ])
@@ -261,6 +263,11 @@ const searchReportEntities = async (
       type: 'offer' as const,
       id: String(o._id),
       name: localizeField(o.title, 'en') || localizeField(o.title, 'es') || (typeof o.title === 'string' ? o.title : ''),
+      location: o.business?.name
+        ? (localizeField(o.business.name, 'en') || localizeField(o.business.name, 'es') || (typeof o.business.name === 'string' ? o.business.name : ''))
+        : o.place?.name
+        ? (localizeField(o.place.name, 'en') || localizeField(o.place.name, 'es') || (typeof o.place.name === 'string' ? o.place.name : ''))
+        : '',
     })),
   ]
 }
@@ -302,7 +309,11 @@ const applySelectedEntity = async (
     return {
       mapIds: [],
       usagePlace: business
-        ? { name: localizeField(business.name), count: (business as any).viewCount || 0 }
+        ? {
+            id: String(business._id),
+            name: localizeField(business.name),
+            count: (business as any).viewCount || 0,
+          }
         : undefined,
     }
   }
@@ -334,7 +345,11 @@ const applySelectedEntity = async (
       return {
         mapIds: [],
         usagePlace: business
-          ? { name: localizeField(business.name), count: (business as any).viewCount || 0 }
+          ? {
+              id: String(business._id),
+              name: localizeField(business.name),
+              count: (business as any).viewCount || 0,
+            }
           : undefined,
       }
     } else {
@@ -563,6 +578,7 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
     const maps = await Map.find({ _id: { $in: mapIds } }).select('name').lean()
     const nameMap = new globalThis.Map<string, string>(maps.map(m => [m._id.toString(), localizeField(m.name)]))
     mostViewedMaps = mapAgg.map(r => ({
+      id: String(r._id),
       name: nameMap.get(String(r._id)) || 'Unknown Map',
       count: r.count || 0,
     }))
@@ -572,6 +588,7 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
       .limit(5)
       .select('name viewCount')
     mostViewedMaps = mostViewedMapsRaw.map(m => ({
+      id: String(m._id),
       name: localizeField(m.name),
       count: (m as any).viewCount || 0,
     }))
@@ -598,6 +615,7 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
     const places = await Place.find({ _id: { $in: placeIds } }).select('name').lean()
     const nameMap = new globalThis.Map<string, string>(places.map(p => [p._id.toString(), localizeField(p.name)]))
     mostOpenedPlaces = placeAgg.map(r => ({
+      id: String(r._id),
       name: nameMap.get(String(r._id)) || 'Unknown Place',
       count: r.count || 0,
     }))
@@ -607,6 +625,7 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
       .limit(5)
       .select('name openCount')
     mostOpenedPlaces = mostOpenedPlacesRaw.map(p => ({
+      id: String(p._id),
       name: localizeField(p.name),
       count: (p as any).openCount || 0,
     }))
@@ -617,7 +636,11 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
 
   let mostRedeemedOffers: IUsageItem[] = []
   if (dateRange) {
-    const scopedOffers = await Offer.find(offerFilter).select('_id title').lean()
+    const scopedOffers = await Offer.find(offerFilter)
+      .select('_id title business place')
+      .populate('business', 'name')
+      .populate('place', 'name')
+      .lean()
     const scopedIds = scopedOffers.map(o => o._id)
     const redemptionMatch: Record<string, any> = { redemptionTime: dateRange }
     if (Object.keys(offerFilter).length > 0) {
@@ -629,29 +652,80 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
       { $sort: { count: -1 } },
       { $limit: 5 },
     ])
-    const titleById = new globalThis.Map<string, string>(
-      scopedOffers.map((o: any) => [String(o._id), localizeField(o.title)]),
+    const offerInfoById = new globalThis.Map<
+      string,
+      {
+        title: string;
+        businessName?: string;
+        businessId?: string;
+        placeId?: string;
+      }
+    >(
+      scopedOffers.map((o: any) => [
+        String(o._id),
+        {
+          title: localizeField(o.title),
+          businessName: o.business?.name
+            ? localizeField(o.business.name)
+            : o.place?.name
+            ? localizeField(o.place.name)
+            : undefined,
+          businessId: o.business?._id ? String(o.business._id) : undefined,
+          placeId: o.place?._id ? String(o.place._id) : undefined,
+        },
+      ]),
     )
     const missingIds = redemptionAgg
       .map((r: any) => r._id)
-      .filter((id: any) => !titleById.has(String(id)))
+      .filter((id: any) => !offerInfoById.has(String(id)))
     if (missingIds.length) {
       const extra = await Offer.find({ _id: { $in: missingIds } })
-        .select('_id title')
+        .select('_id title business place')
+        .populate('business', 'name')
+        .populate('place', 'name')
         .lean()
-      extra.forEach((o: any) => titleById.set(String(o._id), localizeField(o.title)))
+      extra.forEach((o: any) =>
+        offerInfoById.set(String(o._id), {
+          title: localizeField(o.title),
+          businessName: o.business?.name
+            ? localizeField(o.business.name)
+            : o.place?.name
+            ? localizeField(o.place.name)
+            : undefined,
+          businessId: o.business?._id ? String(o.business._id) : undefined,
+          placeId: o.place?._id ? String(o.place._id) : undefined,
+        }),
+      )
     }
-    mostRedeemedOffers = redemptionAgg.map((r: any) => ({
-      name: titleById.get(String(r._id)) || 'Unknown offer',
-      count: r.count || 0,
-    }))
+    mostRedeemedOffers = redemptionAgg.map((r: any) => {
+      const info = offerInfoById.get(String(r._id))
+      return {
+        id: String(r._id),
+        name: info?.title || 'Unknown offer',
+        businessName: info?.businessName,
+        businessId: info?.businessId,
+        placeId: info?.placeId,
+        count: r.count || 0,
+      }
+    })
   } else {
     const mostRedeemedOffersRaw = await Offer.find(offerFilter)
       .sort({ redemptionsCount: -1 })
       .limit(5)
-      .select('title redemptionsCount')
-    mostRedeemedOffers = mostRedeemedOffersRaw.map(o => ({
+      .select('title redemptionsCount business place')
+      .populate('business', 'name')
+      .populate('place', 'name')
+      .lean()
+    mostRedeemedOffers = mostRedeemedOffersRaw.map((o: any) => ({
+      id: String(o._id),
       name: localizeField(o.title),
+      businessName: o.business?.name
+        ? localizeField(o.business.name)
+        : o.place?.name
+        ? localizeField(o.place.name)
+        : undefined,
+      businessId: o.business?._id ? String(o.business._id) : undefined,
+      placeId: o.place?._id ? String(o.place._id) : undefined,
       count: o.redemptionsCount || 0,
     }))
   }

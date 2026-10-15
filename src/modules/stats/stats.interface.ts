@@ -39,8 +39,12 @@ export interface ISalesAndTaxesStats {
 }
 
 export interface IUsageItem {
+  id?: string;
   name: string;
   count: number;
+  businessName?: string;
+  businessId?: string;
+  placeId?: string;
 }
 
 export interface IUsageStats {

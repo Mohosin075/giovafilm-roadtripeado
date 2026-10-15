@@ -26,13 +26,16 @@ Users:
 5. The "My Business" page counts redeemed offers but does not appear to count visits.
 -solved
 6. On the landing page, the official images for each business or offer are not visible in the offers section.
+-solved
 7. On the landing page, in the "Promote Your Business" section, the dark mode version displays an orange color that doesn't match Roadtripeado's branding. Please change it to the yellow used elsewhere on the page.
 -solved
 
 Users who haven't purchased a map:
 1. On the "Places" page, locked locations should appear with a slightly blurred image to prevent users from taking screenshots and identifying the location via Al; however, the blur should still allow users to distinguish whether it is a beach, river, cave, etc.
-2. QUESTION: Can the pins for locked tourist spots be placed randomly within the corresponding country? This would prevent people from finding the locations simply by looking at the map and searching for them manually on Google Maps. Please consult me on this before taking action.
+-solved
+2. QUESTION: Can the pins for locked tourist spots be placed randomly within the corresponding country? This would prevent people from finding the locations simply by looking at the map and searching for them manually on Google Maps. Please consult me on this before taking action. - dangerous - ata niye kono kaj korba na akhn
 3. Levels and rewards are exclusively for users who have purchased maps; therefore, these features should be locked, accompanied by a prompt inviting users to purchase a map to level up and earn free rewards.
+-solved
 4. Users who haven't purchased maps can leave reviews but do not earn points. Points are earned only for reviews of maps they have actually purchased. For example, if a user buys the United States map but leaves a review for a map they haven't purchased, those points will not count.
 5. Locked locations within categories should display the padlock icon used previously; ensure the padlock does not look like an emoji.
 

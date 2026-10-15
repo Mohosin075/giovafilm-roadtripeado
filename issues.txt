@@ -1,0 +1,62 @@
+GENERAL VERSION:
+
+Dashboard:
+1. On the "Reports and Statistics" page, only offer titles appear, making it difficult to distinguish which business they belong to.
+2. Add a "View More" option to each section on the "Reports and Statistics" page.
+3. User activity (number of active users, etc.) is not visible on the "Reports and Statistics" page.
+4. When an administrator views a user profile, user activity is not visible (e.g., places viewed, sessions, last activity, and other useful data).
+5. The total number of individual places per map is not visible on the "Reports and Statistics" page.
+
+Users:
+1. The user profile display showing level and points earned is not synchronized with the settings I configured on the rewards page (l changed the points required for each level); it needs to update in real-time based on those changes.
+2. On the "Places" page, when typing a municipality like "San Sebastian" into the search bar, results showing "San Sebastian" in the address or name appear first, followed by unrelated places. I would like the search function to be more accurate and precise regarding the input (matching the address or name exactly).
+3. For both personal and other users' contributions, clicking on the name of a place where a review was left should redirect the user to that place's information page.
+4. The "My Business" page does not allow users to edit general business information; it only allows editing the offer itself.
+5. The "My Business" page counts redeemed offers but does not appear to count visits.
+6. On the landing page, the official images for each business or offer are not visible in the offers section.
+7. On the landing page, in the "Promote Your Business" section, the dark mode version displays an orange color that doesn't match Roadtripeado's branding. Please change it to the yellow used elsewhere on the page.
+
+Users who haven't purchased a map:
+1. On the "Places" page, locked locations should appear with a slightly blurred image to prevent users from taking screenshots and identifying the location via Al; however, the blur should still allow users to distinguish whether it is a beach, river, cave, etc.
+2. QUESTION: Can the pins for locked tourist spots be placed randomly within the corresponding country? This would prevent people from finding the locations simply by looking at the map and searching for them manually on Google Maps. Please consult me on this before taking action.
+3. Levels and rewards are exclusively for users who have purchased maps; therefore, these features should be locked, accompanied by a prompt inviting users to purchase a map to level up and earn free rewards.
+4. Users who haven't purchased maps can leave reviews but do not earn points. Points are earned only for reviews of maps they have actually purchased. For example, if a user buys the United States map but leaves a review for a map they haven't purchased, those points will not count.
+5. Locked locations within categories should display the padlock icon used previously; ensure the padlock does not look like an emoji.
+
+MOBILE VERSION:
+
+Users:
+1. The search section is still visible in the "Menu" area; please remove this search bar and keep only the main search bar that has always been there.
+
+NEW FEATURES: FIXES
+
+Notifications:
+1. When a new place is added and a notification appears, it says "a new place was added in Bangladesh" instead of Puerto Rico or the actual country where it was added.
+2. When a notification indicates that a recommended place has been approved, clicking "view place" results in an error, and the page for that place fails to open.
+
+Visited Places:
+1. Places marked as "visited" should have a gold-colored border-or the specific yellow used by Roadtripeado-around the location pin on the "map" page (without it being overly prominent).
+2. When a place is marked as "visited," the background map begins to move on its own, which appears to be a bug or error.
+3. On the Visited Places page in the mobile version, the places should be displayed two at a time.
+
+Recommended Places:
+
+Users:
+1. Users should not be able to recommend businesses or restaurants; recommendations should be limited to natural tourist spots, parks, etc. This policy could be stated somewhere in the interface.
+2. When creating a recommendation, the "access description" section is missing-this should include a detailed explanation of how to reach the destination from the parking area. Other missing details include walking time, access difficulty, and whether the location is always open.
+3. When a place is recommended and its status is "pending" or "approved," the image of the recommended place does not appear.
+4. Where it says "Discovered by (Username)," users should be able to click on the name to be taken to that users profile.
+5. On the PC (desktop) or full-screen version, the fact that a place was recommended by a specific user appears in the location's pop-up, but it does not appear on the actual page for an approved, recommended place. It should be visible in both locations, as it is in the mobile version.
+6. I notice that the option to recommend a place appears on the "contributions and reviews" page. Could the recommended places page be removed, keeping this feature exclusively within "contributions and reviews"? This would help keep the menu as streamlined and organized as possible.
+7. In the section that provides an overview of your contributions-such as your level, points, places visited, and approved reviews-information regarding approved recommended places is missing.
+8. When adding information for a recommended place, please specify that the images must be of good quality and accurately represent both the location and the experience being recommended.
+
+NEW POINT VALUES:
+
+Reviews:
+1. Star rating: +1 point
+2. Review: +4 points
+3. Review of 200 characters or more: +5 points (for a total of 10 points if the user provides a cocnplete review)
+
+Recommending Places:
+1. Approved recommended place: +25 points

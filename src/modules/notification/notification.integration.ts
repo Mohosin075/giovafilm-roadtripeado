@@ -10,6 +10,7 @@ import {
 import { User } from '../user/user.model'
 import { Place } from '../place/place.model'
 import { Business } from '../business/business.model'
+import { Map } from '../map/map.model'
 
 export class NotificationIntegration {
   static async onNewMessage(
@@ -373,7 +374,24 @@ export class NotificationIntegration {
           ? place.name.en || place.name.es || 'New Destination'
           : place.name || 'New Destination'
 
-      const country = place.country || 'Roadtripeado'
+      let country = (place.country || '').trim()
+      if (!country || country === 'Unknown' || country.toLowerCase() === 'bangladesh') {
+        if (place.map) {
+          const mapObj =
+            typeof place.map === 'object' && place.map !== null
+              ? place.map
+              : await Map.findById(place.map).lean()
+          country =
+            mapObj?.country ||
+            (typeof mapObj?.name === 'object' && mapObj?.name !== null
+              ? (mapObj.name as any).en || (mapObj.name as any).es
+              : mapObj?.name) ||
+            ''
+        }
+      }
+      if (!country || country.toLowerCase() === 'bangladesh') {
+        country = 'Roadtripeado'
+      }
 
       await NotificationServices.dispatchTailoredNotification({
         title: {

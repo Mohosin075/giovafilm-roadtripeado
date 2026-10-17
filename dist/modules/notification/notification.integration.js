@@ -6,6 +6,7 @@ const notification_interface_1 = require("./notification.interface");
 const user_model_1 = require("../user/user.model");
 const place_model_1 = require("../place/place.model");
 const business_model_1 = require("../business/business.model");
+const map_model_1 = require("../map/map.model");
 class NotificationIntegration {
     static async onNewMessage(senderId, receiverId, message) {
         try {
@@ -317,7 +318,23 @@ class NotificationIntegration {
             const placeNameEn = typeof place.name === 'object' && place.name !== null
                 ? place.name.en || place.name.es || 'New Destination'
                 : place.name || 'New Destination';
-            const country = place.country || 'Roadtripeado';
+            let country = (place.country || '').trim();
+            if (!country || country === 'Unknown' || country.toLowerCase() === 'bangladesh') {
+                if (place.map) {
+                    const mapObj = typeof place.map === 'object' && place.map !== null
+                        ? place.map
+                        : await map_model_1.Map.findById(place.map).lean();
+                    country =
+                        (mapObj === null || mapObj === void 0 ? void 0 : mapObj.country) ||
+                            (typeof (mapObj === null || mapObj === void 0 ? void 0 : mapObj.name) === 'object' && (mapObj === null || mapObj === void 0 ? void 0 : mapObj.name) !== null
+                                ? mapObj.name.en || mapObj.name.es
+                                : mapObj === null || mapObj === void 0 ? void 0 : mapObj.name) ||
+                            '';
+                }
+            }
+            if (!country || country.toLowerCase() === 'bangladesh') {
+                country = 'Roadtripeado';
+            }
             await notification_service_1.NotificationServices.dispatchTailoredNotification({
                 title: {
                     es: `¡Nuevo destino: ${placeNameEs}! 📍`,

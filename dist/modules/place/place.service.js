@@ -144,34 +144,46 @@ const toNumber = (value) => {
 const createPlace = async (payload) => {
     var _a;
     await processPlaceTranslations(payload);
-    // Auto-populate country if not provided (run before transaction/session to prevent locks)
+    // 1. Resolve map and align country to designated map (prevents incorrect country when adding places)
+    let map = null;
+    if (payload.map) {
+        map = await map_model_1.Map.findById(payload.map);
+        if (!map) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Map not found');
+        }
+        const mapCountry = map.country ||
+            (typeof map.name === 'object' && map.name !== null
+                ? map.name.en || map.name.es || Object.values(map.name)[0]
+                : map.name);
+        if (mapCountry) {
+            payload.country = String(mapCountry).trim();
+        }
+    }
+    // 2. Fallback to reverse geocoding only if country is still completely missing
     if (!payload.country && ((_a = payload.location) === null || _a === void 0 ? void 0 : _a.coordinates)) {
         const [lng, lat] = payload.location.coordinates;
-        // MongoDB stores [lng, lat], but Google API needs (lat, lng)
         const country = await (0, reverseGeocoding_1.getCountryFromCoordinates)(lat, lng);
-        console.log('country', country);
         if (country) {
             payload.country = country;
         }
         else {
-            payload.country = 'Unknown'; // Fallback
+            payload.country = 'Roadtripeado';
         }
     }
     const session = await mongoose_1.default.startSession();
     try {
         session.startTransaction();
-        // Check if map exists
-        const map = await map_model_1.Map.findById(payload.map).session(session);
-        if (!map) {
+        // Ensure map exists within session
+        const mapInSession = await map_model_1.Map.findById(payload.map).session(session);
+        if (!mapInSession) {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Map not found');
         }
         const result = await place_model_1.Place.create([payload], { session });
         const createdPlace = result[0];
-        // Add place to map
+        // Add place to map (do not overwrite map.country if map already has a country)
         await map_model_1.Map.findByIdAndUpdate(payload.map, {
             $push: { places: createdPlace._id },
-            // If map doesn't have a country, set it from the place
-            $set: { country: createdPlace.country }
+            ...(mapInSession.country ? {} : { $set: { country: createdPlace.country } })
         }, { session });
         await session.commitTransaction();
         if (createdPlace.status === 'Published') {
@@ -773,12 +785,25 @@ const updatePlace = async (id, payload) => {
         (!prevCoords ||
             Math.abs(nextCoords[0] - prevCoords[0]) > COORD_EPSILON ||
             Math.abs(nextCoords[1] - prevCoords[1]) > COORD_EPSILON);
-    // Only hit Google when the pin actually moved (run before transaction/session to prevent locks)
+    // Only hit Google when the pin actually moved and no map country exists
     if (coordsChanged && !payload.country) {
-        const [lng, lat] = nextCoords;
-        const country = await (0, reverseGeocoding_1.getCountryFromCoordinates)(lat, lng);
-        if (country) {
-            payload.country = country;
+        const targetMapId = payload.map || isExist.map;
+        if (targetMapId) {
+            const targetMap = await map_model_1.Map.findById(targetMapId);
+            const mapCountry = (targetMap === null || targetMap === void 0 ? void 0 : targetMap.country) ||
+                (typeof (targetMap === null || targetMap === void 0 ? void 0 : targetMap.name) === 'object' && (targetMap === null || targetMap === void 0 ? void 0 : targetMap.name) !== null
+                    ? targetMap.name.en || targetMap.name.es
+                    : targetMap === null || targetMap === void 0 ? void 0 : targetMap.name);
+            if (mapCountry) {
+                payload.country = String(mapCountry).trim();
+            }
+        }
+        if (!payload.country) {
+            const [lng, lat] = nextCoords;
+            const country = await (0, reverseGeocoding_1.getCountryFromCoordinates)(lat, lng);
+            if (country) {
+                payload.country = country;
+            }
         }
     }
     const session = await mongoose_1.default.startSession();
@@ -878,7 +903,22 @@ const recommendPlace = async (user, payload) => {
         payload.description = payload.name || 'Lugar recomendado';
     }
     await processPlaceTranslations(payload);
-    // Auto-populate country if not provided
+    // 1. Resolve map and align country to designated map
+    let map = null;
+    if (payload.map) {
+        map = await map_model_1.Map.findById(payload.map);
+        if (!map) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Map not found');
+        }
+        const mapCountry = map.country ||
+            (typeof map.name === 'object' && map.name !== null
+                ? map.name.en || map.name.es || Object.values(map.name)[0]
+                : map.name);
+        if (mapCountry) {
+            payload.country = String(mapCountry).trim();
+        }
+    }
+    // 2. Auto-populate country if still missing
     if (!payload.country && ((_a = payload.location) === null || _a === void 0 ? void 0 : _a.coordinates)) {
         const [lng, lat] = payload.location.coordinates;
         const country = await (0, reverseGeocoding_1.getCountryFromCoordinates)(lat, lng);
@@ -886,12 +926,8 @@ const recommendPlace = async (user, payload) => {
             payload.country = country;
         }
         else {
-            payload.country = 'Unknown';
+            payload.country = 'Roadtripeado';
         }
-    }
-    const map = await map_model_1.Map.findById(payload.map);
-    if (!map) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Map not found');
     }
     const createdPlace = await place_model_1.Place.create(payload);
     return createdPlace;
@@ -966,7 +1002,7 @@ const reviewRecommendedPlace = async (id, payload) => {
                     type: notification_interface_1.NotificationType.EARNED_REWARD,
                     category: notification_interface_1.NotificationCategory.ROADTRIPEADO,
                     priority: notification_interface_1.NotificationPriority.HIGH,
-                    actionUrl: `/map?placeId=${updatedPlace._id}`,
+                    actionUrl: `/places/${updatedPlace._id}`,
                     actionText: {
                         es: 'Ver Lugar',
                         en: 'View Spot',

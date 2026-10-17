@@ -198,16 +198,32 @@ const toNumber = (value: unknown): number => {
 
 const createPlace = async (payload: IPlace): Promise<IPlace> => {
   await processPlaceTranslations(payload)
-  // Auto-populate country if not provided (run before transaction/session to prevent locks)
+
+  // 1. Resolve map and align country to designated map (prevents incorrect country when adding places)
+  let map: any = null
+  if (payload.map) {
+    map = await Map.findById(payload.map)
+    if (!map) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')
+    }
+    const mapCountry =
+      map.country ||
+      (typeof map.name === 'object' && map.name !== null
+        ? (map.name as any).en || (map.name as any).es || Object.values(map.name)[0]
+        : map.name)
+    if (mapCountry) {
+      payload.country = String(mapCountry).trim()
+    }
+  }
+
+  // 2. Fallback to reverse geocoding only if country is still completely missing
   if (!payload.country && payload.location?.coordinates) {
     const [lng, lat] = payload.location.coordinates
-    // MongoDB stores [lng, lat], but Google API needs (lat, lng)
     const country = await getCountryFromCoordinates(lat, lng)
-    console.log('country', country)
     if (country) {
       payload.country = country
     } else {
-      payload.country = 'Unknown' // Fallback
+      payload.country = 'Roadtripeado'
     }
   }
 
@@ -215,22 +231,21 @@ const createPlace = async (payload: IPlace): Promise<IPlace> => {
   try {
     session.startTransaction()
 
-    // Check if map exists
-    const map = await Map.findById(payload.map).session(session)
-    if (!map) {
+    // Ensure map exists within session
+    const mapInSession = await Map.findById(payload.map).session(session)
+    if (!mapInSession) {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')
     }
 
     const result = await Place.create([payload], { session })
     const createdPlace = result[0]
 
-    // Add place to map
+    // Add place to map (do not overwrite map.country if map already has a country)
     await Map.findByIdAndUpdate(
       payload.map,
       { 
         $push: { places: createdPlace._id },
-        // If map doesn't have a country, set it from the place
-        $set: { country: createdPlace.country } 
+        ...(mapInSession.country ? {} : { $set: { country: createdPlace.country } })
       },
       { session }
     )
@@ -887,12 +902,26 @@ const updatePlace = async (
       Math.abs(nextCoords[0] - prevCoords[0]) > COORD_EPSILON ||
       Math.abs(nextCoords[1] - prevCoords[1]) > COORD_EPSILON)
 
-  // Only hit Google when the pin actually moved (run before transaction/session to prevent locks)
+  // Only hit Google when the pin actually moved and no map country exists
   if (coordsChanged && !payload.country) {
-    const [lng, lat] = nextCoords
-    const country = await getCountryFromCoordinates(lat, lng)
-    if (country) {
-      payload.country = country
+    const targetMapId = payload.map || isExist.map
+    if (targetMapId) {
+      const targetMap = await Map.findById(targetMapId)
+      const mapCountry =
+        targetMap?.country ||
+        (typeof targetMap?.name === 'object' && targetMap?.name !== null
+          ? (targetMap.name as any).en || (targetMap.name as any).es
+          : targetMap?.name)
+      if (mapCountry) {
+        payload.country = String(mapCountry).trim()
+      }
+    }
+    if (!payload.country) {
+      const [lng, lat] = nextCoords
+      const country = await getCountryFromCoordinates(lat, lng)
+      if (country) {
+        payload.country = country
+      }
     }
   }
 
@@ -1029,20 +1058,32 @@ const recommendPlace = async (user: any, payload: any): Promise<IPlace> => {
 
   await processPlaceTranslations(payload)
 
-  // Auto-populate country if not provided
+  // 1. Resolve map and align country to designated map
+  let map: any = null
+  if (payload.map) {
+    map = await Map.findById(payload.map)
+    if (!map) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')
+    }
+    const mapCountry =
+      map.country ||
+      (typeof map.name === 'object' && map.name !== null
+        ? (map.name as any).en || (map.name as any).es || Object.values(map.name)[0]
+        : map.name)
+    if (mapCountry) {
+      payload.country = String(mapCountry).trim()
+    }
+  }
+
+  // 2. Auto-populate country if still missing
   if (!payload.country && payload.location?.coordinates) {
     const [lng, lat] = payload.location.coordinates
     const country = await getCountryFromCoordinates(lat, lng)
     if (country) {
       payload.country = country
     } else {
-      payload.country = 'Unknown'
+      payload.country = 'Roadtripeado'
     }
-  }
-
-  const map = await Map.findById(payload.map)
-  if (!map) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Map not found')
   }
 
   const createdPlace = await Place.create(payload)
@@ -1157,7 +1198,7 @@ const reviewRecommendedPlace = async (
           type: NotificationType.EARNED_REWARD,
           category: NotificationCategory.ROADTRIPEADO,
           priority: NotificationPriority.HIGH,
-          actionUrl: `/map?placeId=${updatedPlace._id}`,
+          actionUrl: `/places/${updatedPlace._id}`,
           actionText: {
             es: 'Ver Lugar',
             en: 'View Spot',

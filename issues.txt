@@ -39,17 +39,21 @@ Users who haven't purchased a map:
 4. Users who haven't purchased maps can leave reviews but do not earn points. Points are earned only for reviews of maps they have actually purchased. For example, if a user buys the United States map but leaves a review for a map they haven't purchased, those points will not count.
 -solved
 5. Locked locations within categories should display the padlock icon used previously; ensure the padlock does not look like an emoji.
+-solved
 
 MOBILE VERSION:
 
 Users:
 1. The search section is still visible in the "Menu" area; please remove this search bar and keep only the main search bar that has always been there.
+-solved
 
 NEW FEATURES: FIXES
 
 Notifications:
 1. When a new place is added and a notification appears, it says "a new place was added in Bangladesh" instead of Puerto Rico or the actual country where it was added.
+-solved
 2. When a notification indicates that a recommended place has been approved, clicking "view place" results in an error, and the page for that place fails to open.
+-solved
 
 Visited Places:
 1. Places marked as "visited" should have a gold-colored border-or the specific yellow used by Roadtripeado-around the location pin on the "map" page (without it being overly prominent).

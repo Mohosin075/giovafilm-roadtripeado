@@ -109,8 +109,12 @@ class NotificationIntegration {
                     en: 'Review Approved! 🎉',
                 },
                 content: {
-                    es: `¡Tu reseña sobre "${name}" fue aprobada! Ganaste +${payload.points} puntos de explorador.`,
-                    en: `Your review for "${name}" was approved! You earned +${payload.points} explorer points.`,
+                    es: payload.points > 0
+                        ? `¡Tu reseña sobre "${name}" fue aprobada! Ganaste +${payload.points} puntos de explorador.`
+                        : `¡Tu reseña sobre "${name}" fue aprobada! Desbloquea este mapa para ganar puntos con tus reseñas.`,
+                    en: payload.points > 0
+                        ? `Your review for "${name}" was approved! You earned +${payload.points} explorer points.`
+                        : `Your review for "${name}" was approved! Unlock this map to start earning points with your reviews.`,
                 },
                 type: notification_interface_1.NotificationType.APPROVED_REVIEW,
                 category: notification_interface_1.NotificationCategory.ACCOUNT,

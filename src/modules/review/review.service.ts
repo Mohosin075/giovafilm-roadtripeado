@@ -7,6 +7,8 @@ import mongoose from 'mongoose'
 import { User } from '../user/user.model'
 import { Place } from '../place/place.model'
 import { Business } from '../business/business.model'
+import { Map } from '../map/map.model'
+import { USER_ROLES } from '../../enum/user'
 import { IPaginationOptions } from '../../interfaces/pagination'
 import { paginationHelper } from '../../helpers/paginationHelper'
 import { AwardServices } from '../award/award.service'
@@ -105,18 +107,6 @@ const createReview = async (user: JwtPayload, payload: IReview) => {
       } else {
         throw new ApiError(StatusCodes.NOT_FOUND, 'Place not found')
       }
-    } else {
-      // Check map access: only allow review if the map is free, purchased, or the user is admin/editor
-      const mapId = isPlaceExist.map ? isPlaceExist.map.toString() : null
-      if (mapId) {
-        const accessibleMapIds = await getAccessibleMapIds(isUserExist)
-        if (!accessibleMapIds.includes(mapId)) {
-          throw new ApiError(
-            StatusCodes.FORBIDDEN,
-            'You must unlock or purchase this map before you can review this place.',
-          )
-        }
-      }
     }
   } else if (payload.businessId) {
     const isBusinessExist = await Business.findById(payload.businessId)
@@ -126,16 +116,6 @@ const createReview = async (user: JwtPayload, payload: IReview) => {
       if (isPlaceExist) {
         payload.placeId = payload.businessId as any
         delete (payload as any).businessId
-        const mapId = isPlaceExist.map ? isPlaceExist.map.toString() : null
-        if (mapId) {
-          const accessibleMapIds = await getAccessibleMapIds(isUserExist)
-          if (!accessibleMapIds.includes(mapId)) {
-            throw new ApiError(
-              StatusCodes.FORBIDDEN,
-              'You must unlock or purchase this map before you can review this place.',
-            )
-          }
-        }
       } else {
         throw new ApiError(StatusCodes.NOT_FOUND, 'Business not found')
       }
@@ -174,9 +154,13 @@ const getAllReviews = async (
 
   const [result, total] = await Promise.all([
     Review.find(filter)
-      .populate('reviewer', 'name profile level')
-      .populate('placeId', 'name media')
-      .populate('businessId', 'name media.photos')
+      .populate('reviewer', 'name profile level purchasedMaps')
+      .populate({
+        path: 'placeId',
+        select: 'name media map address category country',
+        populate: { path: 'map', select: 'name country' },
+      })
+      .populate('businessId', 'name media location')
       .skip(skip)
       .limit(limit)
       .sort({ [sortBy]: sortOrder }),
@@ -417,21 +401,59 @@ const approveReview = async (id: string) => {
       throw new ApiError(StatusCodes.BAD_REQUEST, 'Review is already approved')
     }
 
-    // 1. Calculate points
-    // Star qualification (only rating, no review text) = 1 point
-    // Review text present = 5 points
-    // Length of review >= 200 characters = +10 bonus points
-    let points = 1 // 1 point for the star rating (every review must have a star rating)
+    // 1. Calculate potential points based on new point rules:
+    // 1. Star rating: +1 point
+    // 2. Review text: +4 points
+    // 3. Review >= 200 characters: +5 bonus points (total 10 points)
+    let potentialPoints = 1
     const reviewContent =
       typeof existingReview.review === 'object' && existingReview.review !== null
         ? ((existingReview.review as any).es || (existingReview.review as any).en || '')
         : (typeof existingReview.review === 'string' ? existingReview.review : '')
     if (reviewContent && reviewContent.trim() !== '') {
-      points += 5 // +5 points for the review itself
+      potentialPoints += 4
       if (reviewContent.trim().length >= 200) {
-        points += 10 // +10 bonus points for reviews exceeding 200 characters
+        potentialPoints += 5
       }
     }
+
+    // 2. Check if reviewer has purchased the map for this review
+    // Points are earned ONLY for reviews of maps they have actually purchased.
+    const reviewerId = existingReview.reviewer.toString()
+    const reviewer = await User.findById(reviewerId).session(session)
+
+    let isMapPurchased = false
+    if (reviewer) {
+      if ([USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN].includes(reviewer.role as any)) {
+        isMapPurchased = true
+      } else {
+        const userPurchasedMapIds = (reviewer.purchasedMaps || []).map((m: any) =>
+          m ? (m._id ? m._id.toString() : m.toString()) : ''
+        )
+        if (existingReview.placeId) {
+          const place = await Place.findById(existingReview.placeId).session(session)
+          const rawMap = place?.map
+          const mapId = rawMap ? (rawMap._id ? rawMap._id.toString() : rawMap.toString()) : null
+          if (mapId && userPurchasedMapIds.includes(mapId)) {
+            isMapPurchased = true
+          }
+        } else if (existingReview.businessId) {
+          const business = await Business.findById(existingReview.businessId).session(session)
+          const bizCountry = business?.location?.country
+          if (bizCountry) {
+            const countryMap = await Map.findOne({
+              country: { $regex: new RegExp(`^${bizCountry.trim()}$`, 'i') },
+            }).session(session)
+            if (countryMap && userPurchasedMapIds.includes(countryMap._id.toString())) {
+              isMapPurchased = true
+            }
+          }
+        }
+      }
+    }
+
+    // Points earned is 0 if user hasn't purchased the map
+    const points = isMapPurchased ? potentialPoints : 0
 
     // Update review status
     const updatedReview = await Review.findByIdAndUpdate(
@@ -440,9 +462,7 @@ const approveReview = async (id: string) => {
       { session, new: true }
     )
 
-    // 2. Update user points, approved review count, and recalculate level
-    const reviewerId = existingReview.reviewer.toString()
-    const reviewer = await User.findById(reviewerId).session(session)
+    // 3. Update user points, approved review count, and recalculate level
     let levelUnlockedData: { newLevel: number; levelName: string; oldLevel: number } | null = null
 
     if (reviewer) {

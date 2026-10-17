@@ -351,7 +351,7 @@ const getPublicProfile = async (userId) => {
         _id: userId,
         status: user_1.USER_STATUS.ACTIVE,
         verified: true,
-    }).select('name profile level points role createdAt website instagram description specialty settings.profileStatus visitedPlacesCount');
+    }).select('name profile level points role createdAt website instagram description specialty settings.profileStatus visitedPlacesCount address');
     if (!user) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Profile not found.');
     }

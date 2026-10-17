@@ -44,7 +44,9 @@ export const updateUserSchema = z.object({
     phone: z.string().optional(),
     website: z.string().optional().or(z.literal('')),
     instagram: z.string().optional().or(z.literal('')),
-    description: z.string().optional(),
+    description: z.string().optional().or(z.literal('')),
+    city: z.string().optional().or(z.literal('')),
+    profileStatus: z.enum(['public', 'private']).optional(),
     specialty: z.string().optional(),
 
     address: addressSchema.optional(),

@@ -24,7 +24,7 @@ import '../award/awardConfig.model'
 import { LevelConfigServices } from '../award/levelConfig.service'
 import { Visited } from '../visited/visited.model'
 import '../map/map.model'
-import '../place/place.model'
+import { Place } from '../place/place.model'
 import '../business/business.model'
 import '../offer/offer.model'
 import { localizeField } from '../../helpers/localize'
@@ -40,10 +40,20 @@ const updateProfile = async (user: JwtPayload, payload: Partial<IUser>) => {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
   }
 
+  const updateData: any = { ...payload }
+  if (updateData.profileStatus !== undefined) {
+    updateData['settings.profileStatus'] = updateData.profileStatus
+    delete updateData.profileStatus
+  }
+  if (updateData.city !== undefined) {
+    updateData['address.city'] = updateData.city
+    delete updateData.city
+  }
+
   const updatedProfile = await User.findOneAndUpdate(
     { _id: user.authId, status: { $nin: [USER_STATUS.DELETED] } },
     {
-      $set: payload,
+      $set: updateData,
     },
     { new: true },
   )
@@ -441,6 +451,18 @@ const getPublicProfile = async (userId: string) => {
     .limit(20)
     .lean()
 
+  // Fetch approved tourist spots discovered by this user
+  const discoveredPlaces = await Place.find({
+    discoveredBy: userId,
+    status: 'Published',
+  })
+    .select('name media address rating totalReview category map createdAt')
+    .populate('category', 'name icon color')
+    .populate('map', 'name country')
+    .sort({ createdAt: -1 })
+    .limit(20)
+    .lean()
+
   const points = (user as any).points || 0
   const approvedReviews = (user as any).totalReviewsApproved || 0
   const levelInfo = await LevelConfigServices.getDynamicUserLevel(
@@ -453,6 +475,7 @@ const getPublicProfile = async (userId: string) => {
     level: levelInfo.levelNumber,
     levelInfo,
     reviews,
+    discoveredPlaces,
   }
 }
 

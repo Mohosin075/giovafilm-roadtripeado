@@ -23,7 +23,7 @@ require("../award/awardConfig.model");
 const levelConfig_service_1 = require("../award/levelConfig.service");
 const visited_model_1 = require("../visited/visited.model");
 require("../map/map.model");
-require("../place/place.model");
+const place_model_1 = require("../place/place.model");
 require("../business/business.model");
 require("../offer/offer.model");
 const localize_1 = require("../../helpers/localize");
@@ -36,8 +36,17 @@ const updateProfile = async (user, payload) => {
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
     }
+    const updateData = { ...payload };
+    if (updateData.profileStatus !== undefined) {
+        updateData['settings.profileStatus'] = updateData.profileStatus;
+        delete updateData.profileStatus;
+    }
+    if (updateData.city !== undefined) {
+        updateData['address.city'] = updateData.city;
+        delete updateData.city;
+    }
     const updatedProfile = await user_model_1.User.findOneAndUpdate({ _id: user.authId, status: { $nin: [user_1.USER_STATUS.DELETED] } }, {
-        $set: payload,
+        $set: updateData,
     }, { new: true });
     if (!updatedProfile) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to update profile.');
@@ -359,6 +368,17 @@ const getPublicProfile = async (userId) => {
         .sort({ createdAt: -1 })
         .limit(20)
         .lean();
+    // Fetch approved tourist spots discovered by this user
+    const discoveredPlaces = await place_model_1.Place.find({
+        discoveredBy: userId,
+        status: 'Published',
+    })
+        .select('name media address rating totalReview category map createdAt')
+        .populate('category', 'name icon color')
+        .populate('map', 'name country')
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .lean();
     const points = user.points || 0;
     const approvedReviews = user.totalReviewsApproved || 0;
     const levelInfo = await levelConfig_service_1.LevelConfigServices.getDynamicUserLevel(points, approvedReviews);
@@ -367,6 +387,7 @@ const getPublicProfile = async (userId) => {
         level: levelInfo.levelNumber,
         levelInfo,
         reviews,
+        discoveredPlaces,
     };
 };
 const updateUserStatus = async (userId, status, actor) => {

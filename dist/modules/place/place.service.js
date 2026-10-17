@@ -943,7 +943,7 @@ const reviewRecommendedPlace = async (id, payload) => {
     const session = await mongoose_1.default.startSession();
     try {
         session.startTransaction();
-        const points = payload.pointsAwarded !== undefined ? payload.pointsAwarded : 50;
+        const points = payload.pointsAwarded !== undefined ? payload.pointsAwarded : 25;
         const updateData = {
             status: payload.status,
             adminFeedback: payload.adminFeedback || '',

@@ -77,8 +77,11 @@ Users:
 5. On the PC (desktop) or full-screen version, the fact that a place was recommended by a specific user appears in the location's pop-up, but it does not appear on the actual page for an approved, recommended place. It should be visible in both locations, as it is in the mobile version.
 -solved
 6. I notice that the option to recommend a place appears on the "contributions and reviews" page. Could the recommended places page be removed, keeping this feature exclusively within "contributions and reviews"? This would help keep the menu as streamlined and organized as possible.
+-solved
 7. In the section that provides an overview of your contributions-such as your level, points, places visited, and approved reviews-information regarding approved recommended places is missing.
+-solved
 8. When adding information for a recommended place, please specify that the images must be of good quality and accurately represent both the location and the experience being recommended.
+-solved
 
 NEW POINT VALUES:
 
@@ -89,3 +92,20 @@ Reviews:
 
 Recommending Places:
 1. Approved recommended place: +25 points
+
+
+
+
+Route Planner
+1. Place the route planner button in the menu alongside options like -favorite places," -contributions,"
+-awards,- etc.
+2. The feature itself is geat, but the layout is a bit confusing I suggest organizing it so that tapping
+"Route Planner" opens a main page displaying all created routes and a -Create Route- button. Tapping
+an existing route should show its details in a view-only mode (to prevent accidental changes), with a
+separate "Edit" button available for modifications. Tapping -Create Route- on the main Route Planner
+page should take the user directly to the route editing screen.
+3. I would like an "Add to Route" button on the specific page for each location on the map; this would
+ensure everything is connected and allow users to build a route directly from the main map view.
+4. When using the "Add Stop" function, the search bar, category section, and country section should
+be organized exactly like the -Places" page to ensure a consistent and familiar user experience.
+5. Use the corresponding category icons in the "Add Stop" section.

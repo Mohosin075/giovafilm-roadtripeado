@@ -476,6 +476,7 @@ const getPublicProfile = async (userId: string) => {
     levelInfo,
     reviews,
     discoveredPlaces,
+    approvedRecommendedPlacesCount: discoveredPlaces.length,
   }
 }
 
@@ -758,10 +759,20 @@ export const getProfile = async (user: JwtPayload) => {
       .catch(() => {})
   }
 
+  const approvedRecommendedPlacesCount = await Place.countDocuments({
+    discoveredBy: user.authId,
+    $or: [
+      { status: 'Published' },
+      { isApproved: true },
+      { pointsAwarded: { $gt: 0 } },
+    ],
+  })
+
   return {
     ...isUserExist.toObject(),
     level: levelInfo.levelNumber,
     levelInfo,
+    approvedRecommendedPlacesCount,
   }
 }
 

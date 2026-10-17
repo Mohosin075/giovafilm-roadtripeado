@@ -1111,7 +1111,7 @@ const reviewRecommendedPlace = async (
   try {
     session.startTransaction()
 
-    const points = payload.pointsAwarded !== undefined ? payload.pointsAwarded : 50
+    const points = payload.pointsAwarded !== undefined ? payload.pointsAwarded : 25
 
     const updateData: any = {
       status: payload.status,

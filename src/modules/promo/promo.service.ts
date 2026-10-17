@@ -122,7 +122,7 @@ const claimFreePromo = async (
 
   return {
     success: true,
-    message: `Promo claimed successfully! ${map.name} is now unlocked.`,
+    message: `Promo claimed successfully! ${localizeField(map.name) || 'The map'} is now unlocked.`,
   }
 }
 

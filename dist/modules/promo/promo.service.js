@@ -83,7 +83,7 @@ const claimFreePromo = async (userId, code, userMapId) => {
     });
     return {
         success: true,
-        message: `Promo claimed successfully! ${map.name} is now unlocked.`,
+        message: `Promo claimed successfully! ${(0, localize_1.localizeField)(map.name) || 'The map'} is now unlocked.`,
     };
 };
 const createPromoCheckoutSession = async (user, code, userMapId) => {

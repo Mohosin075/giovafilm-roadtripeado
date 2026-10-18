@@ -143,6 +143,9 @@ const redeemFreeMap = async (userId: string, mapId: string) => {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
   }
 
+  // Ensure awards and unlock states are synchronized based on user points
+  await getMyAwards(userId)
+
   // Find all unlocked Free Map awards for this user
   const freeMapAwards = await Award.find({ userId, type: 'Free Map', isUnlocked: true }).populate('configId')
   if (!freeMapAwards || freeMapAwards.length === 0) {

@@ -18,10 +18,10 @@ exports.USER_LEVELS = [
     { level: 13, name: 'Inmortal', points: 45000, reviews: 3000 },
     { level: 14, name: 'Supremo', points: 65000, reviews: 4333 },
 ];
-const calculateUserLevel = (points, approvedReviews) => {
+const calculateUserLevel = (points, _approvedReviews) => {
     let level = 0;
     for (let i = exports.USER_LEVELS.length - 1; i >= 0; i--) {
-        if (points >= exports.USER_LEVELS[i].points && approvedReviews >= exports.USER_LEVELS[i].reviews) {
+        if (points >= exports.USER_LEVELS[i].points) {
             level = exports.USER_LEVELS[i].level;
             break;
         }

@@ -143,23 +143,41 @@ const redeemFreeMap = async (userId: string, mapId: string) => {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
   }
 
-  // Check if already redeemed
-  if (user.redeemedFreeMap) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'You have already redeemed your free map')
-  }
-
-  // Check if Free Map award is unlocked
-  const freeMapAward = await Award.findOne({ userId, type: 'Free Map', isUnlocked: true })
-  if (!freeMapAward || !freeMapAward.isUnlocked) {
+  // Find all unlocked Free Map awards for this user
+  const freeMapAwards = await Award.find({ userId, type: 'Free Map', isUnlocked: true }).populate('configId')
+  if (!freeMapAwards || freeMapAwards.length === 0) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Free Map award is not unlocked yet')
   }
 
-  // Update user: set redeemedFreeMap and add to purchasedMaps
+  // Calculate total free maps allowed across all unlocked awards
+  const totalAllowed = freeMapAwards.reduce((acc, award: any) => {
+    const count = Number(award.configId?.mapCount) || 1
+    return acc + count
+  }, 0)
+
+  // Determine currently redeemed maps
+  const currentRedeemed: Types.ObjectId[] = Array.isArray(user.redeemedFreeMaps) && user.redeemedFreeMaps.length > 0
+    ? user.redeemedFreeMaps
+    : (user.redeemedFreeMap ? [user.redeemedFreeMap] : [])
+
+  if (currentRedeemed.length >= totalAllowed) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'You have already redeemed all your free map rewards')
+  }
+
+  // Check if map already redeemed
+  if (currentRedeemed.some(m => m.toString() === mapId.toString())) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'You have already redeemed this specific map')
+  }
+
+  // Update user: set redeemedFreeMap and add to redeemedFreeMaps & purchasedMaps
   const result = await User.findByIdAndUpdate(
     userId,
     {
       $set: { redeemedFreeMap: new Types.ObjectId(mapId) },
-      $addToSet: { purchasedMaps: new Types.ObjectId(mapId) },
+      $addToSet: {
+        redeemedFreeMaps: new Types.ObjectId(mapId),
+        purchasedMaps: new Types.ObjectId(mapId),
+      },
     },
     { new: true },
   )

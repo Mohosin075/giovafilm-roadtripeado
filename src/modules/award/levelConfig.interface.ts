@@ -6,7 +6,7 @@ export interface ILevelConfig {
   level: number
   name: TranslatableString
   points: number
-  reviews: number
+  reviews?: number
   badgeUrl?: string
   description?: TranslatableString
   createdAt?: Date

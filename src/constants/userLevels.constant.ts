@@ -23,10 +23,10 @@ export const USER_LEVELS: IUserLevelConfig[] = [
   { level: 14, name: 'Supremo', points: 65000, reviews: 4333 },
 ]
 
-export const calculateUserLevel = (points: number, approvedReviews: number): number => {
+export const calculateUserLevel = (points: number, _approvedReviews?: number): number => {
   let level = 0
   for (let i = USER_LEVELS.length - 1; i >= 0; i--) {
-    if (points >= USER_LEVELS[i].points && approvedReviews >= USER_LEVELS[i].reviews) {
+    if (points >= USER_LEVELS[i].points) {
       level = USER_LEVELS[i].level
       break
     }

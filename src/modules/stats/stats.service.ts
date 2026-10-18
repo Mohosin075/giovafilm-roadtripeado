@@ -593,12 +593,11 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
       mostViewedMaps = mapAgg.map(r => {
         const doc = mapDocMap.get(String(r._id))
         const spotsFromPlaces = mapPlaceCountMap.get(String(r._id)) || 0
-        const spotsFromDoc = Array.isArray(doc?.places) ? doc.places.length : 0
         return {
           id: String(r._id),
           name: doc?.name ? localizeField(doc.name) : 'Unknown Map',
           count: r.count || 0,
-          placesCount: Math.max(spotsFromPlaces, spotsFromDoc),
+          placesCount: spotsFromPlaces,
           country: doc?.country,
         }
       })
@@ -606,12 +605,11 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
       // Graceful fallback to allowed maps with 0 views in this date window
       mostViewedMaps = allowedMapDocs.slice(0, 20).map(m => {
         const spotsFromPlaces = mapPlaceCountMap.get(String(m._id)) || 0
-        const spotsFromDoc = Array.isArray(m.places) ? m.places.length : 0
         return {
           id: String(m._id),
           name: localizeField(m.name),
           count: 0,
-          placesCount: Math.max(spotsFromPlaces, spotsFromDoc),
+          placesCount: spotsFromPlaces,
           country: m.country,
         }
       })
@@ -632,12 +630,11 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
 
     mostViewedMaps = mostViewedMapsRaw.map(m => {
       const spotsFromPlaces = rawCountMap.get(String(m._id)) || 0
-      const spotsFromDoc = Array.isArray(m.places) ? m.places.length : 0
       return {
         id: String(m._id),
         name: localizeField(m.name),
         count: (m as any).viewCount || 0,
-        placesCount: Math.max(spotsFromPlaces, spotsFromDoc),
+        placesCount: spotsFromPlaces,
         country: m.country,
       }
     })

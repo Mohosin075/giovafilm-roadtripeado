@@ -188,6 +188,7 @@ const getAllUsers = async (
       limit,
       total,
       totalPages: Math.ceil(total / limit),
+      totalPage: Math.ceil(total / limit),
     },
     data: result,
   }
@@ -275,6 +276,7 @@ const getUserById = async (userId: string): Promise<any> => {
     .populate('favoriteMaps', 'name country images')
     .populate('assignedMaps', 'name country')
     .populate('redeemedFreeMap', 'name country')
+    .populate('redeemedFreeMaps', 'name country')
     .lean()
 
   if (!user) {
@@ -739,6 +741,8 @@ export const getProfile = async (user: JwtPayload) => {
   })
     .select('-authentication -password -__v')
     .populate('assignedMaps', 'name country')
+    .populate('redeemedFreeMap', 'name country')
+    .populate('redeemedFreeMaps', 'name country')
 
   if (!isUserExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')

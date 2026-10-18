@@ -159,6 +159,7 @@ const getAllUsers = async (paginationOptions, filterables = {}) => {
             limit,
             total,
             totalPages: Math.ceil(total / limit),
+            totalPage: Math.ceil(total / limit),
         },
         data: result,
     };
@@ -215,6 +216,7 @@ const getUserById = async (userId) => {
         .populate('favoriteMaps', 'name country images')
         .populate('assignedMaps', 'name country')
         .populate('redeemedFreeMap', 'name country')
+        .populate('redeemedFreeMaps', 'name country')
         .lean();
     if (!user) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
@@ -551,7 +553,9 @@ const getProfile = async (user) => {
         status: { $nin: [user_1.USER_STATUS.DELETED] },
     })
         .select('-authentication -password -__v')
-        .populate('assignedMaps', 'name country');
+        .populate('assignedMaps', 'name country')
+        .populate('redeemedFreeMap', 'name country')
+        .populate('redeemedFreeMaps', 'name country');
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
     }

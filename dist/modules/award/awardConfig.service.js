@@ -141,6 +141,7 @@ const defaultConfigs = [
             es: 'Obtén 2 mapas gratis a tu elección en el Nivel 14 (Supremo - 65,000 pts y 4,333 reseñas).',
         },
         target: 65000,
+        mapCount: 2,
     },
 ];
 const seedAwardConfigs = async () => {
@@ -155,6 +156,10 @@ const seedAwardConfigs = async () => {
         for (const config of defaultConfigs) {
             await awardConfig_model_1.AwardConfig.create(config);
         }
+    }
+    else {
+        // Ensure Level 14 (target 65000) Free Map has mapCount: 2
+        await awardConfig_model_1.AwardConfig.updateMany({ target: 65000, type: 'Free Map' }, { $set: { mapCount: 2 } });
     }
 };
 const getAllAwardConfigs = async () => {

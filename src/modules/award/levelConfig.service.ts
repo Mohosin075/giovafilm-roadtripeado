@@ -26,7 +26,7 @@ const seedLevelConfigs = async () => {
               level: lvl.level,
               name: { en: lvl.name, es: lvl.name },
               points: lvl.points,
-              reviews: lvl.reviews,
+              reviews: 0,
             },
           },
           { upsert: true },
@@ -52,7 +52,7 @@ const getAllLevelConfigs = async (): Promise<ILevelConfig[]> => {
 
 const calculateDynamicLevelFromList = (
   points: number,
-  approvedReviews: number,
+  approvedReviews: number = 0,
   configs?: any[]
 ) => {
   const list =
@@ -71,8 +71,7 @@ const calculateDynamicLevelFromList = (
   for (let i = list.length - 1; i >= 0; i--) {
     const lvl = list[i]
     const reqPoints = Number(lvl.points ?? lvl.xp) || 0
-    const reqReviews = Number(lvl.reviews) || 0
-    if (points >= reqPoints && approvedReviews >= reqReviews) {
+    if (points >= reqPoints) {
       currentConfig = lvl
       currentIndex = i
       break
@@ -145,7 +144,7 @@ const calculateDynamicLevelFromList = (
 
 const getDynamicUserLevel = async (
   points: number,
-  approvedReviews: number
+  approvedReviews: number = 0
 ) => {
   const configs = await getAllLevelConfigs()
   return calculateDynamicLevelFromList(points, approvedReviews, configs)

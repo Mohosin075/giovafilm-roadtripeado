@@ -862,10 +862,8 @@ const deletePlace = async (id) => {
     try {
         session.startTransaction();
         const result = await place_model_1.Place.findByIdAndDelete(id).session(session);
-        // Remove place from map
-        if (result && result.map) {
-            await map_model_1.Map.findByIdAndUpdate(result.map, { $pull: { places: result._id } }, { session });
-        }
+        // Remove place from all maps
+        await map_model_1.Map.updateMany({ places: new mongoose_1.default.Types.ObjectId(id) }, { $pull: { places: new mongoose_1.default.Types.ObjectId(id) } }, { session });
         // Clean up visited references
         await visited_model_1.Visited.deleteMany({ $or: [{ place: id }, { business: id }] }).session(session);
         await user_model_1.User.updateMany({ visitedPlaces: id }, { $pull: { visitedPlaces: id }, $inc: { visitedPlacesCount: -1 } }, { session });

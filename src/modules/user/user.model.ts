@@ -119,6 +119,7 @@ const UserSchema = new Schema<IUser, UserModel>(
     level: { type: Number, default: 0 }, // starts at level 0: Explorador
     totalReviewsApproved: { type: Number, default: 0 },
     redeemedFreeMap: { type: Schema.Types.ObjectId, ref: 'Map', default: null },
+    redeemedFreeMaps: [{ type: Schema.Types.ObjectId, ref: 'Map' }],
 
     // --- Subscription Fields ---
     stripeCustomerId: { type: String, default: null },

@@ -1,37 +1,43 @@
 Route Planner
-1. Place the route planner button in the menu alongside options like -favorite places," -contributions,"
--awards,- etc.
+1. Place the route planner button in the menu alongside options like -favorite places," -contributions," -awards,- etc.
+[Solved]
 2. The feature itself is geat, but the layout is a bit confusing I suggest organizing it so that tapping
 "Route Planner" opens a main page displaying all created routes and a -Create Route- button. Tapping
 an existing route should show its details in a view-only mode (to prevent accidental changes), with a
 separate "Edit" button available for modifications. Tapping -Create Route- on the main Route Planner
 page should take the user directly to the route editing screen.
+[Solved]
 3. I would like an "Add to Route" button on the specific page for each location on the map; this would
 ensure everything is connected and allow users to build a route directly from the main map view.
+[Solved]
 4. When using the "Add Stop" function, the search bar, category section, and country section should
 be organized exactly like the -Places" page to ensure a consistent and familiar user experience.
+[Solved]
 5. Use the corresponding category icons in the "Add Stop" section.
+[Solved]
 
 
 
 Route Planner:
 6. The profile menu includes "My Saved Routes" and also "Route Planner.•. I would like to put just one
 of the way I mentioned earlier and only called "My Routes.".
+[Solved]
 
 
 
-
-giovafilm
-
-Oct 18, 7:44 AM
 GENERAL VERSION:
 Dashboard:
 1. On the "Rewards" page, when editing tiers, please remove the field labeled "required approved reviews."
+[Solved]
 2. On the "Rewards" page, how do I specify that the reward consists of 2 maps?
+[Solved]
 3. For locations that have already been published, the option to set them back to "draft" status is missing when opening the pop-up to edit them.
 4. The "Users and Roles" page only displays 10 users at a time. Could you add an option to view more entries or navigate to the next set of users?
+[Solved]
 5. On the map within the "Locations" page, there is a display issue in dark mode affecting the "Add Location" and "Add Category" buttons.
+[Solved]
 6. It appears that the total count of locations for each map (e.g., Puerto Rico) includes locations that have already been deleted. Could you verify that the system is counting the locations correctly?
+[Solved]
 
 Users:
 1. On the map page, when zoomed out to the maximum extent, it is still possible to drag the map until it disappears from view, causing the user to lose their orientation. Could you implement a boundary stop so the map cannot be dragged beyond the limits of the world map image?
@@ -55,3 +61,4 @@ Users who have not purchased the map:
 
 
 Users: 9. I would like the administrators to also see the same menu options that are shown to users.
+[Solved]

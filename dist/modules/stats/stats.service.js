@@ -522,12 +522,11 @@ const getReportsData = async (query = {}) => {
             mostViewedMaps = mapAgg.map(r => {
                 const doc = mapDocMap.get(String(r._id));
                 const spotsFromPlaces = mapPlaceCountMap.get(String(r._id)) || 0;
-                const spotsFromDoc = Array.isArray(doc === null || doc === void 0 ? void 0 : doc.places) ? doc.places.length : 0;
                 return {
                     id: String(r._id),
                     name: (doc === null || doc === void 0 ? void 0 : doc.name) ? (0, localize_1.localizeField)(doc.name) : 'Unknown Map',
                     count: r.count || 0,
-                    placesCount: Math.max(spotsFromPlaces, spotsFromDoc),
+                    placesCount: spotsFromPlaces,
                     country: doc === null || doc === void 0 ? void 0 : doc.country,
                 };
             });
@@ -536,12 +535,11 @@ const getReportsData = async (query = {}) => {
             // Graceful fallback to allowed maps with 0 views in this date window
             mostViewedMaps = allowedMapDocs.slice(0, 20).map(m => {
                 const spotsFromPlaces = mapPlaceCountMap.get(String(m._id)) || 0;
-                const spotsFromDoc = Array.isArray(m.places) ? m.places.length : 0;
                 return {
                     id: String(m._id),
                     name: (0, localize_1.localizeField)(m.name),
                     count: 0,
-                    placesCount: Math.max(spotsFromPlaces, spotsFromDoc),
+                    placesCount: spotsFromPlaces,
                     country: m.country,
                 };
             });
@@ -561,12 +559,11 @@ const getReportsData = async (query = {}) => {
         const rawCountMap = new globalThis.Map(rawCounts.map(p => [String(p._id), p.count]));
         mostViewedMaps = mostViewedMapsRaw.map(m => {
             const spotsFromPlaces = rawCountMap.get(String(m._id)) || 0;
-            const spotsFromDoc = Array.isArray(m.places) ? m.places.length : 0;
             return {
                 id: String(m._id),
                 name: (0, localize_1.localizeField)(m.name),
                 count: m.viewCount || 0,
-                placesCount: Math.max(spotsFromPlaces, spotsFromDoc),
+                placesCount: spotsFromPlaces,
                 country: m.country,
             };
         });

@@ -115,6 +115,7 @@ const UserSchema = new mongoose_1.Schema({
     level: { type: Number, default: 0 }, // starts at level 0: Explorador
     totalReviewsApproved: { type: Number, default: 0 },
     redeemedFreeMap: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Map', default: null },
+    redeemedFreeMaps: [{ type: mongoose_1.Schema.Types.ObjectId, ref: 'Map' }],
     // --- Subscription Fields ---
     stripeCustomerId: { type: String, default: null },
     subscriptionStatus: { type: String, default: 'none' },

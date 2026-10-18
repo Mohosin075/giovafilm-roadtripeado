@@ -115,19 +115,35 @@ const redeemFreeMap = async (userId, mapId) => {
     if (!user) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
     }
-    // Check if already redeemed
-    if (user.redeemedFreeMap) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'You have already redeemed your free map');
-    }
-    // Check if Free Map award is unlocked
-    const freeMapAward = await award_model_1.Award.findOne({ userId, type: 'Free Map', isUnlocked: true });
-    if (!freeMapAward || !freeMapAward.isUnlocked) {
+    // Find all unlocked Free Map awards for this user
+    const freeMapAwards = await award_model_1.Award.find({ userId, type: 'Free Map', isUnlocked: true }).populate('configId');
+    if (!freeMapAwards || freeMapAwards.length === 0) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Free Map award is not unlocked yet');
     }
-    // Update user: set redeemedFreeMap and add to purchasedMaps
+    // Calculate total free maps allowed across all unlocked awards
+    const totalAllowed = freeMapAwards.reduce((acc, award) => {
+        var _a;
+        const count = Number((_a = award.configId) === null || _a === void 0 ? void 0 : _a.mapCount) || 1;
+        return acc + count;
+    }, 0);
+    // Determine currently redeemed maps
+    const currentRedeemed = Array.isArray(user.redeemedFreeMaps) && user.redeemedFreeMaps.length > 0
+        ? user.redeemedFreeMaps
+        : (user.redeemedFreeMap ? [user.redeemedFreeMap] : []);
+    if (currentRedeemed.length >= totalAllowed) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'You have already redeemed all your free map rewards');
+    }
+    // Check if map already redeemed
+    if (currentRedeemed.some(m => m.toString() === mapId.toString())) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'You have already redeemed this specific map');
+    }
+    // Update user: set redeemedFreeMap and add to redeemedFreeMaps & purchasedMaps
     const result = await user_model_1.User.findByIdAndUpdate(userId, {
         $set: { redeemedFreeMap: new mongoose_1.Types.ObjectId(mapId) },
-        $addToSet: { purchasedMaps: new mongoose_1.Types.ObjectId(mapId) },
+        $addToSet: {
+            redeemedFreeMaps: new mongoose_1.Types.ObjectId(mapId),
+            purchasedMaps: new mongoose_1.Types.ObjectId(mapId),
+        },
     }, { new: true });
     return result;
 };

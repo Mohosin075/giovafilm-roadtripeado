@@ -89,6 +89,7 @@ export interface IUser {
   level: number
   totalReviewsApproved: number
   redeemedFreeMap?: Types.ObjectId // The map user chose as a prize
+  redeemedFreeMaps?: Types.ObjectId[] // Array of all free maps user has redeemed
 
   // --- Subscription Fields ---
   stripeCustomerId?: string

@@ -24,7 +24,7 @@ const seedLevelConfigs = async () => {
                         level: lvl.level,
                         name: { en: lvl.name, es: lvl.name },
                         points: lvl.points,
-                        reviews: lvl.reviews,
+                        reviews: 0,
                     },
                 }, { upsert: true });
             }
@@ -45,7 +45,7 @@ const getAllLevelConfigs = async () => {
     cacheExpiresAt = now + 60 * 1000; // 60s TTL
     return cachedConfigs;
 };
-const calculateDynamicLevelFromList = (points, approvedReviews, configs) => {
+const calculateDynamicLevelFromList = (points, approvedReviews = 0, configs) => {
     var _a, _b, _c, _d, _e, _f, _g;
     const list = configs && configs.length > 0
         ? [...configs].sort((a, b) => Number(a.level) - Number(b.level))
@@ -60,8 +60,7 @@ const calculateDynamicLevelFromList = (points, approvedReviews, configs) => {
     for (let i = list.length - 1; i >= 0; i--) {
         const lvl = list[i];
         const reqPoints = Number((_a = lvl.points) !== null && _a !== void 0 ? _a : lvl.xp) || 0;
-        const reqReviews = Number(lvl.reviews) || 0;
-        if (points >= reqPoints && approvedReviews >= reqReviews) {
+        if (points >= reqPoints) {
             currentConfig = lvl;
             currentIndex = i;
             break;
@@ -116,7 +115,7 @@ const calculateDynamicLevelFromList = (points, approvedReviews, configs) => {
         description: currentConfig.description,
     };
 };
-const getDynamicUserLevel = async (points, approvedReviews) => {
+const getDynamicUserLevel = async (points, approvedReviews = 0) => {
     const configs = await getAllLevelConfigs();
     return calculateDynamicLevelFromList(points, approvedReviews, configs);
 };

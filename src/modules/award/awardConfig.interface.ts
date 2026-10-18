@@ -12,6 +12,7 @@ export interface IAwardConfig {
   fileUrl?: string
   originalFileName?: string
   mapId?: Types.ObjectId
+  mapCount?: number
   discountPercentage?: number
   createdAt: Date
   updatedAt: Date

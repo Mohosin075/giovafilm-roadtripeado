@@ -25,6 +25,7 @@ const AwardConfigSchema = new mongoose_1.Schema({
     fileUrl: { type: String },
     originalFileName: { type: String },
     mapId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Map' },
+    mapCount: { type: Number, default: 1 },
     discountPercentage: { type: Number },
 }, {
     timestamps: true,

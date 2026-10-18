@@ -1000,14 +1000,12 @@ const deletePlace = async (id: string): Promise<any | null> => {
 
     const result = await Place.findByIdAndDelete(id).session(session)
 
-    // Remove place from map
-    if (result && result.map) {
-      await Map.findByIdAndUpdate(
-        result.map,
-        { $pull: { places: result._id } },
-        { session }
-      )
-    }
+    // Remove place from all maps
+    await Map.updateMany(
+      { places: new mongoose.Types.ObjectId(id) },
+      { $pull: { places: new mongoose.Types.ObjectId(id) } },
+      { session }
+    )
 
     // Clean up visited references
     await Visited.deleteMany({ $or: [{ place: id }, { business: id }] }).session(session)

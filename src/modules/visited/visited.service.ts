@@ -217,6 +217,14 @@ const getMyVisitedPlaces = async (
       },
     },
     { $unwind: { path: '$business', preserveNullAndEmptyArrays: true } },
+    {
+      $match: {
+        $or: [
+          { place: { $exists: true, $ne: null } },
+          { business: { $exists: true, $ne: null } },
+        ],
+      },
+    },
   ]
 
   // Optional search by name or address across place/business
@@ -274,18 +282,41 @@ const getMyVisitedPlaces = async (
 }
 
 const getVisitedCount = async (userId: string) => {
-  const [user, visitedDocsCount] = await Promise.all([
-    User.findById(userId).select('visitedPlacesCount visitedPlaces'),
-    Visited.countDocuments({ user: userId }),
-  ])
+  const user = await User.findById(userId).select('visitedPlacesCount visitedPlaces')
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
   }
-  const count = Math.max(
-    visitedDocsCount,
-    user.visitedPlacesCount || 0,
-    user.visitedPlaces?.length || 0,
-  )
+
+  const validCountAggregate = await Visited.aggregate([
+    { $match: { user: new mongoose.Types.ObjectId(userId) } },
+    {
+      $lookup: {
+        from: 'places',
+        localField: 'place',
+        foreignField: '_id',
+        as: 'p',
+      },
+    },
+    {
+      $lookup: {
+        from: 'businesses',
+        localField: 'business',
+        foreignField: '_id',
+        as: 'b',
+      },
+    },
+    {
+      $match: {
+        $or: [
+          { 'p.0': { $exists: true } },
+          { 'b.0': { $exists: true } },
+        ],
+      },
+    },
+    { $count: 'count' },
+  ])
+
+  const count = validCountAggregate[0]?.count || 0
   if (user.visitedPlacesCount !== count) {
     await User.findByIdAndUpdate(userId, { $set: { visitedPlacesCount: count } })
   }

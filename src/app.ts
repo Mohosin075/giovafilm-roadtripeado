@@ -92,9 +92,20 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // -------------------- Static Files --------------------
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
-app.use('/images', express.static(path.join(process.cwd(), 'uploads/images')))
-app.use('/media', express.static(path.join(process.cwd(), 'uploads/media')))
+const staticImageOptions = {
+  maxAge: '30d',
+  etag: true,
+  lastModified: true,
+  setHeaders: (res: Response, filePath: string) => {
+    if (/\.(jpg|jpeg|png|webp|avif|gif|svg)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=2592000, immutable')
+    }
+  },
+}
+
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads'), staticImageOptions))
+app.use('/images', express.static(path.join(process.cwd(), 'uploads/images'), staticImageOptions))
+app.use('/media', express.static(path.join(process.cwd(), 'uploads/media'), staticImageOptions))
 app.use(
   '/documents',
   express.static(path.join(process.cwd(), 'uploads/documents')),

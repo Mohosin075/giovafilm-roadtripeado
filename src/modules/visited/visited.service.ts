@@ -237,13 +237,18 @@ const getMyVisitedPlaces = async (
     })
   }
 
+  const limitNum = Number(limit)
+  const dataPipeline: any[] = [{ $sort: { [sortField]: sortOrder } }]
+  if (skip > 0) {
+    dataPipeline.push({ $skip: skip })
+  }
+  if (limitNum > 0) {
+    dataPipeline.push({ $limit: limitNum })
+  }
+
   pipeline.push({
     $facet: {
-      data: [
-        { $sort: { [sortField]: sortOrder } },
-        { $skip: skip },
-        { $limit: Number(limit) },
-      ],
+      data: dataPipeline,
       totalCount: [{ $count: 'count' }],
     },
   })
@@ -255,12 +260,12 @@ const getMyVisitedPlaces = async (
     isVisited: true,
   }))
   const total = aggregateResult[0]?.totalCount[0]?.count || 0
-  const totalPage = Math.ceil(total / Number(limit))
+  const totalPage = limitNum > 0 ? Math.ceil(total / limitNum) : 1
 
   return {
     meta: {
       total,
-      limit: Number(limit),
+      limit: limitNum > 0 ? limitNum : total,
       page: Number(page),
       totalPage,
     },
@@ -269,11 +274,21 @@ const getMyVisitedPlaces = async (
 }
 
 const getVisitedCount = async (userId: string) => {
-  const user = await User.findById(userId).select('visitedPlacesCount visitedPlaces')
+  const [user, visitedDocsCount] = await Promise.all([
+    User.findById(userId).select('visitedPlacesCount visitedPlaces'),
+    Visited.countDocuments({ user: userId }),
+  ])
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
   }
-  const count = user.visitedPlacesCount ?? (user.visitedPlaces?.length || 0)
+  const count = Math.max(
+    visitedDocsCount,
+    user.visitedPlacesCount || 0,
+    user.visitedPlaces?.length || 0,
+  )
+  if (user.visitedPlacesCount !== count) {
+    await User.findByIdAndUpdate(userId, { $set: { visitedPlacesCount: count } })
+  }
   return { visitedPlacesCount: count }
 }
 

@@ -62,6 +62,7 @@ users:
 
 Users who have not purchased the map:
 1. On the "Places" page, the images for locked locations should have a more pronounced blur; currently, the locations are still visible in almost full detail.
+[Solved]
 2. QUESTION: Is it possible to randomly position the pins for locked tourist locations across their respective countries? This would prevent users from identifying specific locations simply by looking at the map and then searching for them manually on Google Maps. (Still awaiting a response and a potential solution for this.)
 
 

@@ -170,11 +170,33 @@ const getDiscoveryData = catchAsync(async (req: Request, res: Response) => {
     (user?.visitedPlaces || []).map((id: any) => id.toString())
   )
 
+  const isGuest = !user
+  const now = Date.now()
+  const sixtyDaysMs = 60 * 24 * 60 * 60 * 1000
+
   const itemsWithVisited = Array.isArray(result)
-    ? result.map((item: any) => ({
-        ...item,
-        isVisited: visitedSet.has(item._id?.toString()),
-      }))
+    ? result.map((item: any) => {
+        const isNewlyAdded = Boolean(
+          item.createdAt && (now - new Date(item.createdAt).getTime() <= sixtyDaysMs)
+        )
+        const isLocked = Boolean(item.isLocked)
+
+        // For users without an account, hide the name of newly added locked locations (Issue 2)
+        let maskedName = item.name
+        if (isGuest && isNewlyAdded && isLocked) {
+          maskedName = {
+            en: 'A location was added to the map...',
+            es: 'Se agregó una ubicación al mapa...',
+          }
+        }
+
+        return {
+          ...item,
+          name: maskedName,
+          isNewlyAdded,
+          isVisited: visitedSet.has(item._id?.toString()),
+        }
+      })
     : result
 
   const discoveryFields = ['name', 'description', 'access', 'entryCost', 'hikeTime', 'atmosphere', 'accessibility.notes', 'recommendations.tips', 'category.name']

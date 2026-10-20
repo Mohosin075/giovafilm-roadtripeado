@@ -77,8 +77,10 @@ solved
 Users who have not purchased a map:
 
 1. For the time being, pins should appear at their respective locations, marked with a padlock icon and a call-to-action prompting users to activate the map to view them.
+solved
 
 2. Any newly added locations should be visible to users without an account, though the name of the location must remain hidden. Only "a location was added to the map... etc."
+solved
 
 MOBILE VERSION:
 

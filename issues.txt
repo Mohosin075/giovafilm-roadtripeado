@@ -65,13 +65,14 @@ solved
 solved
 
 5. I created a new badge-based reward requiring 200 XP, but it did not unlock upon reaching the required points; furthermore, my current point total is not being tracked. However, when I changed the reward type to a PDF, a free map, etc., it worked correctly. How do badges function?
+solved
 
 6. One location-"Bai Picnic"-appears duplicated across the records, search tool, and dashboard, though it does not appear as a duplicate on the map itself.
+solved
 
 7. The levels displayed in user profiles, the rewards page, and elsewhere are not linked to the levels defined in the dashboard. It is essential that these update automatically whenever levels or point thresholds are modified or edited.
+solved
 
-
-giovafilm
 
 Users who have not purchased a map:
 

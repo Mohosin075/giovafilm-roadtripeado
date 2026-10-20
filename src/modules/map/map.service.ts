@@ -376,8 +376,101 @@ const getDiscoveryData = async (
     }
   })
 
-  // Combine results
-  let result = [...formattedPlaces, ...formattedBusinesses]
+  // Deduplicate and combine results (Issue 6: Prevent duplicate location records like Bai Picnic)
+  const getAllNormalizedNames = (item: any): string[] => {
+    const names: string[] = []
+    const norm = (s: any) =>
+      String(s || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim()
+
+    if (typeof item?.name === 'string') {
+      names.push(norm(item.name))
+    } else if (item?.name && typeof item.name === 'object') {
+      if (item.name.en) names.push(norm(item.name.en))
+      if (item.name.es) names.push(norm(item.name.es))
+      for (const val of Object.values(item.name)) {
+        if (typeof val === 'string') names.push(norm(val))
+      }
+    }
+    return Array.from(new Set(names.filter(Boolean)))
+  }
+
+  const getCoordsKey = (item: any): string | null => {
+    const coords =
+      item?.location?.coordinates ||
+      item?.location?.mapLocation?.coordinates ||
+      item?.coordinates
+    if (Array.isArray(coords) && coords.length >= 2) {
+      const lng = Number(coords[0])
+      const lat = Number(coords[1])
+      if (Number.isFinite(lng) && Number.isFinite(lat)) {
+        return `${lng.toFixed(4)},${lat.toFixed(4)}`
+      }
+    }
+    return null
+  }
+
+  const businessNameSet = new Set<string>()
+  const businessCoordSet = new Set<string>()
+  const deduplicatedBusinesses: any[] = []
+
+  for (const b of formattedBusinesses) {
+    const bNames = getAllNormalizedNames(b)
+    const coordKey = getCoordsKey(b)
+
+    if (bNames.some(n => businessNameSet.has(n))) continue
+    if (coordKey && businessCoordSet.has(coordKey) && bNames.length > 0) continue
+
+    bNames.forEach(n => businessNameSet.add(n))
+    if (coordKey) businessCoordSet.add(coordKey)
+    deduplicatedBusinesses.push(b)
+  }
+
+  const placeNameSet = new Set<string>()
+  const placeCoordSet = new Set<string>()
+  const deduplicatedPlaces: any[] = []
+
+  for (const p of formattedPlaces) {
+    const pNames = getAllNormalizedNames(p)
+    const coordKey = getCoordsKey(p)
+
+    // Check if this place matches an existing registered Business (by name or coords + similarity)
+    const matchesBusinessByName = pNames.some(n => businessNameSet.has(n))
+    const matchesBusinessByCoord =
+      Boolean(coordKey &&
+      businessCoordSet.has(coordKey) &&
+      deduplicatedBusinesses.some(b => {
+        const bNames = getAllNormalizedNames(b)
+        return bNames.some(bn => pNames.some(pn => pn.includes(bn) || bn.includes(pn)))
+      }))
+
+    if (matchesBusinessByName || matchesBusinessByCoord) {
+      const matchingBusiness = deduplicatedBusinesses.find(b => {
+        const bNames = getAllNormalizedNames(b)
+        return (
+          bNames.some(bn => pNames.includes(bn)) ||
+          (coordKey && getCoordsKey(b) === coordKey)
+        )
+      })
+      if (matchingBusiness) {
+        if (!matchingBusiness.category && p.category) matchingBusiness.category = p.category
+        if (!matchingBusiness.map && p.map) matchingBusiness.map = p.map
+      }
+      continue
+    }
+
+    if (pNames.some(n => placeNameSet.has(n))) continue
+    if (coordKey && placeCoordSet.has(coordKey) && pNames.length > 0) continue
+
+    pNames.forEach(n => placeNameSet.add(n))
+    if (coordKey) placeCoordSet.add(coordKey)
+    deduplicatedPlaces.push(p)
+  }
+
+  let result = [...deduplicatedPlaces, ...deduplicatedBusinesses]
 
   // If there's a searchTerm, we might want to sort by relevance or alphabetically
   if (query.searchTerm) {

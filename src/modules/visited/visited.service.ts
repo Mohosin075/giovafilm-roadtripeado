@@ -54,6 +54,15 @@ const toggleVisited = async (
       // Unmark visited
       await Visited.findByIdAndDelete(existing._id).session(session)
 
+      if (existing.type === 'Business' || existing.business) {
+        const bId = existing.business || targetId
+        await Business.findByIdAndUpdate(
+          bId,
+          { $inc: { viewCount: -1 } },
+          { session }
+        )
+      }
+
       const updatedUser = await User.findByIdAndUpdate(
         userId,
         {
@@ -85,6 +94,35 @@ const toggleVisited = async (
         ],
         { session }
       )
+
+      if (locationType === 'Business') {
+        await Business.findByIdAndUpdate(
+          targetId,
+          { $inc: { viewCount: 1 } },
+          { session }
+        )
+      } else if (isPlaceExist) {
+        const placeName =
+          (typeof isPlaceExist.name === 'object'
+            ? (isPlaceExist.name as any)?.es || (isPlaceExist.name as any)?.en
+            : isPlaceExist.name) || (isPlaceExist as any).name_es || ''
+        if (placeName) {
+          const matchingBiz = await Business.findOne({
+            $or: [
+              { name: placeName },
+              { 'name.en': placeName },
+              { 'name.es': placeName },
+            ],
+          }).session(session)
+          if (matchingBiz) {
+            await Business.findByIdAndUpdate(
+              matchingBiz._id,
+              { $inc: { viewCount: 1 } },
+              { session }
+            )
+          }
+        }
+      }
 
       const updatedUser = await User.findByIdAndUpdate(
         userId,

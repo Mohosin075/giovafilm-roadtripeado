@@ -54,12 +54,15 @@ solved
 Users:
 
 1. On the "Map" page, icons for Google Maps locations-such as supermarkets, gas stations, malls, and anything else registered on Google Maps-are visible. I do not want these to appear on this map; they should only be visible on the dashboard map.
+solved
 
 2. On the "My Business" page, redeemed offers are being tracked, but visits are not. Using the business "Bai Picnic" as an example: I have visited on different days using two separate accounts, yet the view count remains unchanged.
+solved
 
-3. On the landing page, within the "Offers" section, the official images for each business/offer are not displaying; instead, photos of tourist attractions appear in place of the actual restaurant images.
+3. On the landing page, within the "Offers" section, the official images for each business/offer are not displaying; instead, photos of tourist attractions appear in place of the actual restaurant images. - later
 
 4. Please remove the "Purchased Maps" page from the menu; it serves no clear purpose and takes up unnecessary visual space.
+solved
 
 5. I created a new badge-based reward requiring 200 XP, but it did not unlock upon reaching the required points; furthermore, my current point total is not being tracked. However, when I changed the reward type to a PDF, a free map, etc., it worked correctly. How do badges function?
 

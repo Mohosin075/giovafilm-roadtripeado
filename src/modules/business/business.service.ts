@@ -1,3 +1,5 @@
+import mongoose from 'mongoose'
+import { Place } from '../place/place.model'
 import { StatusCodes } from 'http-status-codes'
 import ApiError from '../../errors/ApiError'
 import { IBusiness, BusinessStatus } from './business.interface'
@@ -208,15 +210,65 @@ const getMyBusinesses = async (userId: string, query: Record<string, unknown>) =
       offersByBusiness.get(bId)!.push(off)
     }
 
-    // Get views and visits for each business
+    // Get views and visits for each business (including any matching places with same name)
+    const businessNames: string[] = []
+    for (const b of result as any[]) {
+      if (typeof b.name === 'object') {
+        if (b.name.en) businessNames.push(b.name.en)
+        if (b.name.es) businessNames.push(b.name.es)
+      } else if (typeof b.name === 'string' && b.name.trim()) {
+        businessNames.push(b.name.trim())
+      }
+    }
+
+    const linkedPlaces =
+      businessNames.length > 0
+        ? await Place.find({
+            $or: [
+              { name: { $in: businessNames } },
+              { 'name.en': { $in: businessNames } },
+              { 'name.es': { $in: businessNames } },
+            ],
+          })
+            .select('_id name')
+            .lean()
+        : []
+
+    const linkedPlaceIds = linkedPlaces.map((p) => p._id)
+    const linkedPlaceIdStrings = linkedPlaceIds.map(String)
+
+    // Map place ID to business ID
+    const placeIdToBusinessId = new Map<string, string>()
+    for (const p of linkedPlaces) {
+      const pName = (typeof p.name === 'object' ? `${p.name.en || ''} ${p.name.es || ''}` : p.name || '').toLowerCase().trim()
+      for (const b of result as any[]) {
+        const bName = (typeof b.name === 'object' ? `${b.name.en || ''} ${b.name.es || ''}` : b.name || '').toLowerCase().trim()
+        if (pName && bName && (pName.includes(bName) || bName.includes(pName))) {
+          placeIdToBusinessId.set(String(p._id), String(b._id))
+        }
+      }
+    }
+
     const viewsByBusiness = new Map<string, number>()
     const visitedByBusiness = new Map<string, number>()
 
+    const allEntityIds = [...businessIds.map(String), ...linkedPlaceIdStrings]
     const viewMatch: any = {
-      type: 'business',
-      entityId: { $in: businessIds.map(String) },
+      $or: [
+        { type: 'business', entityId: { $in: businessIds.map(String) } },
+        { entityId: { $in: allEntityIds } },
+      ],
     }
     if (dateRange) viewMatch.lastSeenAt = dateRange
+
+    const visitedMatch: any = {
+      $or: [
+        { type: 'Business', business: { $in: businessIds } },
+        { business: { $in: businessIds } },
+        ...(linkedPlaceIds.length > 0 ? [{ place: { $in: linkedPlaceIds } }] : []),
+      ],
+    }
+    if (dateRange) visitedMatch.visitedAt = dateRange
 
     const [viewAgg, visitedAgg] = await Promise.all([
       UsageView.aggregate([
@@ -229,16 +281,10 @@ const getMyBusinesses = async (userId: string, query: Record<string, unknown>) =
         },
       ]),
       Visited.aggregate([
-        {
-          $match: {
-            type: 'Business',
-            business: { $in: businessIds },
-            ...(dateRange ? { visitedAt: dateRange } : {}),
-          },
-        },
+        { $match: visitedMatch },
         {
           $group: {
-            _id: '$business',
+            _id: { $ifNull: ['$business', '$place'] },
             count: { $sum: 1 },
           },
         },
@@ -246,10 +292,20 @@ const getMyBusinesses = async (userId: string, query: Record<string, unknown>) =
     ])
 
     for (const item of viewAgg) {
-      viewsByBusiness.set(String(item._id), item.count)
+      const idStr = String(item._id)
+      const mappedBizId = placeIdToBusinessId.get(idStr) || idStr
+      viewsByBusiness.set(
+        mappedBizId,
+        (viewsByBusiness.get(mappedBizId) || 0) + item.count,
+      )
     }
     for (const item of visitedAgg) {
-      visitedByBusiness.set(String(item._id), item.count)
+      const idStr = String(item._id)
+      const mappedBizId = placeIdToBusinessId.get(idStr) || idStr
+      visitedByBusiness.set(
+        mappedBizId,
+        (visitedByBusiness.get(mappedBizId) || 0) + item.count,
+      )
     }
 
     // Get redemptions for all offers
@@ -516,10 +572,43 @@ const getBusinessStats = async (businessId: string, timeFilter?: string) => {
     }
   }
 
-  // Views and visits from UsageView and Visited
+  // Views and visits from UsageView and Visited (including any duplicate or linked Place entries)
+  const businessName =
+    typeof business.name === 'object'
+      ? business.name.en || business.name.es || ''
+      : business.name || ''
+
+  const matchingPlace = businessName
+    ? await Place.findOne({
+        $or: [
+          { name: businessName },
+          { 'name.en': businessName },
+          { 'name.es': businessName },
+        ],
+      })
+        .select('_id')
+        .lean()
+    : null
+
+  const targetIds = [businessId]
+  if (matchingPlace) {
+    targetIds.push(String(matchingPlace._id))
+  }
+
   let viewCount = 0
-  const viewQuery: any = { type: 'business', entityId: businessId }
-  const visitedQuery: any = { type: 'Business', business: businessId }
+  const viewQuery: any = {
+    $or: [
+      { type: 'business', entityId: businessId },
+      { entityId: { $in: targetIds } },
+    ],
+  }
+  const visitedQuery: any = {
+    $or: [
+      { business: businessId },
+      { type: 'Business', business: businessId },
+      ...(matchingPlace ? [{ place: matchingPlace._id }] : []),
+    ],
+  }
   if (dateRange) {
     viewQuery.lastSeenAt = dateRange
     visitedQuery.visitedAt = dateRange
@@ -545,12 +634,25 @@ const getBusinessStats = async (businessId: string, timeFilter?: string) => {
   }
 }
 
-const incrementViewCount = async (id: string) => {
-  return await Business.findByIdAndUpdate(
+const incrementViewCount = async (id: string, userId?: string) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) return null
+  const business = await Business.findByIdAndUpdate(
     id,
     { $inc: { viewCount: 1 } },
     { new: true },
   )
+  if (userId) {
+    try {
+      await UsageView.findOneAndUpdate(
+        { viewerKey: `user:${userId}`, type: 'business', entityId: String(id) },
+        { $set: { lastSeenAt: new Date() } },
+        { upsert: true }
+      )
+    } catch {
+      // Ignore unique index collision
+    }
+  }
+  return business
 }
 
 export const BusinessService = {

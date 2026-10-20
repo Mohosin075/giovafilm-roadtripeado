@@ -49,16 +49,19 @@ const viewerKeys = (
   socket: Socket,
   payload?: { visitorId?: string; token?: string },
 ): string[] => {
-  const keys: string[] = []
   const authId =
     readAuthId(payload?.token) || readAuthId(handshakeToken(socket))
-  if (authId) keys.push(`user:${authId}`)
+  if (authId) {
+    // Authenticated users are tracked strictly by user ID so distinct accounts
+    // on the same device/browser are tracked independently.
+    return [`user:${authId}`]
+  }
 
   const guestId = String(payload?.visitorId || '').trim()
   if (guestId && guestId.length >= 8 && guestId.length <= 80) {
-    keys.push(`guest:${guestId}`)
+    return [`guest:${guestId}`]
   }
-  return [...new Set(keys)]
+  return []
 }
 
 const syncViewerKeys = async (

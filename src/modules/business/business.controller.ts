@@ -127,7 +127,11 @@ const getBusinessStats = catchAsync(async (req: Request, res: Response) => {
 
 const incrementViewCount = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
-  const result = await BusinessService.incrementViewCount(id)
+  const userId =
+    (req as any).user?._id ||
+    (req as any).user?.id ||
+    (req as any).user?.authId
+  const result = await BusinessService.incrementViewCount(id, userId ? String(userId) : undefined)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,

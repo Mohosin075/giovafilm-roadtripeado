@@ -85,5 +85,7 @@ solved
 MOBILE VERSION:
 
 1. When pressing the buttons, there is no animation to provide visual feedback that a button has been pressed, unlike in the PC version.
+solved
 
 2. On the "map" page, when I type a municipality into the search bar and press Enter, the keyboard remains on the screen, getting in the way.
+solved

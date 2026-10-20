@@ -1016,7 +1016,7 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
     recentActivities.push({
       id: String(v._id),
       type: 'visit',
-      userId: v.user?._id ? String(v.user._id) : undefined,
+      userId: v.user?._id ? String(v.user._id) : (v.user ? String(v.user) : undefined),
       userName: v.user?.name || 'Explorer',
       userEmail: v.user?.email,
       userProfile: v.user?.profile,
@@ -1036,7 +1036,7 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
     recentActivities.push({
       id: String(r._id),
       type: 'review',
-      userId: r.reviewer?._id ? String(r.reviewer._id) : undefined,
+      userId: r.reviewer?._id ? String(r.reviewer._id) : (r.reviewer ? String(r.reviewer) : undefined),
       userName: r.reviewer?.name || 'Explorer',
       userEmail: r.reviewer?.email,
       userProfile: r.reviewer?.profile,
@@ -1056,7 +1056,7 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
     recentActivities.push({
       id: String(red._id),
       type: 'redemption',
-      userId: red.user?._id ? String(red.user._id) : undefined,
+      userId: red.user?._id ? String(red.user._id) : (red.user ? String(red.user) : undefined),
       userName: red.user?.name || 'Explorer',
       userEmail: red.user?.email,
       userProfile: red.user?.profile,
@@ -1095,6 +1095,44 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
     finalActiveToday = Math.min(finalActiveWeek, Math.max(1, Math.round(finalActiveWeek * 0.4)))
   }
 
+  // Query active users to enable profile inspection on statistics page
+  const allActiveUserIds = new Set<string>()
+  visitedUsersMonth.forEach((u: any) => u && allActiveUserIds.add(String(u)))
+  reviewUsersMonth.forEach((u: any) => u && allActiveUserIds.add(String(u)))
+  redemptionUsersMonth.forEach((u: any) => u && allActiveUserIds.add(String(u)))
+  updatedUsersMonth.forEach((u: any) => u && allActiveUserIds.add(String(u)))
+  recentActivities.forEach((act: any) => act.userId && allActiveUserIds.add(String(act.userId)))
+
+  const validObjectIds = Array.from(allActiveUserIds)
+    .filter((id) => mongoose.Types.ObjectId.isValid(id))
+    .map((id) => new mongoose.Types.ObjectId(id))
+
+  let activeUsersDocs: any[] = []
+  if (validObjectIds.length > 0) {
+    activeUsersDocs = await User.find({ _id: { $in: validObjectIds } })
+      .select('name email profile role level points updatedAt createdAt')
+      .sort({ updatedAt: -1 })
+      .limit(50)
+      .lean()
+  } else {
+    activeUsersDocs = await User.find({})
+      .select('name email profile role level points updatedAt createdAt')
+      .sort({ updatedAt: -1 })
+      .limit(20)
+      .lean()
+  }
+
+  const activeUsersList = activeUsersDocs.map((u: any) => ({
+    _id: String(u._id),
+    name: u.name || 'Explorer',
+    email: u.email || '',
+    profile: u.profile || '',
+    role: u.role || 'user',
+    level: u.level || 0,
+    points: u.points || 0,
+    lastActive: u.updatedAt || u.createdAt || new Date(),
+  }))
+
   const userActivity: IUserActivityStats = {
     activeUsersToday: finalActiveToday,
     activeUsersThisWeek: Math.max(finalActiveToday, finalActiveWeek),
@@ -1104,6 +1142,7 @@ const getReportsData = async (query: Record<string, any> = {}): Promise<IReports
     totalOffersRedeemed,
     totalReviews,
     recentActivities: recentActivities.slice(0, 25),
+    activeUsersList,
   }
 
   return {

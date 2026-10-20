@@ -452,8 +452,8 @@ const approveReview = async (id: string) => {
       }
     }
 
-    // Points earned is 0 if user hasn't purchased the map
-    const points = isMapPurchased ? potentialPoints : 0
+    // Award the full calculated points upon admin approval (1pt rating, +4pts text, +5pts 200+ chars)
+    const points = potentialPoints
 
     // Update review status
     const updatedReview = await Review.findByIdAndUpdate(

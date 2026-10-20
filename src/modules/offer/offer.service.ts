@@ -763,10 +763,10 @@ const redeemOffer = async (id: string, userId: string, authHeader?: string) => {
     )
   }
 
-  // Active session for staff verification: default 15 mins (or offer.redemptionDuration if <= 120 mins)
+  // Active session countdown timer for customer to show staff (configured by admin on offer, default 15 mins)
   const durationInMinutes =
-    offer.redemptionDuration && offer.redemptionDuration > 0 && offer.redemptionDuration <= 120
-      ? offer.redemptionDuration
+    Number(offer.redemptionDuration) && Number(offer.redemptionDuration) > 0
+      ? Number(offer.redemptionDuration)
       : 15
   const expiresAt = new Date(Date.now() + durationInMinutes * 60 * 1000)
 

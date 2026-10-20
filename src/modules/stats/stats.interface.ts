@@ -74,6 +74,18 @@ export interface IUserActivityItem {
   timestamp: Date;
 }
 
+export interface IActiveUserSummary {
+  _id: string;
+  name: string;
+  email: string;
+  profile?: string;
+  role?: string;
+  level?: number;
+  points?: number;
+  lastActive: Date | string;
+  activityType?: string;
+}
+
 export interface IUserActivityStats {
   activeUsersToday: number;
   activeUsersThisWeek: number;
@@ -83,6 +95,7 @@ export interface IUserActivityStats {
   totalOffersRedeemed: number;
   totalReviews: number;
   recentActivities: IUserActivityItem[];
+  activeUsersList?: IActiveUserSummary[];
 }
 
 export interface IReportsData {

@@ -11,9 +11,9 @@ solved
 2. Tapping on a location's name should redirect the user to that location's information page.
 solved
 
-3. Temporarily remove the map view that displays the numbered, plotted route-both in the editable and non-editable versions. - later
+3. Temporarily remove the map view that displays the numbered, plotted route-both in the editable and non-editable versions. - solved
 
-4. On the map used for adding locations to a route, the category icons appear too small; please increase their size. - later
+4. On the map used for adding locations to a route, the category icons appear too small; please increase their size. - solved
 
 5. On the "Route Planner" edit page, remove the "My Routes" and "New Route" buttons from the top.
 solved
@@ -29,7 +29,7 @@ solved
 8. Remove the "Routes" button from the main menu (which includes Map, Places, Offers, Catalog, and For Businesses); it should only appear in the secondary menu (alongside Favorite Places, Visited Places, etc.).
 solved
 
-9. On the route editing page, there is too much text, which creates visual clutter and causes confusion-for example, redundant mentions of "editing saved route," "locally saved draft," and the "Start New" button. 
+9. On the route editing page, there is too much text, which creates visual clutter and causes confusion-for example, redundant mentions of "editing saved route," "locally saved draft," and the "Start New" button.
 solved
 
 10. On the route-editing page, remove the "navigate full route" button; keep it only on the non-editable (view-only) page.
@@ -45,7 +45,7 @@ solved
 2. On the statistics page, I am unable to view the profiles of users who have been active.
 solved
 
-3. On the "promotional links" page, there is a limit to how many recipients are displayed. Please add an option to view more, including pagination to access the remaining entries. 
+3. On the "promotional links" page, there is a limit to how many recipients are displayed. Please add an option to view more, including pagination to access the remaining entries.
 solved
 
 4. On the "Offers" page, I am unable to set a duration for the countdown timer.
